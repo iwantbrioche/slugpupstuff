@@ -8,6 +8,7 @@ namespace SlugpupStuff
 {
     public partial class SlugpupStuff
     {
+        // unfinished and prone to bugs! specifically the fLabels!!
         public class SlugpupDebugViz
         {
             public class TrackedObjLabel
@@ -410,7 +411,7 @@ namespace SlugpupStuff
         public void SlugNPCAI_DebugSprites(On.MoreSlugcats.SlugNPCAI.orig_ctor orig, SlugNPCAI self, AbstractCreature abstractCreature, World world)
         {
             orig(self, abstractCreature, world);
-            if (SlugpupCWTs.pupCWT.TryGetValue(self, out var pupVariables) && slugpupRemix.SlugpupDebugVisuals.Value)
+            if (SlugpupCWTs.pupCWT.TryGetValue(self, out var pupVariables))
             {
                 pupVariables.debugViz = new SlugpupDebugViz(self, world);
                 pupVariables.debugViz.Initiate();
