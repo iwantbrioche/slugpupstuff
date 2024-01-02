@@ -1,7 +1,10 @@
 ﻿using MoreSlugcats;
 using RWCustom;
+using System;
 using System.Collections.Generic;
+using System.Drawing;
 using UnityEngine;
+using Color = UnityEngine.Color;
 using Debug = UnityEngine.Debug;
 
 namespace SlugpupStuff
@@ -38,18 +41,22 @@ namespace SlugpupStuff
                     text = _text;
                     label.text = text;
                     label.SetPosition(pos);
-                    label.isVisible = true;
+                    Enable();
                 }
                 public void Update(PhysicalObject _physicalObject, Vector2 pos)
                 {
                     physicalObject = _physicalObject;
                     label.SetPosition(pos);
-                    label.isVisible = true;
+                    Enable();
                 }
                 public void Disable()
                 {
                     label.isVisible = false;
                     physicalObject = null;
+                }
+                public void Enable()
+                {
+                    label.isVisible = true;
                 }
                 public void Destroy()
                 {
@@ -57,20 +64,21 @@ namespace SlugpupStuff
                     physicalObject = null;
                 }
             }
-            public class UpcomingPathDebug
+            public class PupPathingSprite
             {
                 public SlugNPCAI pup;
                 public DebugSprite sprite;
                 public Vector2 pos;
                 public Color color;
                 public MovementConnection connection;
-                public UpcomingPathDebug(SlugNPCAI _pup, DebugSprite _sprite)
+                public Room room;
+                public PupPathingSprite(SlugNPCAI _pup, DebugSprite _sprite)
                 {
                     pup = _pup;
                     sprite = _sprite;
-                    color = sprite.sprite.color;
                     sprite.sprite.scale = 14f;
-                    pup.creature.Room.realizedRoom.AddObject(sprite);
+                    room = pup.cat.room;
+                    room.AddObject(sprite);
                 }
                 public void Update(Color _color, Vector2 _pos, MovementConnection _connection)
                 {
@@ -78,28 +86,62 @@ namespace SlugpupStuff
                     pos = _pos;
                     sprite.sprite.color = color;
                     sprite.pos = pos;
-                    sprite.sprite.isVisible = true;
                     connection = _connection;
+                    Enable();
+                }
+                public void Update(Color _color, Vector2 _pos)
+                {
+                    color = _color;
+                    pos = _pos;
+                    sprite.sprite.color = color;
+                    sprite.pos = pos;
+                    Enable();
+                }
+                public void Update(Color _color, Vector2 _pos, DebugSprite _sprite)
+                {
+                    color = _color;
+                    pos = _pos;
+                    sprite = _sprite;
+                    sprite.sprite.color = color;
+                    sprite.pos = pos;
+                    Enable();
                 }
                 public void Disable()
                 {
                     sprite.sprite.isVisible = false;
                     connection = null;
                 }
+                public void Enable()
+                {
+                    sprite.sprite.isVisible = true;
+                }
+                public void Destroy()
+                {
+                    sprite.Destroy();
+                    connection = null;
+                }
+                public void ChangeRooms(Room newRoom)
+                {
+                    room.RemoveObject(sprite);
+                    newRoom.AddObject(sprite);
+                    room = newRoom;
+                }
             }
 
             public SlugNPCAI pup;
             public World world;
+            public Room room;
             public TrackedObjLabel[] debugItemLabels;
             public TrackedObjLabel[] debugInputLabels;
             public TrackedObjLabel[] debugCreatureLabels;
             public DebugDestinationVisualizer destinationVisualizer;
             public DebugTrackerVisualizer trackerVisualizer;
-            public UpcomingPathDebug[] debugPathingSprites;
+            public PupPathingSprite[] debugPathingSprites;
             public SlugpupDebugViz(SlugNPCAI _pup, World _world)
             {
                 pup = _pup;
                 world = _world;
+                room = pup.cat.room;
             }
 
             public void Initiate()
@@ -122,7 +164,7 @@ namespace SlugpupStuff
                         {
                             ghosts.sprite.sprite.isVisible = true;
                             ghosts.sprite2.sprite.isVisible = true;
-                            if (!pup.creature.Room.creatures.Contains(ghosts.ghost.parent.representedCreature))
+                            if (!room.abstractRoom.creatures.Contains(ghosts.ghost.parent.representedCreature))
                             {
                                 ghosts.sprite.sprite.isVisible = false;
                                 ghosts.sprite2.sprite.isVisible = false;
@@ -175,8 +217,12 @@ namespace SlugpupStuff
                         destinationVisualizer.sprite4.sprite.isVisible = false;
                         foreach (var pathingDebug in debugPathingSprites)
                         {
-                            pathingDebug.sprite.sprite.isVisible = false;
+                            pathingDebug.Disable();
                         }
+                    }
+                    if (!pup.cat.Consious)
+                    {
+                        DisableAll();
                     }
                 }
                 else
@@ -186,15 +232,52 @@ namespace SlugpupStuff
             }
             public void InitPathingViz(int size)
             {
-                debugPathingSprites = new UpcomingPathDebug[size];
-                for (int k = 0; k < debugPathingSprites.Length; k++)
+                debugPathingSprites = new PupPathingSprite[size + 1];
+                for (int k = 0; k < debugPathingSprites.Length && k < size; k++)
                 {
-                    debugPathingSprites[k] = new UpcomingPathDebug(pup, new DebugSprite(default, new FSprite("pixel"), pup.cat.room));
+                    debugPathingSprites[k] = new PupPathingSprite(pup, new DebugSprite(default, new FSprite("pixel"), room));
+                }
+                debugPathingSprites[size + 1] = new PupPathingSprite(pup, new DebugSprite(default, new FSprite(""), room));  
+            }
+            public void UpdatePathingViz()
+            {
+                destinationVisualizer.Update();
+                destinationVisualizer.sprite1.sprite.isVisible = true;
+                destinationVisualizer.sprite2.sprite.isVisible = true;
+                destinationVisualizer.sprite3.sprite.isVisible = true;
+                destinationVisualizer.sprite4.sprite.isVisible = true;
+                List<MovementConnection> upcoming = pup.GetUpcoming();
+                if (upcoming != null)
+                {
+                    debugPathingSprites[0].Update(pup.cat.ShortCutColor(), room.MiddleOfTile(upcoming[0].StartTile), upcoming[0]);
+                    for (int k = 1; k < debugPathingSprites.Length && k < upcoming.Count; k++)
+                    {
+                        Color color = GetMovementColor(upcoming[k]);
+                        debugPathingSprites[k].Update(color, room.MiddleOfTile(upcoming[k].DestTile), upcoming[k]);
+                        if (upcoming[k] == null)
+                        {
+                            debugPathingSprites[k].sprite.sprite.isVisible = false;
+                        }
+                    }
+                    for (int ka = 0; ka < debugPathingSprites.Length; ka++)
+                    {
+                        if (!upcoming.Contains(debugPathingSprites[ka].connection))
+                        {
+                            debugPathingSprites[ka].sprite.sprite.isVisible = false;
+                        }
+                    }
+                }
+                else
+                {
+                    foreach (var pathingSprites in debugPathingSprites)
+                    {
+                        pathingSprites.Disable();
+                    }
                 }
             }
             public void InitItemLabels()
             {
-                debugItemLabels = new TrackedObjLabel[23];
+                debugItemLabels = new TrackedObjLabel[3 + pup.itemTracker.maxTrackedItems * 2];
 
                 debugItemLabels[0] = new TrackedObjLabel(new FLabel(Custom.GetFont(), pup.creature.ToString() + " grabTarget"));
                 debugItemLabels[1] = new TrackedObjLabel(new FLabel(Custom.GetFont(), pup.creature.ToString() + " wantedObject"));
@@ -215,8 +298,8 @@ namespace SlugpupStuff
                     ItemTracker.ItemRepresentation rep = pup.itemTracker.items[i];
                     rep.dbSpr.sprite.isVisible = true;
 
-                    debugItemLabels[i + 13].Update(rep.representedItem.realizedObject.ToString(), rep.representedItem.realizedObject, rep.representedItem.realizedObject.firstChunk.pos + new Vector2(0f, 12f));
-                    debugItemLabels[i + 2].Update(pup.creature.ToString() + " priority: " + rep.priority.ToString(), rep.representedItem.realizedObject, rep.representedItem.realizedObject.firstChunk.pos);
+                    debugItemLabels[i + pup.itemTracker.maxTrackedItems + 3].Update(rep.representedItem.realizedObject.ToString(), rep.representedItem.realizedObject, rep.representedItem.realizedObject.firstChunk.pos + new Vector2(0f, 12f));
+                    debugItemLabels[i + 3].Update(pup.creature.ToString() + " priority: " + rep.priority.ToString(), rep.representedItem.realizedObject, rep.representedItem.realizedObject.firstChunk.pos);
 
                     if (pup.grabTarget != null && pup.grabTarget == rep.representedItem.realizedObject)
                     {
@@ -252,6 +335,10 @@ namespace SlugpupStuff
                     {
                         itemLabels.Disable();
                     }
+                    if (itemLabels.physicalObject == null)
+                    {
+                        itemLabels.Disable();
+                    }
                 }
             }
             public void InitInputLabels()
@@ -266,115 +353,21 @@ namespace SlugpupStuff
             }
             public void UpdateInputLabels()
             {
-                debugInputLabels[1].Update("X: " + pup.cat.input[0].x, pup.cat, pup.cat.firstChunk.pos);
-                debugInputLabels[2].Update("Y: " + pup.cat.input[0].y, pup.cat, pup.cat.firstChunk.pos - new Vector2(0f, 12f));
-                debugInputLabels[3].Update("JMP: " + pup.cat.input[0].jmp, pup.cat, pup.cat.firstChunk.pos - new Vector2(0f, 12f * 2));
-                debugInputLabels[4].Update("PCKP: " + pup.cat.input[0].pckp, pup.cat, pup.cat.firstChunk.pos - new Vector2(0f, 12f * 3));
-                debugInputLabels[5].Update("THRW: " + pup.cat.input[0].thrw, pup.cat, pup.cat.firstChunk.pos - new Vector2(0f, 12f * 4));
-                debugInputLabels[6].Update("FOLLOW: " + Mathf.Round(pup.followCloseness * 100f) * 0.01f, pup.cat, pup.cat.firstChunk.pos - new Vector2(0f, 12f) * 5);
-                debugInputLabels[7].Update("BEHAVIOR: " + pup.behaviorType.ToString(), pup.cat, pup.cat.firstChunk.pos - new Vector2(0f, 12f) * 6);
+                debugInputLabels[0].Update(pup.cat, pup.cat.firstChunk.pos);
+                debugInputLabels[1].Update("X: " + pup.cat.input[0].x, pup.cat, pup.cat.firstChunk.pos - new Vector2(0f, 12f));
+                debugInputLabels[2].Update("Y: " + pup.cat.input[0].y, pup.cat, pup.cat.firstChunk.pos - new Vector2(0f, 12f * 2));
+                debugInputLabels[3].Update("JMP: " + pup.cat.input[0].jmp, pup.cat, pup.cat.firstChunk.pos - new Vector2(0f, 12f * 3));
+                debugInputLabels[4].Update("PCKP: " + pup.cat.input[0].pckp, pup.cat, pup.cat.firstChunk.pos - new Vector2(0f, 12f * 4));
+                debugInputLabels[5].Update("THRW: " + pup.cat.input[0].thrw, pup.cat, pup.cat.firstChunk.pos - new Vector2(0f, 12f * 5));
+                debugInputLabels[6].Update("FOLLOW: " + Mathf.Round(pup.followCloseness * 100f) * 0.01f, pup.cat, pup.cat.firstChunk.pos - new Vector2(0f, 12f) * 6);
+                debugInputLabels[7].Update("BEHAVIOR: " + pup.behaviorType.ToString(), pup.cat, pup.cat.firstChunk.pos - new Vector2(0f, 12f) * 7);
             }
             public void InitCreatureLabels()
             {
+                // show relationship to pup, what tracker is used, etc.
             }
 
-            public void UpdatePathingViz()
-            {
-                destinationVisualizer.Update();
-                destinationVisualizer.sprite1.sprite.isVisible = true;
-                destinationVisualizer.sprite2.sprite.isVisible = true;
-                destinationVisualizer.sprite3.sprite.isVisible = true;
-                destinationVisualizer.sprite4.sprite.isVisible = true;
-                List<MovementConnection> upcoming = pup.GetUpcoming();
-                if (upcoming != null)
-                {
-                    debugPathingSprites[0].Update(Color.blue, pup.creature.Room.realizedRoom.MiddleOfTile(upcoming[0].StartTile), upcoming[0]);
-                    for (int k = 1; k < debugPathingSprites.Length && k < upcoming.Count; k++)
-                    {
-                        Color color = debugPathingSprites[k].color;
-                        switch (upcoming[k].type)
-                        {
-                            case MovementConnection.MovementType.Standard:
-                                {
-                                    color = Color.green;
-                                    break;
-                                }
-                            case MovementConnection.MovementType.OpenDiagonal:
-                                {
-                                    color = new Color(0.7f, 1f, 0f);
-                                    break;
-                                }
-                            case MovementConnection.MovementType.ReachOverGap:
-                                {
-                                    color = Color.magenta;
-                                    break;
-                                }
-                            case MovementConnection.MovementType.ReachUp:
-                                {
-                                    color = new Color(0.5f, 0f, 1f);
-                                    break;
-                                }
-                            case MovementConnection.MovementType.ReachDown:
-                                {
-                                    color = new Color(0.5f, 0f, 1f);
-                                    break;
-                                }
-                            case MovementConnection.MovementType.SemiDiagonalReach:
-                                {
-                                    color = new Color(0.7f, 1f, 0f);
-                                    break;
-                                }
-                            case MovementConnection.MovementType.DropToFloor:
-                                {
-                                    color = Color.red;
-                                    break;
-                                }
-                            case MovementConnection.MovementType.DropToClimb:
-                                {
-                                    color = new Color(1f, 0.5f, 0f);
-                                    break;
-                                }
-                            case MovementConnection.MovementType.DropToWater:
-                                {
-                                    color = Color.blue;
-                                    break;
-                                }
-                            case MovementConnection.MovementType.ShortCut:
-                                {
-                                    color = Color.cyan;
-                                    break;
-                                }
-                            case MovementConnection.MovementType.BetweenRooms:
-                                {
-                                    color = Color.yellow;
-                                    break;
-                                }
-                            case MovementConnection.MovementType.Slope:
-                                {
-                                    color = new Color(0.5f, 0.5f, 0f);
-                                    break;
-                                }
-                            case MovementConnection.MovementType.NPCTransportation:
-                                {
-                                    color = Color.gray;
-                                    break;
-                                }
-                        }
-                        debugPathingSprites[k].Update(color, pup.creature.Room.realizedRoom.MiddleOfTile(upcoming[k].DestTile), upcoming[k]);
-                        if (upcoming[k] == null)
-                        {
-                            debugPathingSprites[k].sprite.sprite.isVisible = false;
-                        }
-                    }
-                    for (int ka = 0; ka < debugPathingSprites.Length; ka++)
-                    {
-                        if (!upcoming.Contains(debugPathingSprites[ka].connection))
-                        {
-                            debugPathingSprites[ka].sprite.sprite.isVisible = false;
-                        }
-                    }
-                }
-            }
+
 
             public void DisableAll()
             {
@@ -405,6 +398,66 @@ namespace SlugpupStuff
                     inputLabels.Disable();
                 }
             }
+
+            public void DestroyAll()
+            {
+                destinationVisualizer.sprite1.Destroy();
+                destinationVisualizer.sprite2.Destroy();
+                destinationVisualizer.sprite3.Destroy();
+                destinationVisualizer.sprite4.Destroy();
+
+                trackerVisualizer.ClearSprites();
+                pup.itemTracker.visualize = false;
+                foreach (var pathingSprites in debugPathingSprites)
+                {
+                    pathingSprites.Destroy();
+                }
+                foreach (var itemLabels in debugItemLabels)
+                {
+                    itemLabels.Destroy();
+                }
+                foreach (var inputLabels in debugInputLabels)
+                {
+                    inputLabels.Destroy();
+                }
+            }
+            public Color GetMovementColor(MovementConnection movementConnection)
+            {
+                Color color = movementConnection.type switch
+                {
+                    MovementConnection.MovementType.Standard => Color.green,
+                    MovementConnection.MovementType.OpenDiagonal => new Color(0.7f, 1f, 0f),
+                    MovementConnection.MovementType.ReachOverGap => Color.magenta,
+                    MovementConnection.MovementType.ReachUp => new Color(0.5f, 0f, 1f),
+                    MovementConnection.MovementType.ReachDown => new Color(0.5f, 0f, 1f),
+                    MovementConnection.MovementType.SemiDiagonalReach => new Color(0.7f, 1f, 0f),
+                    MovementConnection.MovementType.DropToFloor => Color.red,
+                    MovementConnection.MovementType.DropToClimb => new Color(1f, 0.5f, 0f),
+                    MovementConnection.MovementType.DropToWater => Color.blue,
+                    MovementConnection.MovementType.ShortCut => Color.cyan,
+                    MovementConnection.MovementType.BetweenRooms => Color.yellow,
+                    MovementConnection.MovementType.Slope => new Color(0.5f, 0.5f, 0f),
+                    MovementConnection.MovementType.NPCTransportation => Color.gray,
+                    _ => Color.white,
+                };
+                Color.RGBToHSV(color, out float H, out float S, out float V);
+                var cost = pup.pathFinder.CoordinateCost(movementConnection.destinationCoord);
+                if (cost.resistance != 1f)
+                {
+                    S /= cost.resistance / 1.25f;
+                }
+
+                return Color.HSVToRGB(H, S, V);
+            }
+
+            public void ChangeRooms(Room newRoom)
+            {
+                destinationVisualizer.ChangeRooms(newRoom);
+                foreach(var pathingSprites in debugPathingSprites)
+                {
+                    pathingSprites.ChangeRooms(newRoom);
+                }
+            }
         }
 
 
@@ -433,6 +486,26 @@ namespace SlugpupStuff
             {
                 pupVariables.debugViz.DisableAll();
             }
+        }
+        public void Slugpup_DestroyDebug(On.AbstractRoom.orig_RemoveEntity_AbstractWorldEntity orig, AbstractRoom self, AbstractWorldEntity ent)
+        {
+            if (ent is AbstractCreature && (ent as AbstractCreature).realizedCreature is Player && ((ent as AbstractCreature).realizedCreature as Player).isNPC)
+            {
+                SlugNPCAI pup = ((ent as AbstractCreature).realizedCreature as Player).AI;
+                if (SlugpupCWTs.pupCWT.TryGetValue(pup, out var pupVariables))
+                {
+                    pupVariables.debugViz.DestroyAll();
+                }
+            }
+            orig(self, ent);
+        }
+        private void Slugpup_NewRoom(On.Player.orig_NewRoom orig, Player self, Room newRoom)
+        {
+            if (self.isNPC && SlugpupCWTs.pupCWT.TryGetValue(self.AI, out var pupVariables))
+            {
+                pupVariables.debugViz.ChangeRooms(newRoom);
+            }
+            orig(self, newRoom);
         }
         public void Slugpup_DebugToggles(On.RainWorldGame.orig_Update orig, RainWorldGame self)
         {
