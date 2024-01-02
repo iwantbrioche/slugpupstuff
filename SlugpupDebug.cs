@@ -3,6 +3,8 @@ using RWCustom;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
+using System.Reflection.Emit;
 using UnityEngine;
 using Color = UnityEngine.Color;
 using Debug = UnityEngine.Debug;
@@ -16,19 +18,13 @@ namespace SlugpupStuff
         {
             public class TrackedObjLabel
             {
+                public SlugNPCAI pup;
                 public PhysicalObject physicalObject;
                 public FLabel label;
                 public string text;
-                public TrackedObjLabel(FLabel _label, PhysicalObject _physicalObject)
+                public TrackedObjLabel(SlugNPCAI _pup, FLabel _label)
                 {
-                    text = _label.text;
-                    label = _label;
-                    physicalObject = _physicalObject;
-
-                    Futile.stage.AddChild(label);
-                }
-                public TrackedObjLabel(FLabel _label)
-                {
+                    pup = _pup;
                     text = _label.text;
                     label = _label;
                     physicalObject = null;
@@ -41,42 +37,50 @@ namespace SlugpupStuff
                     text = _text;
                     label.text = text;
                     label.SetPosition(pos);
-                    Enable();
+                    if (pup != null)
+                    {
+                        label.isVisible = true;
+                    }
+                    else Destroy();
                 }
                 public void Update(PhysicalObject _physicalObject, Vector2 pos)
                 {
                     physicalObject = _physicalObject;
                     label.SetPosition(pos);
-                    Enable();
+                    if (pup != null)
+                    {
+                        label.isVisible = true;
+                    }
+                    else Destroy();
                 }
                 public void Disable()
                 {
                     label.isVisible = false;
                     physicalObject = null;
                 }
-                public void Enable()
-                {
-                    label.isVisible = true;
-                }
                 public void Destroy()
                 {
                     label.RemoveFromContainer();
                     physicalObject = null;
+                    pup = null;
+                    
                 }
             }
-            public class PupPathingSprite
+            public class PupDebugSprite
             {
                 public SlugNPCAI pup;
                 public DebugSprite sprite;
                 public Vector2 pos;
+                public float scale;
                 public Color color;
                 public MovementConnection connection;
                 public Room room;
-                public PupPathingSprite(SlugNPCAI _pup, DebugSprite _sprite)
+                public PupDebugSprite(SlugNPCAI _pup, DebugSprite _sprite, float _scale)
                 {
                     pup = _pup;
                     sprite = _sprite;
-                    sprite.sprite.scale = 14f;
+                    scale = _scale;
+                    sprite.sprite.scale = scale;
                     room = pup.cat.room;
                     room.AddObject(sprite);
                 }
@@ -84,41 +88,53 @@ namespace SlugpupStuff
                 {
                     color = _color;
                     pos = _pos;
+                    connection = _connection;
+                    sprite.sprite.scale = scale;
                     sprite.sprite.color = color;
                     sprite.pos = pos;
-                    connection = _connection;
-                    Enable();
+                    if (pup != null)
+                    {
+                        sprite.sprite.isVisible = true;
+                    }
+                    else Destroy();
                 }
                 public void Update(Color _color, Vector2 _pos)
                 {
                     color = _color;
                     pos = _pos;
+                    sprite.sprite.scale = scale;
                     sprite.sprite.color = color;
                     sprite.pos = pos;
-                    Enable();
+                    if (pup != null)
+                    {
+                        sprite.sprite.isVisible = true;
+                    }
+                    else Destroy();
                 }
                 public void Update(Color _color, Vector2 _pos, DebugSprite _sprite)
                 {
                     color = _color;
                     pos = _pos;
                     sprite = _sprite;
+                    sprite.sprite.scale = scale;
                     sprite.sprite.color = color;
                     sprite.pos = pos;
-                    Enable();
+                    if (pup != null)
+                    {
+                        sprite.sprite.isVisible = true;
+                    }
+                    else Destroy();
                 }
                 public void Disable()
                 {
                     sprite.sprite.isVisible = false;
                     connection = null;
                 }
-                public void Enable()
-                {
-                    sprite.sprite.isVisible = true;
-                }
                 public void Destroy()
                 {
                     sprite.Destroy();
                     connection = null;
+                    pup = null;
                 }
                 public void ChangeRooms(Room newRoom)
                 {
@@ -131,17 +147,20 @@ namespace SlugpupStuff
             public SlugNPCAI pup;
             public World world;
             public Room room;
+            public RoomCamera rCam;
             public TrackedObjLabel[] debugItemLabels;
             public TrackedObjLabel[] debugInputLabels;
-            public TrackedObjLabel[] debugCreatureLabels;
+            public TrackedObjLabel[] debugTrackerLabels;
             public DebugDestinationVisualizer destinationVisualizer;
             public DebugTrackerVisualizer trackerVisualizer;
-            public PupPathingSprite[] debugPathingSprites;
+            public PupDebugSprite[] debugPathingSprites;
+            public PupDebugSprite[] idlePosSprites;
             public SlugpupDebugViz(SlugNPCAI _pup, World _world)
             {
                 pup = _pup;
                 world = _world;
                 room = pup.cat.room;
+                rCam = room.world.game.cameras.FirstOrDefault((cam) => cam.room == room);
             }
 
             public void Initiate()
@@ -155,6 +174,7 @@ namespace SlugpupStuff
             }
             public void Update()
             {
+                rCam = world.game.cameras.FirstOrDefault((cam) => cam.room == room);
                 if (debugViz)
                 {
                     if (debugTracker)
@@ -219,6 +239,10 @@ namespace SlugpupStuff
                         {
                             pathingDebug.Disable();
                         }
+                        foreach (var idleDebug in idlePosSprites)
+                        {
+                            idleDebug.Disable();
+                        }
                     }
                     if (!pup.cat.Consious)
                     {
@@ -232,12 +256,16 @@ namespace SlugpupStuff
             }
             public void InitPathingViz(int size)
             {
-                debugPathingSprites = new PupPathingSprite[size + 1];
-                for (int k = 0; k < debugPathingSprites.Length && k < size; k++)
+                debugPathingSprites = new PupDebugSprite[size];
+                idlePosSprites = new PupDebugSprite[2];
+                for (int k = 0; k < debugPathingSprites.Length; k++)
                 {
-                    debugPathingSprites[k] = new PupPathingSprite(pup, new DebugSprite(default, new FSprite("pixel"), room));
+                    debugPathingSprites[k] = new PupDebugSprite(pup, new DebugSprite(default, new FSprite("pixel"), room), 14f);
                 }
-                debugPathingSprites[size + 1] = new PupPathingSprite(pup, new DebugSprite(default, new FSprite(""), room));  
+                for (int i = 0; i < idlePosSprites.Length; i++)
+                {
+                    idlePosSprites[i] = new PupDebugSprite(pup, new DebugSprite(default, new FSprite("MonkA"), room), 1f);
+                }
             }
             public void UpdatePathingViz()
             {
@@ -261,6 +289,7 @@ namespace SlugpupStuff
                     }
                     for (int ka = 0; ka < debugPathingSprites.Length; ka++)
                     {
+                        rCam.ReturnFContainer("Foreground").AddChild(debugPathingSprites[ka].sprite.sprite);
                         if (!upcoming.Contains(debugPathingSprites[ka].connection))
                         {
                             debugPathingSprites[ka].sprite.sprite.isVisible = false;
@@ -274,17 +303,30 @@ namespace SlugpupStuff
                         pathingSprites.Disable();
                     }
                 }
+                if (pup.testIdlePos != null)
+                {
+                    idlePosSprites[0].Update(Color.cyan, room.MiddleOfTile(pup.testIdlePos));
+                    rCam.ReturnFContainer("ForegroundLights").AddChild(idlePosSprites[0].sprite.sprite);
+                }
+                else idlePosSprites[0].Disable();
+
+                if (pup.lastIdleSpot != null && pup.lastIdleSpot.HasValue)
+                {
+                    idlePosSprites[1].Update(Color.black, room.MiddleOfTile(pup.lastIdleSpot.Value));
+                    rCam.ReturnFContainer("ForegroundLights").AddChild(idlePosSprites[1].sprite.sprite);
+                }
+                else idlePosSprites[1].Disable();
             }
             public void InitItemLabels()
             {
                 debugItemLabels = new TrackedObjLabel[3 + pup.itemTracker.maxTrackedItems * 2];
 
-                debugItemLabels[0] = new TrackedObjLabel(new FLabel(Custom.GetFont(), pup.creature.ToString() + " grabTarget"));
-                debugItemLabels[1] = new TrackedObjLabel(new FLabel(Custom.GetFont(), pup.creature.ToString() + " wantedObject"));
-                debugItemLabels[2] = new TrackedObjLabel(new FLabel(Custom.GetFont(), pup.creature.ToString() + " giftedObject"));
+                debugItemLabels[0] = new TrackedObjLabel(pup, new FLabel(Custom.GetFont(), pup.creature.ToString() + " grabTarget"));
+                debugItemLabels[1] = new TrackedObjLabel(pup, new FLabel(Custom.GetFont(), pup.creature.ToString() + " wantedObject"));
+                debugItemLabels[2] = new TrackedObjLabel(pup, new FLabel(Custom.GetFont(), pup.creature.ToString() + " giftedObject"));
                 for (int i = 3; i < debugItemLabels.Length; i++)
                 {
-                    debugItemLabels[i] = new TrackedObjLabel(new FLabel(Custom.GetFont(), ""));
+                    debugItemLabels[i] = new TrackedObjLabel(pup, new FLabel(Custom.GetFont(), ""));
                 }
             }
             public void UpdateItemLabels()
@@ -298,6 +340,10 @@ namespace SlugpupStuff
                     ItemTracker.ItemRepresentation rep = pup.itemTracker.items[i];
                     rep.dbSpr.sprite.isVisible = true;
 
+                    if (debugItemLabels[i] == null)
+                    {
+                        continue;
+                    }
                     debugItemLabels[i + pup.itemTracker.maxTrackedItems + 3].Update(rep.representedItem.realizedObject.ToString(), rep.representedItem.realizedObject, rep.representedItem.realizedObject.firstChunk.pos + new Vector2(0f, 12f));
                     debugItemLabels[i + 3].Update(pup.creature.ToString() + " priority: " + rep.priority.ToString(), rep.representedItem.realizedObject, rep.representedItem.realizedObject.firstChunk.pos);
 
@@ -306,36 +352,25 @@ namespace SlugpupStuff
                         rep.dbSpr.sprite.color = Color.green;
                         debugItemLabels[0].Update(rep.representedItem.realizedObject, rep.representedItem.realizedObject.firstChunk.pos - new Vector2(0f, 12f));
                     }
-                    else
-                    {
-                        debugItemLabels[0].Disable();
-                    }
+                    else debugItemLabels[0].Disable();
+
                     if (pupVariables.wantedObject != null && pupVariables.wantedObject == rep.representedItem.realizedObject)
                     {
                         rep.dbSpr.sprite.color = Color.blue;
-                        debugItemLabels[1].Update(rep.representedItem.realizedObject, rep.representedItem.realizedObject.firstChunk.pos - new Vector2(0f, 24f));
+                        debugItemLabels[1].Update(rep.representedItem.realizedObject, rep.representedItem.realizedObject.firstChunk.pos - new Vector2(0f, 12f * 2f));
                     }
-                    else
-                    {
-                        debugItemLabels[1].Disable();
-                    }
+                    else debugItemLabels[1].Disable();
+
                     if ((pup.friendTracker.giftOfferedToMe?.item != null && pup.friendTracker.giftOfferedToMe.item == rep.representedItem.realizedObject) || (pupVariables.giftedObject != null && pupVariables.giftedObject == rep.representedItem.realizedObject))
                     {
                         rep.dbSpr.sprite.color = new Color(1f, 0f, 1f);
-                        debugItemLabels[2].Update(rep.representedItem.realizedObject, rep.representedItem.realizedObject.firstChunk.pos - new Vector2(0f, 36f));
+                        debugItemLabels[2].Update(rep.representedItem.realizedObject, rep.representedItem.realizedObject.firstChunk.pos - new Vector2(0f, 12f * 3f));
                     }
-                    else
-                    {
-                        debugItemLabels[2].Disable();
-                    }
+                    else debugItemLabels[2].Disable();
                 }
                 foreach (var itemLabels in debugItemLabels)
                 {
-                    if (!pup.cat.room.updateList.Contains(itemLabels.physicalObject))
-                    {
-                        itemLabels.Disable();
-                    }
-                    if (itemLabels.physicalObject == null)
+                    if (!pup.cat.room.updateList.Contains(itemLabels.physicalObject) || itemLabels.physicalObject == null)
                     {
                         itemLabels.Disable();
                     }
@@ -345,26 +380,32 @@ namespace SlugpupStuff
             {
                 debugInputLabels = new TrackedObjLabel[8];
 
-                debugInputLabels[0] = new TrackedObjLabel(new FLabel(Custom.GetFont(), pup.creature.ToString()));
+                debugInputLabels[0] = new TrackedObjLabel(pup, new FLabel(Custom.GetFont(), pup.creature.ToString()));
                 for (int h = 1; h < debugInputLabels.Length; h++)
                 {
-                    debugInputLabels[h] = new TrackedObjLabel(new FLabel(Custom.GetFont(), ""));
+                    debugInputLabels[h] = new TrackedObjLabel(pup, new FLabel(Custom.GetFont(), ""));
                 }
             }
             public void UpdateInputLabels()
             {
-                debugInputLabels[0].Update(pup.cat, pup.cat.firstChunk.pos);
-                debugInputLabels[1].Update("X: " + pup.cat.input[0].x, pup.cat, pup.cat.firstChunk.pos - new Vector2(0f, 12f));
-                debugInputLabels[2].Update("Y: " + pup.cat.input[0].y, pup.cat, pup.cat.firstChunk.pos - new Vector2(0f, 12f * 2));
-                debugInputLabels[3].Update("JMP: " + pup.cat.input[0].jmp, pup.cat, pup.cat.firstChunk.pos - new Vector2(0f, 12f * 3));
-                debugInputLabels[4].Update("PCKP: " + pup.cat.input[0].pckp, pup.cat, pup.cat.firstChunk.pos - new Vector2(0f, 12f * 4));
-                debugInputLabels[5].Update("THRW: " + pup.cat.input[0].thrw, pup.cat, pup.cat.firstChunk.pos - new Vector2(0f, 12f * 5));
-                debugInputLabels[6].Update("FOLLOW: " + Mathf.Round(pup.followCloseness * 100f) * 0.01f, pup.cat, pup.cat.firstChunk.pos - new Vector2(0f, 12f) * 6);
-                debugInputLabels[7].Update("BEHAVIOR: " + pup.behaviorType.ToString(), pup.cat, pup.cat.firstChunk.pos - new Vector2(0f, 12f) * 7);
+                Vector2 pos = pup.cat.firstChunk.pos + new Vector2(-25f, 105f);
+                debugInputLabels[0].Update(pup.cat, pos);
+                debugInputLabels[1].Update("X: " + pup.cat.input[0].x, pup.cat, pos - new Vector2(0f, 12f));
+                debugInputLabels[2].Update("Y: " + pup.cat.input[0].y, pup.cat, pos - new Vector2(0f, 12f * 2f));
+                debugInputLabels[3].Update("JMP: " + pup.cat.input[0].jmp, pup.cat, pos - new Vector2(0f, 12f * 3f));
+                debugInputLabels[4].Update("PCKP: " + pup.cat.input[0].pckp, pup.cat, pos - new Vector2(0f, 12f * 4f));
+                debugInputLabels[5].Update("THRW: " + pup.cat.input[0].thrw, pup.cat, pos - new Vector2(0f, 12f * 5f));
+                debugInputLabels[6].Update("FOLLOW: " + Mathf.Round(pup.followCloseness * 100f) * 0.01f, pup.cat, pos - new Vector2(0f, 12f * 6f));
+                debugInputLabels[7].Update("BEHAVIOR: " + pup.behaviorType.ToString(), pup.cat, pos - new Vector2(0f, 12f * 7f));
             }
             public void InitCreatureLabels()
             {
                 // show relationship to pup, what tracker is used, etc.
+                debugTrackerLabels = new TrackedObjLabel[pup.tracker.maxTrackedCreatures + pup.preyTracker.maxRememberedCreatures + pup.threatTracker.maxRememberedCreatures + 1];
+                for (int t = 0; t < debugTrackerLabels.Length; t++)
+                {
+                    debugTrackerLabels[t] = new TrackedObjLabel(pup, new FLabel(Custom.GetFont(), ""));
+                }
             }
 
 
