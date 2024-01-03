@@ -22,19 +22,31 @@ namespace SlugpupStuff
             public class TrackedObjLabel
             {
                 public SlugNPCAI pup;
+                public Room room;
                 public PhysicalObject physicalObject;
                 public FLabel label;
                 public string text;
-                public TrackedObjLabel(SlugNPCAI _pup, FLabel _label)
+                private bool line;
+                public DebugSprite lineSprite;
+                public TrackedObjLabel(SlugNPCAI _pup, FLabel _label, bool _line)
                 {
                     pup = _pup;
+                    room = pup.cat.room;
                     text = _label.text;
                     label = _label;
-                    physicalObject = null;
+                    line = _line;
+                    if (line)
+                    {
+                        lineSprite = new DebugSprite(default, new FSprite("pixel"), room);
+                        lineSprite.sprite.color = pup.cat.ShortCutColor();
+                        lineSprite.sprite.anchorY = 0f;
+                        lineSprite.sprite.scaleY = 2f;
+                        room.AddObject(lineSprite);
+                    }
 
                     Futile.stage.AddChild(label);
                 }
-                public void Update(string _text, PhysicalObject _physicalObject, Vector2 pos)
+                public void Update(string _text, PhysicalObject _physicalObject, Vector2 pos, Vector2 linePos = default)
                 {
                     physicalObject = _physicalObject;
                     text = _text;
@@ -43,20 +55,47 @@ namespace SlugpupStuff
                     if (pup != null)
                     {
                         label.isVisible = true;
+                        if (line)
+                        {
+                            Vector2 vector = pup.cat.firstChunk.pos;
+                            lineSprite.pos = linePos;
+                            lineSprite.sprite.rotation = Custom.AimFromOneVectorToAnother(linePos, vector);
+                            lineSprite.sprite.scaleY = Vector2.Distance(linePos, vector);
+                            lineSprite.sprite.isVisible = true;
+                        } 
                     }
                     else Destroy();
                 }
                 public void Disable()
                 {
                     label.isVisible = false;
+                    if (line)
+                    {
+                        lineSprite.sprite.isVisible = false;
+                    }
                     physicalObject = null;
                 }
                 public void Destroy()
                 {
                     label.RemoveFromContainer();
+                    if (line)
+                    {
+                        lineSprite.Destroy();
+                    }
+                    label = null;
+                    text = null;
                     physicalObject = null;
                     pup = null;
-                    
+                    room = null;
+                }
+                public void ChangeRooms(Room newRoom)
+                {
+                    if (line)
+                    {
+                        room.RemoveObject(lineSprite);
+                        newRoom.AddObject(lineSprite);
+                    }
+                    room = newRoom;
                 }
             }
             public class PupDebugSprite
@@ -77,7 +116,7 @@ namespace SlugpupStuff
                     room = pup.cat.room;
                     room.AddObject(sprite);
                 }
-                public void Update(Color _color, Vector2 _pos, MovementConnection _connection)
+                public void Update(Color _color, Vector2 _pos, MovementConnection _connection = null)
                 {
                     color = _color;
                     pos = _pos;
@@ -85,24 +124,7 @@ namespace SlugpupStuff
                     sprite.sprite.scale = scale;
                     sprite.sprite.color = color;
                     sprite.pos = pos;
-                    if (pup != null)
-                    {
-                        sprite.sprite.isVisible = true;
-                    }
-                    else Destroy();
-                }
-                public void Update(Color _color, Vector2 _pos)
-                {
-                    color = _color;
-                    pos = _pos;
-                    sprite.sprite.scale = scale;
-                    sprite.sprite.color = color;
-                    sprite.pos = pos;
-                    if (pup != null)
-                    {
-                        sprite.sprite.isVisible = true;
-                    }
-                    else Destroy();
+                    sprite.sprite.isVisible = true;
                 }
                 public void Disable()
                 {
@@ -129,7 +151,7 @@ namespace SlugpupStuff
             public RoomCamera rCam;
             public TrackedObjLabel[] debugItemLabels;
             public TrackedObjLabel[] debugInputLabels;
-            public TrackedObjLabel[] debugTrackerLabels;
+            public TrackedObjLabel[] debugCreatureLabels;
             public DebugDestinationVisualizer destinationVisualizer;
             public DebugTrackerVisualizer trackerVisualizer;
             public PupDebugSprite[] debugPathingSprites;
@@ -146,10 +168,29 @@ namespace SlugpupStuff
             {
                 destinationVisualizer = new DebugDestinationVisualizer(world.game.abstractSpaceVisualizer, world, pup.pathFinder, Color.red);
                 trackerVisualizer = new DebugTrackerVisualizer(pup.tracker);
+                debugItemLabels = new TrackedObjLabel[pup.itemTracker.maxTrackedItems];
+                debugInputLabels = new TrackedObjLabel[1];
+                debugCreatureLabels = new TrackedObjLabel[pup.tracker.maxTrackedCreatures];
+                debugPathingSprites = new PupDebugSprite[20];
+                idlePosSprites = new PupDebugSprite[2];
                 pup.itemTracker.visualize = true;
-                InitPathingDebug(20);
-                InitItemDebug();
-                InitInputDebug();
+
+                for (int k = 0; k < debugPathingSprites.Length; k++)
+                {
+                    debugPathingSprites[k] = new PupDebugSprite(pup, new DebugSprite(default, new FSprite("pixel"), room), 14f);
+                }
+
+                for (int p = 0; p < idlePosSprites.Length; p++)
+                {
+                    idlePosSprites[p] = new PupDebugSprite(pup, new DebugSprite(default, new FSprite("MonkA"), room), 1f);
+                }
+
+                for (int i = 0; i < debugItemLabels.Length; i++)
+                {
+                    debugItemLabels[i] = new TrackedObjLabel(pup, new FLabel(Custom.GetFont(), ""), _line: true);
+                }
+
+                debugInputLabels[0] = new TrackedObjLabel(pup, new FLabel(Custom.GetFont(), ""), _line: false);
             }
             public void Update()
             {
@@ -159,23 +200,28 @@ namespace SlugpupStuff
                     if (debugTracker)
                     {
                         trackerVisualizer.Update();
-                        foreach (var ghosts in trackerVisualizer.spritesAndGhosts)
+                        foreach (var spriteAndGhosts in trackerVisualizer.spritesAndGhosts)
                         {
-                            ghosts.sprite.sprite.isVisible = true;
-                            ghosts.sprite2.sprite.isVisible = true;
-                            if (!room.abstractRoom.creatures.Contains(ghosts.ghost.parent.representedCreature))
+                            spriteAndGhosts.sprite.sprite.isVisible = true;
+                            spriteAndGhosts.sprite2.sprite.isVisible = true;
+                            if (!room.abstractRoom.creatures.Contains(spriteAndGhosts.ghost.parent.representedCreature))
                             {
-                                ghosts.sprite.sprite.isVisible = false;
-                                ghosts.sprite2.sprite.isVisible = false;
+                                spriteAndGhosts.sprite.sprite.isVisible = false;
+                                spriteAndGhosts.sprite2.sprite.isVisible = false;
                             }
                         }
+                        UpdateCreatureDebug();
                     }
                     else
                     {
-                        foreach (var ghosts in trackerVisualizer.spritesAndGhosts)
+                        foreach (var spriteAndGhosts in trackerVisualizer.spritesAndGhosts)
                         {
-                            ghosts.sprite.sprite.isVisible = false;
-                            ghosts.sprite2.sprite.isVisible = false;
+                            spriteAndGhosts.sprite.sprite.isVisible = false;
+                            spriteAndGhosts.sprite2.sprite.isVisible = false;
+                        }
+                        foreach (var creatureLabels in debugCreatureLabels)
+                        {
+                            creatureLabels?.Disable();
                         }
                     }
                     if (debugItems)
@@ -233,19 +279,6 @@ namespace SlugpupStuff
                     DisableAll();
                 }
             }
-            public void InitPathingDebug(int size)
-            {
-                debugPathingSprites = new PupDebugSprite[size];
-                idlePosSprites = new PupDebugSprite[2];
-                for (int k = 0; k < debugPathingSprites.Length; k++)
-                {
-                    debugPathingSprites[k] = new PupDebugSprite(pup, new DebugSprite(default, new FSprite("pixel"), room), 14f);
-                }
-                for (int i = 0; i < idlePosSprites.Length; i++)
-                {
-                    idlePosSprites[i] = new PupDebugSprite(pup, new DebugSprite(default, new FSprite("MonkA"), room), 1f);
-                }
-            }
             public void UpdatePathingDebug()
             {
                 destinationVisualizer.Update();
@@ -256,11 +289,11 @@ namespace SlugpupStuff
                 List<MovementConnection> upcoming = pup.GetUpcoming();
                 if (upcoming != null)
                 {
-                    debugPathingSprites[0].Update(pup.cat.ShortCutColor(), room.MiddleOfTile(upcoming[0].StartTile), upcoming[0]);
+                    debugPathingSprites[0].Update(pup.cat.ShortCutColor(), room.MiddleOfTile(upcoming[0].StartTile), _connection: upcoming[0]);
                     for (int k = 1; k < debugPathingSprites.Length && k < upcoming.Count; k++)
                     {
                         Color color = GetMovementColor(upcoming[k]);
-                        debugPathingSprites[k].Update(color, room.MiddleOfTile(upcoming[k].DestTile), upcoming[k]);
+                        debugPathingSprites[k].Update(color, room.MiddleOfTile(upcoming[k].DestTile), _connection: upcoming[k]);
                         if (upcoming[k] == null)
                         {
                             debugPathingSprites[k].sprite.sprite.isVisible = false;
@@ -296,15 +329,6 @@ namespace SlugpupStuff
                 }
                 else idlePosSprites[1].Disable();
             }
-            public void InitItemDebug()
-            {
-                debugItemLabels = new TrackedObjLabel[pup.itemTracker.maxTrackedItems];
-
-                for (int i = 0; i < debugItemLabels.Length; i++)
-                {
-                    debugItemLabels[i] = new TrackedObjLabel(pup, new FLabel(Custom.GetFont(), ""));
-                }
-            }
             public void UpdateItemDebug()
             {
                 if (!SlugpupCWTs.pupCWT.TryGetValue(pup, out var pupVariables))
@@ -313,7 +337,7 @@ namespace SlugpupStuff
                 }
                 for (int i = 0; i < pup.itemTracker.ItemCount && pup.itemTracker.visualize; i++)
                 {
-                    ItemTracker.ItemRepresentation rep = pup.itemTracker.items[i];
+                    ItemTracker.ItemRepresentation rep = pup.itemTracker.GetRep(i);
                     rep.dbSpr.sprite.isVisible = true;
 
                     string text = rep.representedItem.realizedObject.ToString() + "\n" +
@@ -338,20 +362,15 @@ namespace SlugpupStuff
                         rep.dbSpr.sprite.color = new Color(1f, 0f, 1f);
                         text += gifted;
                     }
-                    debugItemLabels[i].Update(text, rep.representedItem.realizedObject, rep.representedItem.realizedObject.firstChunk.pos + new Vector2(-20f, 50f));
+                    debugItemLabels[i].Update(text, rep.representedItem.realizedObject, rep.representedItem.realizedObject.firstChunk.pos + new Vector2(-20f, 50f), linePos: rep.representedItem.realizedObject.firstChunk.pos);
                 }
                 foreach (var itemLabels in debugItemLabels)
                 {
-                    if (!pup.cat.room.updateList.Contains(itemLabels.physicalObject) || itemLabels.physicalObject == null)
+                    if (!pup.cat.room.updateList.Contains(itemLabels.physicalObject))
                     {
                         itemLabels.Disable();
                     }
                 }
-            }
-            public void InitInputDebug()
-            {
-                debugInputLabels = new TrackedObjLabel[1];
-                debugInputLabels[0] = new TrackedObjLabel(pup, new FLabel(Custom.GetFont(), ""));
             }
             public void UpdateInputDebug()
             {
@@ -366,14 +385,30 @@ namespace SlugpupStuff
 
                 debugInputLabels[0].Update(text, pup.cat, pup.cat.firstChunk.pos + new Vector2(-20f, 85f));
             }
-            public void InitCreatureDebug()
+
+            public void UpdateCreatureDebug()
             {
-                // show relationship to pup, what tracker is used, etc.
-                debugTrackerLabels = new TrackedObjLabel[pup.tracker.maxTrackedCreatures];
-                for (int t = 0; t < debugTrackerLabels.Length; t++)
-                {
-                    debugTrackerLabels[t] = new TrackedObjLabel(pup, new FLabel(Custom.GetFont(), ""));
-                }
+                //for (int t = 0; t < debugCreatureLabels.Length && t < pup.tracker.CreaturesCount; t++)
+                //{
+                //    if (debugCreatureLabels[t] == null)
+                //    {
+                //        debugCreatureLabels[t] = new TrackedObjLabel(pup, new FLabel(Custom.GetFont(), ""), _line: false);
+                //    }
+                //    var critRep = pup.tracker.GetRep(t);
+                //    Vector2 critPos = trackerVisualizer.spritesAndGhosts[t].ghost.pos;
+                //    string text = critRep.representedCreature.realizedCreature.ToString();
+
+                //    debugCreatureLabels[t].Update(text, critRep.representedCreature.realizedCreature, critPos + new Vector2(-20f, 50f));
+                //}
+                //for (int ta = 0; ta < debugCreatureLabels.Length && ta < pup.tracker.CreaturesCount; ta++)
+                //{
+                //    if (debugCreatureLabels[ta] != null && !pup.creature.Room.creatures.Contains(debugCreatureLabels[ta].physicalObject.abstractPhysicalObject))
+                //    {
+                //        debugCreatureLabels[ta].Destroy();
+                //        debugCreatureLabels[ta] = null;
+                //    }
+                //}
+
             }
 
 
@@ -406,6 +441,10 @@ namespace SlugpupStuff
                 {
                     inputLabels.Disable();
                 }
+                foreach (var creatureLabels in debugCreatureLabels)
+                {
+                    creatureLabels?.Disable();
+                }
             }
 
             public void DestroyAll()
@@ -428,6 +467,10 @@ namespace SlugpupStuff
                 foreach (var inputLabels in debugInputLabels)
                 {
                     inputLabels.Destroy();
+                }
+                foreach (var creatureLabels in debugCreatureLabels)
+                {
+                    creatureLabels?.Destroy();
                 }
             }
             public Color GetMovementColor(MovementConnection movementConnection)
@@ -465,6 +508,10 @@ namespace SlugpupStuff
                 foreach(var pathingSprites in debugPathingSprites)
                 {
                     pathingSprites.ChangeRooms(newRoom);
+                }
+                foreach (var itemLabels in debugItemLabels)
+                {
+                    itemLabels.ChangeRooms(newRoom);
                 }
             }
         }
@@ -615,6 +662,7 @@ namespace SlugpupStuff
                 if (RainWorld.ShowLogs)
                 {
                     Debug.Log("enable slugpup creature visuals");
+                    Debug.Log("this is unfinished lol, sorry");
                 }
                 debugCreatures = true;
             }
@@ -632,7 +680,7 @@ namespace SlugpupStuff
         public static bool debugItems = true;
         public static bool debugPath = true;
         public static bool debugTracker = true;
-        public static bool debugCreatures = true;
+        public static bool debugCreatures = false;
         public static bool debugInputs = false;
     }
 }
