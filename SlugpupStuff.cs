@@ -128,7 +128,6 @@ namespace SlugpupStuff
                     On.MoreSlugcats.SlugNPCAI.Update += SlugNPCAI_DebugUpdate;
                     On.RainWorldGame.Update += Slugpup_DebugToggles;
                     On.Player.Die += Slugpup_Die;
-                    On.Player.NewRoom += Slugpup_NewRoom;
                     On.AbstractRoom.RemoveEntity_AbstractWorldEntity += Slugpup_DestroyDebug;
                 }
 

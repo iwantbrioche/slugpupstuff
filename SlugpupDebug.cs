@@ -17,6 +17,7 @@ namespace SlugpupStuff
         // todo:
         // fix room changes
         // creature labels
+        // redo everything lmaoo
         public class SlugpupDebugViz
         {
             public class TrackedObjLabel
@@ -52,19 +53,15 @@ namespace SlugpupStuff
                     text = _text;
                     label.text = text;
                     label.SetPosition(pos);
-                    if (pup != null)
+                    label.isVisible = true;
+                    if (line)
                     {
-                        label.isVisible = true;
-                        if (line)
-                        {
-                            Vector2 vector = pup.cat.firstChunk.pos;
-                            lineSprite.pos = linePos;
-                            lineSprite.sprite.rotation = Custom.AimFromOneVectorToAnother(linePos, vector);
-                            lineSprite.sprite.scaleY = Vector2.Distance(linePos, vector);
-                            lineSprite.sprite.isVisible = true;
-                        } 
+                        Vector2 vector = pup.cat.firstChunk.pos;
+                        lineSprite.pos = linePos;
+                        lineSprite.sprite.rotation = Custom.AimFromOneVectorToAnother(linePos, vector);
+                        lineSprite.sprite.scaleY = Vector2.Distance(linePos, vector);
+                        lineSprite.sprite.isVisible = true;
                     }
-                    else Destroy();
                 }
                 public void Disable()
                 {
@@ -107,6 +104,7 @@ namespace SlugpupStuff
                 public Color color;
                 public MovementConnection connection;
                 public Room room;
+                public bool slatedForDeletion;
                 public PupDebugSprite(SlugNPCAI _pup, DebugSprite _sprite, float _scale)
                 {
                     pup = _pup;
@@ -114,6 +112,7 @@ namespace SlugpupStuff
                     scale = _scale;
                     sprite.sprite.scale = scale;
                     room = pup.cat.room;
+                    slatedForDeletion = false;
                     room.AddObject(sprite);
                 }
                 public void Update(Color _color, Vector2 _pos, MovementConnection _connection = null)
@@ -133,15 +132,11 @@ namespace SlugpupStuff
                 }
                 public void Destroy()
                 {
+                    room.RemoveObject(sprite);
                     sprite.Destroy();
                     connection = null;
                     pup = null;
-                }
-                public void ChangeRooms(Room newRoom)
-                {
-                    room.RemoveObject(sprite);
-                    newRoom.AddObject(sprite);
-                    room = newRoom;
+                    slatedForDeletion = true;
                 }
             }
 
@@ -175,15 +170,7 @@ namespace SlugpupStuff
                 idlePosSprites = new PupDebugSprite[2];
                 pup.itemTracker.visualize = true;
 
-                for (int k = 0; k < debugPathingSprites.Length; k++)
-                {
-                    debugPathingSprites[k] = new PupDebugSprite(pup, new DebugSprite(default, new FSprite("pixel"), room), 14f);
-                }
 
-                for (int p = 0; p < idlePosSprites.Length; p++)
-                {
-                    idlePosSprites[p] = new PupDebugSprite(pup, new DebugSprite(default, new FSprite("MonkA"), room), 1f);
-                }
 
                 for (int i = 0; i < debugItemLabels.Length; i++)
                 {
@@ -194,6 +181,7 @@ namespace SlugpupStuff
             }
             public void Update()
             {
+                room = pup.cat.room;
                 rCam = world.game.cameras.FirstOrDefault((cam) => cam.room == room);
                 if (debugViz)
                 {
@@ -218,10 +206,6 @@ namespace SlugpupStuff
                         {
                             spriteAndGhosts.sprite.sprite.isVisible = false;
                             spriteAndGhosts.sprite2.sprite.isVisible = false;
-                        }
-                        foreach (var creatureLabels in debugCreatureLabels)
-                        {
-                            creatureLabels?.Disable();
                         }
                     }
                     if (debugItems)
@@ -262,11 +246,11 @@ namespace SlugpupStuff
                         destinationVisualizer.sprite4.sprite.isVisible = false;
                         foreach (var pathingDebug in debugPathingSprites)
                         {
-                            pathingDebug.Disable();
+                            pathingDebug?.Disable();
                         }
                         foreach (var idleDebug in idlePosSprites)
                         {
-                            idleDebug.Disable();
+                            idleDebug?.Disable();
                         }
                     }
                     if (!pup.cat.Consious)
@@ -289,22 +273,26 @@ namespace SlugpupStuff
                 List<MovementConnection> upcoming = pup.GetUpcoming();
                 if (upcoming != null)
                 {
-                    debugPathingSprites[0].Update(pup.cat.ShortCutColor(), room.MiddleOfTile(upcoming[0].StartTile), _connection: upcoming[0]);
+                    if (upcoming[0] != null)
+                    {
+                        if (debugPathingSprites[0] == null) debugPathingSprites[0] = new PupDebugSprite(pup, new DebugSprite(default, new FSprite("pixel"), room), 14f);
+                        debugPathingSprites[0]?.Update(pup.cat.ShortCutColor(), room.MiddleOfTile(upcoming[0].StartTile), _connection: upcoming[0]);
+                    }
                     for (int k = 1; k < debugPathingSprites.Length && k < upcoming.Count; k++)
                     {
+                        if (upcoming[k] == null) continue; 
+                        if (debugPathingSprites[k] == null) debugPathingSprites[k] = new PupDebugSprite(pup, new DebugSprite(default, new FSprite("pixel"), room), 14f);
                         Color color = GetMovementColor(upcoming[k]);
-                        debugPathingSprites[k].Update(color, room.MiddleOfTile(upcoming[k].DestTile), _connection: upcoming[k]);
-                        if (upcoming[k] == null)
-                        {
-                            debugPathingSprites[k].sprite.sprite.isVisible = false;
-                        }
+                        debugPathingSprites[k]?.Update(color, room.MiddleOfTile(upcoming[k].DestTile), _connection: upcoming[k]);
                     }
                     for (int ka = 0; ka < debugPathingSprites.Length; ka++)
                     {
-                        rCam.ReturnFContainer("Foreground").AddChild(debugPathingSprites[ka].sprite.sprite);
-                        if (!upcoming.Contains(debugPathingSprites[ka].connection))
+                        if (debugPathingSprites[ka] != null)
                         {
-                            debugPathingSprites[ka].sprite.sprite.isVisible = false;
+                            if (!upcoming.Contains(debugPathingSprites[ka].connection))
+                            {
+                                debugPathingSprites[ka]?.Destroy();
+                            }
                         }
                     }
                 }
@@ -312,22 +300,34 @@ namespace SlugpupStuff
                 {
                     foreach (var pathingSprites in debugPathingSprites)
                     {
-                        pathingSprites.Disable();
+                        pathingSprites?.Destroy();
                     }
                 }
                 if (pup.testIdlePos != null)
                 {
+                    if (idlePosSprites[0] == null) idlePosSprites[0] = new PupDebugSprite(pup, new DebugSprite(default, new FSprite("MonkA"), room), 1f);
                     idlePosSprites[0].Update(Color.cyan, room.MiddleOfTile(pup.testIdlePos));
-                    rCam.ReturnFContainer("ForegroundLights").AddChild(idlePosSprites[0].sprite.sprite);
+                    rCam.ReturnFContainer("HUD2").AddChild(idlePosSprites[0].sprite.sprite);
                 }
-                else idlePosSprites[0].Disable();
+                else idlePosSprites[0]?.Destroy();
 
                 if (pup.lastIdleSpot != null && pup.lastIdleSpot.HasValue)
                 {
+                    if (idlePosSprites[1] == null) idlePosSprites[1] = new PupDebugSprite(pup, new DebugSprite(default, new FSprite("MonkA"), room), 1f);
                     idlePosSprites[1].Update(Color.black, room.MiddleOfTile(pup.lastIdleSpot.Value));
-                    rCam.ReturnFContainer("ForegroundLights").AddChild(idlePosSprites[1].sprite.sprite);
+                    rCam.ReturnFContainer("HUD2").AddChild(idlePosSprites[1].sprite.sprite);
                 }
-                else idlePosSprites[1].Disable();
+                else idlePosSprites[1]?.Destroy();
+                for (int kb = 0; kb < debugPathingSprites.Length; kb++)
+                {
+                    if (debugPathingSprites[kb] != null && debugPathingSprites[kb].slatedForDeletion)
+                    {
+                        debugPathingSprites[kb] = null;
+                    }
+                }
+                if (idlePosSprites[0] != null && idlePosSprites[0].slatedForDeletion) idlePosSprites[0] = null;
+                if (idlePosSprites[1] != null && idlePosSprites[1].slatedForDeletion) idlePosSprites[1] = null;
+
             }
             public void UpdateItemDebug()
             {
@@ -388,27 +388,6 @@ namespace SlugpupStuff
 
             public void UpdateCreatureDebug()
             {
-                //for (int t = 0; t < debugCreatureLabels.Length && t < pup.tracker.CreaturesCount; t++)
-                //{
-                //    if (debugCreatureLabels[t] == null)
-                //    {
-                //        debugCreatureLabels[t] = new TrackedObjLabel(pup, new FLabel(Custom.GetFont(), ""), _line: false);
-                //    }
-                //    var critRep = pup.tracker.GetRep(t);
-                //    Vector2 critPos = trackerVisualizer.spritesAndGhosts[t].ghost.pos;
-                //    string text = critRep.representedCreature.realizedCreature.ToString();
-
-                //    debugCreatureLabels[t].Update(text, critRep.representedCreature.realizedCreature, critPos + new Vector2(-20f, 50f));
-                //}
-                //for (int ta = 0; ta < debugCreatureLabels.Length && ta < pup.tracker.CreaturesCount; ta++)
-                //{
-                //    if (debugCreatureLabels[ta] != null && !pup.creature.Room.creatures.Contains(debugCreatureLabels[ta].physicalObject.abstractPhysicalObject))
-                //    {
-                //        debugCreatureLabels[ta].Destroy();
-                //        debugCreatureLabels[ta] = null;
-                //    }
-                //}
-
             }
 
 
@@ -431,7 +410,7 @@ namespace SlugpupStuff
                 }
                 foreach (var pathingSprites in debugPathingSprites)
                 {
-                    pathingSprites.Disable();
+                    pathingSprites?.Disable();
                 }
                 foreach (var itemLabels in debugItemLabels)
                 {
@@ -440,10 +419,6 @@ namespace SlugpupStuff
                 foreach (var inputLabels in debugInputLabels)
                 {
                     inputLabels.Disable();
-                }
-                foreach (var creatureLabels in debugCreatureLabels)
-                {
-                    creatureLabels?.Disable();
                 }
             }
 
@@ -458,7 +433,7 @@ namespace SlugpupStuff
                 pup.itemTracker.visualize = false;
                 foreach (var pathingSprites in debugPathingSprites)
                 {
-                    pathingSprites.Destroy();
+                    pathingSprites?.Destroy();
                 }
                 foreach (var itemLabels in debugItemLabels)
                 {
@@ -467,10 +442,6 @@ namespace SlugpupStuff
                 foreach (var inputLabels in debugInputLabels)
                 {
                     inputLabels.Destroy();
-                }
-                foreach (var creatureLabels in debugCreatureLabels)
-                {
-                    creatureLabels?.Destroy();
                 }
             }
             public Color GetMovementColor(MovementConnection movementConnection)
@@ -504,13 +475,16 @@ namespace SlugpupStuff
 
             public void ChangeRooms(Room newRoom)
             {
+                Debug.Log("changing rooms!");
                 destinationVisualizer.ChangeRooms(newRoom);
                 foreach(var pathingSprites in debugPathingSprites)
                 {
-                    pathingSprites.ChangeRooms(newRoom);
+                    Debug.Log("pathingSprite changing rooms!");
+                    pathingSprites?.Destroy();
                 }
                 foreach (var itemLabels in debugItemLabels)
                 {
+                    Debug.Log("itemLabels changing rooms!");
                     itemLabels.ChangeRooms(newRoom);
                 }
             }
@@ -555,124 +529,115 @@ namespace SlugpupStuff
             }
             orig(self, ent);
         }
-        public void Slugpup_NewRoom(On.Player.orig_NewRoom orig, Player self, Room newRoom)
-        {
-            if (self.isNPC && SlugpupCWTs.pupCWT.TryGetValue(self.AI, out var pupVariables))
-            {
-                pupVariables.debugViz.ChangeRooms(newRoom);
-            }
-            orig(self, newRoom);
-        }
         public void Slugpup_DebugToggles(On.RainWorldGame.orig_Update orig, RainWorldGame self)
         {
             orig(self);
-            if (!self.devToolsActive)
+            if (self.devToolsActive)
             {
-                return;
-            }
-            if (Input.GetKeyDown(KeyCode.LeftBracket) && debugViz)
-            {
-                if (RainWorld.ShowLogs)
+                if (Input.GetKeyDown(KeyCode.LeftBracket) && debugViz)
                 {
-                    Debug.Log("disable slugpup debug visuals");
+                    if (RainWorld.ShowLogs)
+                    {
+                        Debug.Log("disable slugpup debug visuals");
+                    }
+                    debugViz = false;
+                    return;
                 }
-                debugViz = false;
-                return;
-            }
-            if (Input.GetKeyDown(KeyCode.Quote) && debugViz && debugItems)
-            {
-                if (RainWorld.ShowLogs)
+                if (Input.GetKeyDown(KeyCode.Quote) && debugViz && debugItems)
                 {
-                    Debug.Log("disable slugpup item debug visuals");
+                    if (RainWorld.ShowLogs)
+                    {
+                        Debug.Log("disable slugpup item debug visuals");
+                    }
+                    debugItems = false;
+                    return;
                 }
-                debugItems = false;
-                return;
-            }
-            if (Input.GetKeyDown(KeyCode.Backslash) && debugViz && debugPath)
-            {
-                if (RainWorld.ShowLogs)
+                if (Input.GetKeyDown(KeyCode.Backslash) && debugViz && debugPath)
                 {
-                    Debug.Log("disable slugpup pathing debug visuals");
+                    if (RainWorld.ShowLogs)
+                    {
+                        Debug.Log("disable slugpup pathing debug visuals");
+                    }
+                    debugPath = false;
+                    return;
                 }
-                debugPath = false;
-                return;
-            }
-            if (Input.GetKeyDown(KeyCode.RightBracket) && debugViz && debugTracker)
-            {
-                if (RainWorld.ShowLogs)
+                if (Input.GetKeyDown(KeyCode.RightBracket) && debugViz && debugTracker)
                 {
-                    Debug.Log("disable slugpup tracking debug visuals");
+                    if (RainWorld.ShowLogs)
+                    {
+                        Debug.Log("disable slugpup tracking debug visuals");
+                    }
+                    debugTracker = false;
+                    return;
                 }
-                debugTracker = false;
-                return;
-            }
-            if (Input.GetKeyDown(KeyCode.Semicolon) && debugViz && debugCreatures)
-            {
-                if (RainWorld.ShowLogs)
+                if (Input.GetKeyDown(KeyCode.Semicolon) && debugViz && debugCreatures)
                 {
-                    Debug.Log("disable slugpup creature visuals");
+                    if (RainWorld.ShowLogs)
+                    {
+                        Debug.Log("disable slugpup creature visuals");
+                    }
+                    debugCreatures = false;
+                    return;
                 }
-                debugCreatures = false;
-                return;
-            }
-            if (Input.GetKeyDown(KeyCode.Equals) && debugViz && debugInputs)
-            {
-                if (RainWorld.ShowLogs)
+                if (Input.GetKeyDown(KeyCode.Equals) && debugViz && debugInputs)
                 {
-                    Debug.Log("disable slugpup input visuals");
+                    if (RainWorld.ShowLogs)
+                    {
+                        Debug.Log("disable slugpup input visuals");
+                    }
+                    debugInputs = false;
+                    return;
                 }
-                debugInputs = false;
-                return;
-            }
 
-            if (Input.GetKeyDown(KeyCode.LeftBracket))
-            {
-                if (RainWorld.ShowLogs)
+                if (Input.GetKeyDown(KeyCode.LeftBracket))
                 {
-                    Debug.Log("enable slugpup debug visuals");
+                    if (RainWorld.ShowLogs)
+                    {
+                        Debug.Log("enable slugpup debug visuals");
+                    }
+                    debugViz = true;
                 }
-                debugViz = true;
-            }
-            if (Input.GetKeyDown(KeyCode.Quote) && debugViz)
-            {
-                if (RainWorld.ShowLogs)
+                if (Input.GetKeyDown(KeyCode.Quote) && debugViz)
                 {
-                    Debug.Log("enable slugpup item debug visuals");
+                    if (RainWorld.ShowLogs)
+                    {
+                        Debug.Log("enable slugpup item debug visuals");
+                    }
+                    debugItems = true;
                 }
-                debugItems = true;
-            }
-            if (Input.GetKeyDown(KeyCode.Backslash) && debugViz)
-            {
-                if (RainWorld.ShowLogs)
+                if (Input.GetKeyDown(KeyCode.Backslash) && debugViz)
                 {
-                    Debug.Log("enable slugpup pathing debug visuals");
+                    if (RainWorld.ShowLogs)
+                    {
+                        Debug.Log("enable slugpup pathing debug visuals");
+                    }
+                    debugPath = true;
                 }
-                debugPath = true;
-            }
-            if (Input.GetKeyDown(KeyCode.RightBracket) && debugViz)
-            {
-                if (RainWorld.ShowLogs)
+                if (Input.GetKeyDown(KeyCode.RightBracket) && debugViz)
                 {
-                    Debug.Log("enable slugpup tracking debug visuals");
+                    if (RainWorld.ShowLogs)
+                    {
+                        Debug.Log("enable slugpup tracking debug visuals");
+                    }
+                    debugTracker = true;
                 }
-                debugTracker = true;
-            }
-            if (Input.GetKeyDown(KeyCode.Semicolon) && debugViz)
-            {
-                if (RainWorld.ShowLogs)
+                if (Input.GetKeyDown(KeyCode.Semicolon) && debugViz)
                 {
-                    Debug.Log("enable slugpup creature visuals");
-                    Debug.Log("this is unfinished lol, sorry");
+                    if (RainWorld.ShowLogs)
+                    {
+                        Debug.Log("enable slugpup creature visuals");
+                        Debug.Log("this is unfinished lol, sorry");
+                    }
+                    debugCreatures = true;
                 }
-                debugCreatures = true;
-            }
-            if (Input.GetKeyDown(KeyCode.Equals) && debugViz)
-            {
-                if (RainWorld.ShowLogs)
+                if (Input.GetKeyDown(KeyCode.Equals) && debugViz)
                 {
-                    Debug.Log("enable slugpup input visuals");
+                    if (RainWorld.ShowLogs)
+                    {
+                        Debug.Log("enable slugpup input visuals");
+                    }
+                    debugInputs = true;
                 }
-                debugInputs = true;
             }
         }
 
