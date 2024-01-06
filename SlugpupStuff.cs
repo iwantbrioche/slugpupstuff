@@ -4,7 +4,6 @@ using MonoMod.Cil;
 using MoreSlugcats;
 using RWCustom;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
@@ -18,11 +17,6 @@ using Random = UnityEngine.Random;
 // starving stuff
 
 //      to do for misc stuff:
-// pup wants 
-//  - add small creatures for list of wants
-//  - grabby hands if item is in parents hand
-//  - pups not always pointing
-//  - pups wanting items that dont exist (might be fixed?) => (i dont think so)
 // thumbnail for mod
 
 //      to do for compat with mods:
@@ -73,7 +67,6 @@ namespace SlugpupStuff
                 On.MoreSlugcats.SlugNPCAI.LethalWeaponScore += SlugNPCAI_LethalWeaponScore;
                 On.MoreSlugcats.SlugNPCAI.GetFoodType += SlugNPCAI_GetFoodType;
                 On.MoreSlugcats.SlugNPCAI.AteFood += SlugNPCAI_AteFood;
-                On.MoreSlugcats.SlugNPCAI.PassingGrab += SlugNPCAI_ItemWantingHook;
                 On.MoreSlugcats.SlugNPCAI.Move += SlugNPCAI_Move;
                 On.MoreSlugcats.SlugNPCAI.DecideBehavior += SlugNPCAI_DecideBehavior;
 
@@ -89,7 +82,6 @@ namespace SlugpupStuff
                 On.Player.SaintTongueCheck += Player_SaintTongueCheck;
                 On.Player.ClassMechanicsSaint += Player_ClassMechanicsSaintOnBack;
                 On.Player.ClassMechanicsSaint += Player_VariantMechanicsTundrapup;
-                On.Player.NPCForceGrab += Player_NPCForceGrab;
                 On.Player.GrabUpdate += Player_SlugpupStorageHook;
                 On.Player.TongueUpdate += Player_TongueUpdate;
 
@@ -215,180 +207,9 @@ namespace SlugpupStuff
             }
 
         }
-        public void SlugNPCAI_ItemWantingHook(On.MoreSlugcats.SlugNPCAI.orig_PassingGrab orig, SlugNPCAI self)
-        {
-            if (SlugpupCWTs.pupCWT.TryGetValue(self, out var pupVariables))
-            {
-                if (self.itemTracker.ItemCount <= 0)
-                {
-                    orig(self);
-                    return;
-                }
-                if (self.behaviorType == SlugNPCAI.BehaviorType.Attacking || self.behaviorType == SlugNPCAI.BehaviorType.Fleeing || self.behaviorType == SlugNPCAI.BehaviorType.Thrown)
-                {
-                    orig(self);
-                    return;
-                }
-                if (pupVariables.wantCounter > 0)
-                {
-                    //Debug.Log($"{self.cat} wantCounter = {pupVariables.wantCounter}");
-                    orig(self);
-                    return;
-                }
-                PhysicalObject realizedObject = null;
-                foreach (var itemRep in self.itemTracker.items)
-                {
-                    if (itemRep == null) continue;
-                    itemRep.priority = SlugpupWantedItemPriority(self, itemRep.representedItem.realizedObject);
-                    if (SlugpupWantsItem(self, itemRep.representedItem.realizedObject))
-                    {
-                        if (self.itemTracker.ItemCount == 1)
-                        {
-                            realizedObject = itemRep.representedItem.realizedObject;
-                            break;
-                        }
-                        else
-                        {
-                            realizedObject = itemRep.representedItem.realizedObject;
-                            foreach (var trackedRep in self.itemTracker.items)
-                            {
-                                if (trackedRep == null) continue;
-                                trackedRep.priority = SlugpupWantedItemPriority(self, trackedRep.representedItem.realizedObject);
-                                if (SlugpupWantsItem(self, trackedRep.representedItem.realizedObject))
-                                {
-                                    if (itemRep == trackedRep || itemRep.priority >= trackedRep.priority)
-                                    {
-                                        continue;
-                                    }
-                                    else
-                                    {
-                                        realizedObject = trackedRep.representedItem.realizedObject;
-                                        if (self.grabTarget == itemRep.representedItem.realizedObject) self.grabTarget = null;
-                                        continue;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if (pupVariables.wantedObject == itemRep.representedItem.realizedObject) pupVariables.wantedObject = null;
-                        continue;
-                    }
-                    if (self.cat.slugcatStats.name == VariantName.Tundrapup)
-                    {
-                        if (realizedObject is JellyFish && self.WantsToEatThis(realizedObject))
-                        {
-                            realizedObject = null;
-                            continue;
-                        }
-                    }
-                }
-                if (realizedObject != null)
-                {
-                    //Debug.Log($"{self.cat} wants {realizedObject}");
-                    //Debug.Log($"{self.cat} {realizedObject} priority = {SlugpupWantedItemPriority(self, realizedObject)}");
-                    pupVariables.wantedObject = realizedObject;
-                    if (!self.HoldingThis(realizedObject))
-                    {
-                        if (self.VisualScore(realizedObject.firstChunk.pos, self.cat.npcStats.Size) > 0.25f)
-                        {
-                            if (realizedObject.grabbedBy.Count > 0)
-                            {
-                                if (self.behaviorType == SlugNPCAI.BehaviorType.OnHead || self.behaviorType == SlugNPCAI.BehaviorType.Thrown)
-                                {
-                                    if (self.grabTarget == realizedObject) self.grabTarget = null;
-                                    orig(self);
-                                    return;
-                                }
-                                if (realizedObject.grabbedBy[0].grabber is Player && realizedObject.grabbedBy[0].grabber as Player != self.cat)
-                                {
-                                    if (pupVariables.grabbyCounter > 0)
-                                    {
-                                        orig(self);
-                                        return;
-                                    }
-                                    //Debug.Log($"{self.cat} {realizedObject} in {grabbed.grabber as Player}'s hand");
-                                    // add grabby here
-                                    if (self.grabTarget == realizedObject) self.grabTarget = null;
-                                    orig(self);
-                                    return;
-                                }
-                            }
-                            if (self.cat.CanIPickThisUp(realizedObject))
-                            {
-                                if (!self.pathFinder.CoordinateViable(realizedObject.abstractPhysicalObject.pos) || self.behaviorType == SlugNPCAI.BehaviorType.BeingHeld)
-                                {
-                                    if (pupVariables.pointCounter > 0)
-                                    {
-                                        orig(self);
-                                        return;
-                                    }
-                                    if (self.cat.input[0].x == 0 && self.friendTracker.friend != null && self.cat.grasps[0] == null)
-                                    {
-                                        SlugpupPointUpdate(self, realizedObject);
-                                    }
-                                    if (self.grabTarget == realizedObject) self.grabTarget = null;
-                                    orig(self);
-                                    return;
-                                }
-                                self.grabTarget = realizedObject;
-                            }
-                        }
-                        else
-                        {
-                            //Debug.Log($"{self.cat} cant see {realizedObject}");
-                            if (self.grabTarget == realizedObject) self.grabTarget = null;
-                            if (pupVariables.wantedObject == realizedObject) pupVariables.wantedObject = null;
-                        }
-                    }
-                }
-                else
-                {
-                    if (pupVariables.wantedObject == realizedObject) pupVariables.wantedObject = null;
-                }
-            }
-            orig(self);
-        }
         public void SlugNPCAI_Update(On.MoreSlugcats.SlugNPCAI.orig_Update orig, SlugNPCAI self)
         {
             orig(self);
-            if (SlugpupCWTs.pupCWT.TryGetValue(self, out var pupVariables))
-            {
-                if (pupVariables.wantCounter > 0) pupVariables.wantCounter--;
-                if (pupVariables.pointCounter > 0) pupVariables.pointCounter--;
-                if (pupVariables.grabbyCounter > 0) pupVariables.grabbyCounter--;
-                if (pupVariables.giftCounter > 0) pupVariables.giftCounter--;
-                //Debug.Log($"{self.cat} giftCounter = {pupVariables.giftCounter}");
-
-                if (pupVariables.giftedObject == null) pupVariables.giftCounter = 0;
-                if (pupVariables.giftedObject != null && pupVariables.giftCounter == 0) pupVariables.giftedObject = null;
-
-                if (self.friendTracker.giftOfferedToMe?.item != null)
-                {
-                    pupVariables.wantedObject = self.friendTracker.giftOfferedToMe.item;
-                    pupVariables.giftedObject = self.friendTracker.giftOfferedToMe.item;
-                    pupVariables.giftCounter = (int)(7500f * (SlugpupWantedItemPriority(self, self.friendTracker.giftOfferedToMe.item) + 0.7f));
-                    pupVariables.wantCounter = 0;
-                    //Debug.Log($"{self.cat} {pupVariables.wantedObject} is gift");
-                }
-                if (pupVariables.wantedObject != null && self.CanGrabItem(pupVariables.wantedObject))
-                {
-                    self.cat.ReleaseGrasp(0);
-                    self.cat.NPCForceGrab(pupVariables.wantedObject);
-                }
-                if (pupVariables.wantedObject != null && self.HoldingThis(pupVariables.wantedObject) && (pupVariables.giftedObject != pupVariables.wantedObject || pupVariables.giftCounter == 0) && !SlugpupWantsItem(self, pupVariables.wantedObject))
-                {
-                    self.cat.ReleaseGrasp(0);
-                    if (pupVariables.giftedObject == pupVariables.wantedObject)
-                    {
-                        pupVariables.giftedObject = null;
-                    }
-                    pupVariables.wantedObject = null;
-                }
-
-
-            }
 
             if (self.nap)
             {
@@ -420,16 +241,6 @@ namespace SlugpupStuff
         public void SlugNPCAI_AteFood(On.MoreSlugcats.SlugNPCAI.orig_AteFood orig, SlugNPCAI self, PhysicalObject food)
         {
             orig(self, food);
-            if (SlugpupCWTs.pupCWT.TryGetValue(self, out var pupVariables))
-            {
-                pupVariables.wantCounter = 0;
-                if (pupVariables.wantedObject == food) pupVariables.wantedObject = null;
-                if (pupVariables.giftedObject == food)
-                {
-                    pupVariables.giftedObject = null;
-                    pupVariables.giftCounter = 0;
-                }
-            }
         }
         public void SlugNPCAI_DecideBehavior(On.MoreSlugcats.SlugNPCAI.orig_DecideBehavior orig, SlugNPCAI self)
         {
@@ -454,203 +265,6 @@ namespace SlugpupStuff
 
             upcomingCurs.Next.OpCode = OpCodes.Ldc_I4;
             upcomingCurs.Next.Operand = 20;
-        }
-        public bool SlugpupWantsItem(SlugNPCAI self, PhysicalObject obj)
-        {
-            if (obj == null)
-            {
-                return false;
-            }
-            if (!SlugpupCWTs.pupCWT.TryGetValue(self, out var pupVariables))
-            {
-                return false;
-            }
-            if (self.WantsToEatThis(obj) && (obj is not OracleSwarmer || self.NeuronsLegal()) && Random.value - 0.2f < SlugpupWantedItemPriority(self, obj))
-            {
-                return true;
-            }
-            if (self.friendTracker.giftOfferedToMe?.item != null && self.friendTracker.giftOfferedToMe.item == obj)
-            {
-                return true;
-            }
-            if (obj == pupVariables.wantedObject)
-            {
-                return true;
-            }
-            if (obj == pupVariables.giftedObject && Random.value < SlugpupWantedItemPriority(self, obj))
-            {
-                return true;
-            }
-
-            if (!(Random.value < Mathf.Lerp(0f, 0.9f, Mathf.InverseLerp(0.4f, 1f, self.cat.abstractCreature.personality.bravery))))
-            {
-                if (Random.value < SlugpupWantedItemPriority(self, obj))
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-        public float SlugpupWantedItemPriority(SlugNPCAI self, PhysicalObject obj)
-        {
-            if (!SlugpupCWTs.pupCWT.TryGetValue(self, out var pupVariables))
-            {
-                return 0;
-            }
-            if (obj == null)
-            {
-                return 0;
-            }
-            Random.InitState(self.cat.abstractCreature.ID.RandomSeed);
-            float want;
-            if (self.WantsToEatThis(obj))
-            {
-                SlugNPCAI.Food foodType = self.GetFoodType(obj);
-                float foodPref = Mathf.Pow(((!(foodType != SlugNPCAI.Food.NotCounted)) ? 0f : ((foodType.Index == -1) ? 0f : self.foodPreference[foodType.Index]) + 1f) / 2, 2f);
-                if (self.cat.room.game.IsStorySession)
-                {
-                    if (self.cat.CurrentFood < self.cat.slugcatStats.foodToHibernate)
-                    {
-                        float num = 1f;
-                        for (int i = 0; i < self.cat.MaxFoodInStomach - self.cat.slugcatStats.foodToHibernate; i++)
-                        {
-                            num += 0.1f;
-                            if (num >= 1.5f)
-                            {
-                                break;
-                            }
-                        }
-                        foodPref *= num;
-                    }
-                }
-                if (self.cat.slugcatStats.name == VariantName.Hunterpup && obj is not Creature)
-                {
-                    foodPref /= 1.35f;
-                }
-                if (self.cat.slugcatStats.name == VariantName.Rotundpup)
-                {
-                    foodPref *= 1.25f;
-                }
-                if ((self.HoldingThis(obj) && (obj == pupVariables.wantedObject || obj == pupVariables.giftedObject)) || obj == pupVariables.giftedObject)
-                {
-                    foodPref *= 1.3f;
-                }
-                else
-                {
-                    if (!self.pathFinder.CoordinateViable(obj.abstractPhysicalObject.pos))
-                    {
-                        foodPref /= 1.8f;
-                    }
-                }
-                foodPref *= Mathf.InverseLerp(25f, -200f, Custom.WorldCoordFloatDist(self.cat.abstractCreature.pos, obj.abstractPhysicalObject.pos)) + 1f;
-                return Mathf.Clamp01(foodPref);
-            }
-            if (obj is Spear || obj is ScavengerBomb || obj is SingularityBomb)
-            {
-                want = Mathf.Clamp(Mathf.Lerp(self.cat.abstractCreature.personality.aggression * Custom.PushFromHalf(Random.value, 2f), Mathf.Lerp(0f, 0.9f, Custom.PushFromHalf(Random.value, 2f)), Custom.PushFromHalf(Random.value, 2f)), 0f, 1f);
-            }
-            else if (obj is DataPearl || obj is OverseerCarcass || obj is NSHSwarmer || obj is VultureMask)
-            {
-                want = Mathf.Clamp(Mathf.Lerp(self.cat.abstractCreature.personality.energy * Custom.PushFromHalf(Random.value, 2f), Mathf.Lerp(0f, 1f, Custom.PushFromHalf(Random.value, 2f)), Custom.PushFromHalf(Random.value, 2f)), 0f, 1f);
-            }
-            else if (obj is FirecrackerPlant || obj is FlyLure || obj is PuffBall || obj is FlareBomb || obj is GooieDuck || obj is BubbleGrass || obj is NeedleEgg)
-            {
-                want = Mathf.Clamp(Mathf.Lerp(self.cat.abstractCreature.personality.dominance * Custom.PushFromHalf(Random.value, 2f), Mathf.Lerp(0f, 0.9f, Custom.PushFromHalf(Random.value, 2f)), Custom.PushFromHalf(Random.value, 2f)), 0f, 1f);
-            }
-            else if (obj is Rock || obj is PuffBall || obj is FlareBomb || obj is FirecrackerPlant || obj is LillyPuck || obj is JellyFish)
-            {
-                want = Mathf.Clamp(Mathf.Lerp(self.cat.abstractCreature.personality.nervous * Custom.PushFromHalf(Random.value, 2f), Mathf.Lerp(0f, 0.9f, Custom.PushFromHalf(Random.value, 2f)), Custom.PushFromHalf(Random.value, 2f)), 0f, 1f);
-            }
-            else
-            {
-                want = Mathf.Clamp(Mathf.Lerp(self.cat.abstractCreature.personality.energy * Custom.PushFromHalf(Random.value, 2f), Mathf.Lerp(0f, 0.85f, Custom.PushFromHalf(Random.value, 2f)), Custom.PushFromHalf(Random.value, 2f)), 0f, 1f);
-            }
-            if ((self.HoldingThis(obj) && (obj == pupVariables.wantedObject || obj == pupVariables.giftedObject)) || obj == pupVariables.giftedObject)
-            {
-                want *= 1.255f;
-            }
-            else
-            {
-                if (!self.pathFinder.CoordinateViable(obj.abstractPhysicalObject.pos))
-                {
-                    want /= 1.8f;
-                }
-            }
-            want *= Mathf.InverseLerp(25f, -200f, Custom.WorldCoordFloatDist(self.cat.abstractCreature.pos, obj.abstractPhysicalObject.pos)) + 1f;
-            return Mathf.Clamp01(want);
-        }
-        public void SlugpupPointUpdate(SlugNPCAI self, PhysicalObject obj)
-        {
-            self.cat.handPointing = -1;
-            Vector2 pos = (self.cat.graphicsModule as PlayerGraphics).head.pos;
-            Vector2 objPos = obj.firstChunk.pos;
-            Vector2 vector = Custom.DegToVec(Custom.AimFromOneVectorToAnother(pos, objPos));
-            for (int num2 = 1; num2 >= 0; num2--)
-            {
-                if ((self.cat.grasps[num2] == null) && (self.cat.graphicsModule as PlayerGraphics).hands[1 - num2].reachedSnapPosition)
-                {
-                    self.cat.handPointing = num2;
-                }
-            }
-            float num3 = 100f;
-            if (self.cat.input[0].jmp || (self.cat.objectPointed != null && self.cat.objectPointed.jollyBeingPointedCounter > 10))
-            {
-                self.cat.pointCycle += 0.3f;
-                num3 = Mathf.Lerp(10f, 50f, Math.Abs(Mathf.Sin(self.cat.pointCycle)));
-            }
-
-            Vector2 vector2 = new(self.cat.mainBodyChunk.pos.x + vector.x * num3, self.cat.mainBodyChunk.pos.y + vector.y * num3);
-            (self.cat.graphicsModule as PlayerGraphics).LookAtPoint(vector2, 10f);
-            if (self.cat.handPointing > -1)
-            {
-                (self.cat.graphicsModule as PlayerGraphics).hands[self.cat.handPointing].reachingForObject = true;
-                (self.cat.graphicsModule as PlayerGraphics).hands[self.cat.handPointing].absoluteHuntPos = vector2;
-            }
-
-            if (obj != null)
-            {
-                if (obj == self.cat.objectPointed)
-                {
-                    self.cat.objectPointed.jollyBeingPointedCounter++;
-                }
-                else
-                {
-                    self.cat.objectPointed = obj;
-                    self.cat.objectPointed.jollyBeingPointedCounter = 0;
-                }
-            }
-            else if (self.cat.objectPointed != null && self.cat.objectPointed.jollyBeingPointedCounter > 2)
-            {
-                self.cat.objectPointed.jollyBeingPointedCounter -= 2;
-            }
-
-            if (self.cat.objectPointed == null || self.cat.objectPointed.jollyBeingPointedCounter <= 5 || self.cat.objectPointed.jollyBeingPointedCounter >= 15)
-            {
-                return;
-            }
-        }
-        public void Player_NPCForceGrab(On.Player.orig_NPCForceGrab orig, Player self, PhysicalObject obj)
-        {
-            orig(self, obj);
-            if (self.isNPC)
-            {
-                SlugNPCAI pup = self.AI;
-                if (SlugpupCWTs.pupCWT.TryGetValue(pup, out var pupVariables))
-                {
-                    if (pup.WantsToEatThis(obj) || pup.WantsToEatThis(pupVariables.wantedObject))
-                    {
-                        pupVariables.wantCounter = (int)(150f * SlugpupWantedItemPriority(pup, obj) + 1f);
-                    }
-                    else if (pup.friendTracker.giftOfferedToMe != null && pup.friendTracker.giftOfferedToMe.item != null)
-                    {
-                        pupVariables.wantCounter = (int)(900f * SlugpupWantedItemPriority(pup, obj) + 1f);
-                    }
-                    else
-                    {
-                        pupVariables.wantCounter = (int)(500f * SlugpupWantedItemPriority(pup, obj) + 1f);
-                    }
-                }
-            }
         }
         public void Player_SlugpupStorageHook(On.Player.orig_GrabUpdate orig, Player self, bool eu)
         {

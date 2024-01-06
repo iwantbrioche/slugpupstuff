@@ -10,13 +10,6 @@ namespace SlugpupStuff
         public static readonly ConditionalWeakTable<SlugNPCAI, PupVariables> pupCWT = new();
         public class PupVariables
         {
-            public int wantCounter = 0;
-            public int pointCounter = 0;
-            public int grabbyCounter = 0;
-            public int giftCounter = 0;
-            public PhysicalObject wantedObject = null;
-            public PhysicalObject giftedObject = null;
-
         }
 
         public class PupGraphics
