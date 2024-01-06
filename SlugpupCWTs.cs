@@ -17,7 +17,6 @@ namespace SlugpupStuff
             public PhysicalObject wantedObject = null;
             public PhysicalObject giftedObject = null;
 
-            public SlugpupStuff.SlugpupDebugViz debugViz;
         }
 
         public class PupGraphics

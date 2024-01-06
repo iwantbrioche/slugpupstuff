@@ -12,11 +12,9 @@ namespace SlugpupStuff
             logger = logSource;
 
             SaintTundraGrapple = config.Bind("SlugpupStuff_SaintTundraGrapple", true, new ConfigurableInfo("Toggle using Tundrapup grapple as Saint"));
-            SlugpupDebugVisuals = config.Bind("SlugpupStuff_SlugpupDebugVisuals", false, new ConfigurableInfo("Enables debug visuals for Slugpups"));
         }
 
         public readonly Configurable<bool> SaintTundraGrapple;
-        public readonly Configurable<bool> SlugpupDebugVisuals;
 
         public override void Initialize()
         {

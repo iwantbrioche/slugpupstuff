@@ -121,15 +121,6 @@ namespace SlugpupStuff
                 IL.MoreSlugcats.PlayerNPCState.CycleTick += IL_PlayerNPCState_CycleTick;
                 IL.RegionState.AdaptRegionStateToWorld += IL_RegionState_AdaptRegionStateToWorld;
 
-                // Slugpup Debug Hooks
-                if (slugpupRemix.SlugpupDebugVisuals.Value)
-                {
-                    On.MoreSlugcats.SlugNPCAI.ctor += SlugNPCAI_DebugSprites;
-                    On.MoreSlugcats.SlugNPCAI.Update += SlugNPCAI_DebugUpdate;
-                    On.RainWorldGame.Update += Slugpup_DebugToggles;
-                    On.Player.Die += Slugpup_Die;
-                    On.AbstractRoom.RemoveEntity_AbstractWorldEntity += Slugpup_DestroyDebug;
-                }
 
 
                 IsInit = true;
