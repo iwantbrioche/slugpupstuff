@@ -2,7 +2,7 @@
 
 ### A slugpup mod that adds four new slugpup variants as well as other fixes and new behaviors.
 
-Unreleased
-On Hold till later:
-Debug Visualizer
-Slugpup Wanting Behaviors
+Unreleased  
+On Hold till later:  
+Debug Visualizer, check slugpup-debug branch for that  
+Slugpup Wanting Behaviors  
