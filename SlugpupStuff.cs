@@ -4,6 +4,7 @@ using MonoMod.Cil;
 using MoreSlugcats;
 using RWCustom;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
@@ -14,17 +15,16 @@ using Random = UnityEngine.Random;
 // rotund pup spitting up items when given disliked food or at random
 // better rotund exhaust behavior
 // better tundra pup ungrapple behavior
-// starving stuff
+// save variant
+//  starving stuff:
+// tundrapup less grapple length
+// rotundpup cant spit up items, thinner
 
 //      to do for misc stuff:
 // thumbnail for mod
 
-//      to do for compat with mods:
-// make dms work :hunterangy:
-// emerald's tweaks 
-
 //      remix config:
-// manually set variant chances
+// manually set variant chances (JUST NEED TO IMPIMENT THIS)
 // set pup id to specific variant
 
 // oups..,......................,,,,,.........
@@ -66,7 +66,6 @@ namespace SlugpupStuff
                 On.MoreSlugcats.SlugNPCAI.HasEdible += SlugNPCAI_HasEdible;
                 On.MoreSlugcats.SlugNPCAI.LethalWeaponScore += SlugNPCAI_LethalWeaponScore;
                 On.MoreSlugcats.SlugNPCAI.GetFoodType += SlugNPCAI_GetFoodType;
-                On.MoreSlugcats.SlugNPCAI.AteFood += SlugNPCAI_AteFood;
                 On.MoreSlugcats.SlugNPCAI.Move += SlugNPCAI_Move;
                 On.MoreSlugcats.SlugNPCAI.DecideBehavior += SlugNPCAI_DecideBehavior;
 
@@ -80,7 +79,6 @@ namespace SlugpupStuff
                 On.Player.AllowGrabbingBatflys += Player_AllowGrabbingBatflys;
                 On.Player.CanEatMeat += Player_CanEatMeat;
                 On.Player.SaintTongueCheck += Player_SaintTongueCheck;
-                On.Player.ClassMechanicsSaint += Player_ClassMechanicsSaintOnBack;
                 On.Player.ClassMechanicsSaint += Player_VariantMechanicsTundrapup;
                 On.Player.GrabUpdate += Player_SlugpupStorageHook;
                 On.Player.TongueUpdate += Player_TongueUpdate;
@@ -120,6 +118,11 @@ namespace SlugpupStuff
             catch (Exception ex)
             {
                 Logger.LogError("Pups+ failed to load!");
+                if (ex is KeyNotFoundException)
+                {
+                    Logger.LogInfo("This is likely because of Emerald's Tweaks! This is a known incompatability that will be fixed when Emerald's Tweaks updates!");
+                    Logger.LogInfo("If after Emerald's Tweaks is disabled and this issue still persists, contact the developer over steam or on the Rainworld Discord Server at @iwantbread");
+                }
                 Logger.LogError(ex);
                 throw;
             }
@@ -137,6 +140,11 @@ namespace SlugpupStuff
                 if (ModManager.ActiveMods.Any(mod => mod.id == "dressmyslugcat"))
                 {
                     SlugpupGraphics.SetupDMSSprites();
+                    new MonoMod.RuntimeDetour.Hook(
+                        typeof(DressMySlugcat.Utils).GetProperty(nameof(DressMySlugcat.Utils.ValidSlugcatNames), 
+                            System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static).GetGetMethod(),
+                        SlugpupGraphics.ValidPupNames
+                        );
                 }
                 if (ModManager.ActiveMods.Any(mod => mod.id == "yeliah.slugpupFieldtrip"))
                 {
@@ -155,7 +163,7 @@ namespace SlugpupStuff
             }
             catch (Exception ex)
             {
-                Logger.LogError("Pups+ PostModsInit failed!");
+                Logger.LogError("Pups+ PostModsInit failed to load!");
                 Logger.LogError(ex);
                 throw;
             }
@@ -184,7 +192,10 @@ namespace SlugpupStuff
         public void IL_SlugNPCAI_ctor(ILContext il)
         {
             ILCursor itemTrackerCurs = new(il);
-            itemTrackerCurs.GotoNext(MoveType.Before, x => x.MatchNewobj<ItemTracker>());   // Goto 'AddModule(new ItemTracker(this, 10, 10, -1, -1, stopTrackingCarried: true));'
+            itemTrackerCurs.GotoNext(MoveType.Before, x => x.MatchNewobj<ItemTracker>());
+            /* GOTO
+             * AddModule(new ItemTracker(this, 10, 10, -1, -1, stopTrackingCarried: >HERE< true))
+             */
             itemTrackerCurs.Prev.OpCode = OpCodes.Ldc_I4_0; // Switch stopTrackingCarried to false
         }
         public void Player_Update(On.Player.orig_Update orig, Player self, bool eu)
@@ -213,7 +224,7 @@ namespace SlugpupStuff
 
             if (self.nap)
             {
-                self.cat.emoteSleepCounter += Mathf.Clamp(0.0008f / self.cat.abstractCreature.personality.energy, 0.0008f, 0.005f);
+                self.cat.emoteSleepCounter += Mathf.Clamp(0.0008f / self.cat.abstractCreature.personality.energy, 0.0008f, 0.05f);
                 if (self.cat.emoteSleepCounter > 1.4f)
                 {
                     if (self.cat.graphicsModule != null)
@@ -237,10 +248,6 @@ namespace SlugpupStuff
                     self.cat.ReleaseGrasp(0);
                 }
             }
-        }
-        public void SlugNPCAI_AteFood(On.MoreSlugcats.SlugNPCAI.orig_AteFood orig, SlugNPCAI self, PhysicalObject food)
-        {
-            orig(self, food);
         }
         public void SlugNPCAI_DecideBehavior(On.MoreSlugcats.SlugNPCAI.orig_DecideBehavior orig, SlugNPCAI self)
         {
@@ -270,7 +277,6 @@ namespace SlugpupStuff
         {
             Player pupGrabbed = null;
             int grabbedIndex = -1;
-            PhysicalObject grabbedObj = null;
             foreach (var grasped in self.grasps)
             {
                 if (grasped?.grabbed is Player && (grasped.grabbed as Player).isNPC)
@@ -286,7 +292,6 @@ namespace SlugpupStuff
                     if (grasped?.grabbed != null && grasped.grabbed != pupGrabbed)
                     {
                         grabbedIndex = grasped.graspUsed;
-                        grabbedObj = grasped.grabbed;
                         break;
                     }
                 }
@@ -297,48 +302,35 @@ namespace SlugpupStuff
                         orig(self, eu);
                         return;
                     }
-                    if (self.slugOnBack != null)
+                    if (self.slugOnBack != null) self.slugOnBack.increment = false;
+                    if (self.spearOnBack != null) self.spearOnBack.increment = false;
+
+                    if (grabbedIndex > -1 && self.grasps[grabbedIndex].grabbed != null)
                     {
-                        self.slugOnBack.increment = false;
-                    }
-                    if (self.spearOnBack != null)
-                    {
-                        self.spearOnBack.increment = false;
-                    }
-                    if (grabbedIndex > -1 && grabbedObj != null)
-                    {
-                        if (pupGrabbed.objectInStomach == null && pupGrabbed.CanBeSwallowed(grabbedObj) && pupGrabbed.Consious)
+                        if (pupGrabbed.objectInStomach == null && pupGrabbed.CanBeSwallowed(self.grasps[grabbedIndex].grabbed) && pupGrabbed.Consious)
                         {
                             pupGrabbed.swallowAndRegurgitateCounter++;
                             pupGrabbed.AI.heldWiggle = 0;
                             if (pupGrabbed.swallowAndRegurgitateCounter > 90)
                             {
-                                if (RainWorld.ShowLogs)
-                                {
-                                    Debug.Log($"yummy {grabbedObj}");
-                                }
                                 pupGrabbed.SwallowObject(grabbedIndex);
                                 pupGrabbed.swallowAndRegurgitateCounter = 0;
                                 (pupGrabbed.graphicsModule as PlayerGraphics).swallowing = 20;
                             }
                         }
                     }
-                    if ((pupGrabbed.objectInStomach != null || pupGrabbed.slugcatStats.name == VariantName.Rotundpup) && pupGrabbed.Consious)
+                    if ((pupGrabbed.objectInStomach != null || pupGrabbed.slugcatStats.name == VariantName.Rotundpup && slugpupRemix.ManualItemGen.Value) && pupGrabbed.Consious)
                     {
                         pupGrabbed.swallowAndRegurgitateCounter++;
                         bool spitUpObject = false;
-                        if (pupGrabbed.slugcatStats.name == VariantName.Rotundpup && pupGrabbed.objectInStomach == null && grabbedIndex == -1 && grabbedObj == null)
+                        if (pupGrabbed.slugcatStats.name == VariantName.Rotundpup && pupGrabbed.objectInStomach == null && grabbedIndex == -1)
                         {
                             spitUpObject = true;
                         }
                         pupGrabbed.AI.heldWiggle = 0;
                         if (pupGrabbed.swallowAndRegurgitateCounter > 110)
                         {
-                            if (RainWorld.ShowLogs)
-                            {
-                                Debug.Log($"spit that {pupGrabbed.objectInStomach.realizedObject} out rn");
-                            }
-                            if (!spitUpObject || (spitUpObject && pupGrabbed.FoodInStomach >= 1))
+                            if (!spitUpObject || (spitUpObject && pupGrabbed.FoodInStomach > 0))
                             {
                                 if (spitUpObject)
                                 {
@@ -473,10 +465,9 @@ namespace SlugpupStuff
 
             ILLabel rotundLabel = il.DefineLabel();
             ILLabel branchLabel = il.DefineLabel();
-            ILLabel cursLabel = il.DefineLabel();
 
             rotundCurs.GotoNext(MoveType.After, x => x.MatchCall<Player>("get_isGourmand"));
-            /* GOTO
+            /* GOTO AFTER
              * if (!isGourmand)
              */
             rotundLabel = rotundCurs.Next.Operand as ILLabel; // Mark rotundLabel at 'objectInStomach = GourmandCombos.RandomStomachItem(this);'
@@ -497,17 +488,10 @@ namespace SlugpupStuff
             rotundCurs.Emit(OpCodes.Brtrue_S, rotundLabel);
 
             parentCurs.GotoNext(MoveType.After, x => x.MatchLdloc(2), x => x.Match(OpCodes.Brfalse));
-            /* GOTO BEFORE
-             * if (flag && FreeHand() > -1)
+            /* GOTO 
+             * if (flag >HERE< && FreeHand() > -1)
              */
-            graspedCurs.GotoNext(x => x.MatchLdarg(0), x => x.MatchLdnull());
-            /* GOTO
-             * objectInStomach = null; 
-             */
-
-            graspedCurs.MarkLabel(branchLabel); // Mark branchLabel at 'objectInStomach = null;'
-
-            parentCurs.MarkLabel(cursLabel); // Mark cursLabel before the emitted ldarg.0 to goto it later
+            branchLabel = parentCurs.Prev.Operand as ILLabel; // Mark branchLabel at 'objectInStomach = null;'
 
             parentCurs.Emit(OpCodes.Ldarg_0);
             parentCurs.EmitDelegate((Player self) =>   // If grabbed by a player, make player grab regurgitated object and branch to branchLabel
@@ -516,45 +500,31 @@ namespace SlugpupStuff
                 if (self.AI?.behaviorType == SlugNPCAI.BehaviorType.BeingHeld)
                 {
                     parent = self.grabbedBy[0].grabber as Player;
-                }
-                if (parent != null && parent.FreeHand() > -1)
-                {
-                    if (ModManager.MMF && ((parent.grasps[0] != null) ^ (parent.grasps[1] != null)) && parent.Grabability(self.objectInStomach.realizedObject) == Player.ObjectGrabability.BigOneHand)
+                    if (parent != null && parent.FreeHand() > -1)
                     {
-                        int num3 = 0;
-                        if (parent.FreeHand() == 0)
+                        if (ModManager.MMF && ((parent.grasps[0] != null) ^ (parent.grasps[1] != null)) && parent.Grabability(self.objectInStomach.realizedObject) == Player.ObjectGrabability.BigOneHand)
                         {
-                            num3 = 1;
-                        }
+                            int num3 = 0;
+                            if (parent.FreeHand() == 0)
+                            {
+                                num3 = 1;
+                            }
 
-                        if (parent.Grabability(parent.grasps[num3].grabbed) != Player.ObjectGrabability.BigOneHand)
+                            if (parent.Grabability(parent.grasps[num3].grabbed) != Player.ObjectGrabability.BigOneHand)
+                            {
+                                parent.SlugcatGrab(self.objectInStomach.realizedObject, parent.FreeHand());
+                            }
+                        }
+                        else
                         {
                             parent.SlugcatGrab(self.objectInStomach.realizedObject, parent.FreeHand());
                         }
                     }
-                    else
-                    {
-                        parent.SlugcatGrab(self.objectInStomach.realizedObject, parent.FreeHand());
-                    }
-                }
-            });
-            parentCurs.Emit(OpCodes.Br_S, branchLabel);
-
-            ILLabel graspedlabel = il.DefineLabel();
-            parentCurs.MarkLabel(graspedlabel); // Mark graspedLabel at 'if (flag && FreeHand() > -1)'
-
-            parentCurs.GotoLabel(cursLabel, MoveType.Before); // Goto cursLabel
-
-            parentCurs.Emit(OpCodes.Ldarg_0);
-            parentCurs.EmitDelegate((Player self) =>   // If not grabbed by a player, branch to graspedLabel
-            {
-                if (self.AI?.behaviorType == SlugNPCAI.BehaviorType.BeingHeld)
-                {
                     return true;
                 }
                 return false;
             });
-            parentCurs.Emit(OpCodes.Brfalse_S, graspedlabel);
+            parentCurs.Emit(OpCodes.Brtrue_S, branchLabel);
         }
         public void IL_Player_GrabUpdate(ILContext il)
         {

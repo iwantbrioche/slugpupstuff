@@ -437,7 +437,20 @@ namespace SlugpupStuff
         }
         public void Player_VariantMechanicsTundrapup(On.Player.orig_ClassMechanicsSaint orig, Player self)
         {
-            if (self.slugcatStats.name == VariantName.Tundrapup)
+            Player parent = null;
+            if (self.AI?.behaviorType == SlugNPCAI.BehaviorType.BeingHeld)
+            {
+                parent = self.grabbedBy[0].grabber as Player;
+            }
+            if (self.onBack != null && slugpupRemix.BackTundraGrapple.Value)
+            {
+                parent = self.onBack.slugOnBack.owner;
+                while (parent.onBack != null)
+                {
+                    parent = parent.onBack.slugOnBack.owner;
+                }
+            }
+            if (self.slugcatStats.name == VariantName.Tundrapup && parent == null)
             {
                 if (self.input[0].jmp && !self.input[1].jmp && !self.input[0].pckp && self.canJump <= 0 && self.bodyMode != Player.BodyModeIndex.Crawl && self.animation != Player.AnimationIndex.ClimbOnBeam && self.animation != Player.AnimationIndex.AntlerClimb && self.animation != Player.AnimationIndex.HangFromBeam && self.SaintTongueCheck())
                 {
@@ -451,28 +464,7 @@ namespace SlugpupStuff
                     self.tongue.Shoot(normalized);
                 }
             }
-            else
-            {
-                orig(self);
-            }
-        }
-        public void Player_ClassMechanicsSaintOnBack(On.Player.orig_ClassMechanicsSaint orig, Player self)
-        {
-            bool OnBack = self.onBack != null;
-            Player parent = null;
-            if (self.AI?.behaviorType == SlugNPCAI.BehaviorType.BeingHeld)
-            {
-                parent = self.grabbedBy[0].grabber as Player;
-            }
-            if (self.onBack != null)
-            {
-                parent = self.onBack.slugOnBack.owner;
-                while (parent.onBack != null)
-                {
-                    parent = parent.onBack.slugOnBack.owner;
-                }
-            }
-            if (parent != null && (self.slugcatStats.name == VariantName.Tundrapup || (self.slugcatStats.name == MoreSlugcatsEnums.SlugcatStatsName.Saint && self.playerState.isPup && OnBack)))
+            else if (parent != null && (self.slugcatStats.name == VariantName.Tundrapup || (self.slugcatStats.name == MoreSlugcatsEnums.SlugcatStatsName.Saint && self.playerState.isPup && self.onBack != null)))
             {
                 if (parent.input[0].jmp && !parent.input[1].jmp && !parent.input[0].pckp && parent.canJump <= 0 && parent.bodyMode != Player.BodyModeIndex.Crawl && parent.animation != Player.AnimationIndex.ClimbOnBeam && parent.animation != Player.AnimationIndex.AntlerClimb && parent.animation != Player.AnimationIndex.HangFromBeam && self.SaintTongueCheck())
                 {
@@ -490,7 +482,6 @@ namespace SlugpupStuff
             {
                 orig(self);
             }
-
         }
         public bool Player_CanEatMeat(On.Player.orig_CanEatMeat orig, Player self, Creature crit)
         {
@@ -537,15 +528,8 @@ namespace SlugpupStuff
             }
             if (parent != null)
             {
-                if (self.tongue == null || self.room == null)
-                {
-                    return;
-                }
-                if (parent.SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Artificer && parent.input[0].jmp && parent.input[1].pckp)
-                {
-                    // THIs IS A SHITTY BANDAID SOLUTION BUT I CANT THINK OF ANYTHIN ELSE :hunterbarrage:
-                    self.tongue.Release();
-                }
+                if (self.tongue == null || self.room == null) return;
+                if (parent.SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Artificer && parent.input[0].jmp && parent.input[1].pckp) self.tongue.Release();
                 self.tongue.baseChunk = parent.bodyChunks[0];
                 if (self.tongue.Attached)
                 {
@@ -641,7 +625,7 @@ namespace SlugpupStuff
                 {
                     return;
                 }
-                else if ((parent.SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Artificer || ExpeditionGame.explosivejump && !parent.input[0].pckp && !parent.input[1].pckp) && self.mode == Player.Tongue.Mode.Retracted)
+                else if (self.mode == Player.Tongue.Mode.Retracted)
                 {
                     self.mode = Player.Tongue.Mode.ShootingOut;
                     self.player.room.PlaySound(SoundID.Tube_Worm_Shoot_Tongue, self.baseChunk);

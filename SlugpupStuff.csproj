@@ -8,6 +8,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>lib\Assembly-CSharp-nstrip.dll</HintPath>
+    </Reference>
     <Reference Include="BepInEx">
       <HintPath>..\rain world references\BepInEx.dll</HintPath>
     </Reference>
@@ -34,9 +37,6 @@
     </Reference>
     <Reference Include="MonoMod.Utils">
       <HintPath>..\rain world references\MonoMod.Utils.dll</HintPath>
-    </Reference>
-    <Reference Include="Assembly-CSharp">
-      <HintPath>..\rain world references\PUBLIC-Assembly-CSharp.dll</HintPath>
     </Reference>
     <Reference Include="Pearlcat">
       <HintPath>..\..\..\Steam Games\steamapps\workshop\content\312520\3013739512\plugins\Pearlcat.dll</HintPath>

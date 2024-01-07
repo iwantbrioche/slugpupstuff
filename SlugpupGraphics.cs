@@ -1,5 +1,4 @@
-﻿using DressMySlugcat;
-using Mono.Cecil.Cil;
+﻿using Mono.Cecil.Cil;
 using MonoMod.Cil;
 using MoreSlugcats;
 using RWCustom;
@@ -109,57 +108,49 @@ namespace SlugpupStuff
         public static void IL_PlayerGraphics_InitiateSprites(ILContext il)
         {
             ILCursor initCurs = new(il);
-            initCurs.GotoNext(MoveType.After, x => x.MatchLdsfld<MoreSlugcatsEnums.SlugcatStatsName>(nameof(MoreSlugcatsEnums.SlugcatStatsName.Saint)));
-            initCurs.GotoNext(x => x.MatchLdsfld<MoreSlugcatsEnums.SlugcatStatsName>(nameof(MoreSlugcatsEnums.SlugcatStatsName.Saint)));
-            initCurs.GotoPrev(MoveType.After, x => x.Match(OpCodes.Brfalse_S));
+            ILCursor breakCurs = new(il);
+            ILCursor gillCurs = new(il);
+            
+            ILLabel branchLabel = il.DefineLabel();
 
-            ILCursor breakCurs = initCurs.Clone();
-            breakCurs.GotoNext(x => x.MatchLdstr("HeadA0"));
-            breakCurs.GotoNext(x => x.MatchLdarg(1));
+            initCurs.GotoNext(x => x.MatchLdstr("HipsA"));
+            initCurs.GotoNext(MoveType.After, x => x.MatchLdsfld<ModManager>(nameof(ModManager.MSC)), x => x.Match(OpCodes.Brfalse_S));
+            /* GOTO
+             * if (ModManager.MSC >HERE< && player.SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Saint)
+             */
+            breakCurs = initCurs.Clone();
+            breakCurs.GotoNext(x => x.Match(OpCodes.Br_S));
+            /* GOTO
+             * sLeaser.sprites[4] = new FSprite("LegsA0");
+             */
+            branchLabel = breakCurs.Next.Operand as ILLabel; // Mark branchLabel at 'sLeaser.sprites[4] = new FSprite("LegsA0");'
 
-            ILLabel breakLabel = il.DefineLabel();
-            breakCurs.MarkLabel(breakLabel);
 
-            ILCursor skipCurs = initCurs.Clone();
-            skipCurs.GotoNext(x => x.MatchLdarg(0));
-
-            ILLabel skipLabel = il.DefineLabel();
-            skipCurs.MarkLabel(skipLabel);
-
-            initCurs.Emit(OpCodes.Ldarg_0);
-            initCurs.EmitDelegate((PlayerGraphics self) =>
-            {
-                if (self.player.slugcatStats.name == SlugpupStuff.VariantName.Tundrapup)
-                {
-                    return true;
-                }
-                return false;
-            });
-            initCurs.Emit(OpCodes.Brfalse_S, skipLabel);
             initCurs.Emit(OpCodes.Ldarg_0);
             initCurs.Emit(OpCodes.Ldarg_1);
-            initCurs.EmitDelegate((PlayerGraphics self, RoomCamera.SpriteLeaser sLeaser) =>
+            initCurs.EmitDelegate((PlayerGraphics self, RoomCamera.SpriteLeaser sLeaser) =>   // If self is Tundrapup, set sLeaser.sprite[3] to HeadB0 and branch to branchLabel
             {
                 if (self.player.slugcatStats.name == SlugpupStuff.VariantName.Tundrapup)
                 {
                     sLeaser.sprites[3] = new FSprite("HeadB0", true);
+                    return true;
                 }
+                return false;
             });
-            initCurs.Emit(OpCodes.Br_S, breakLabel);
+            initCurs.Emit(OpCodes.Brtrue_S, branchLabel);
 
-            ILCursor gillCurs = new(il);
             gillCurs.GotoNext(MoveType.After, x => x.MatchCallvirt<PlayerGraphics.Gown>(nameof(PlayerGraphics.Gown.InitiateSprite)));
-
+            /* GOTO AFTER
+             * gown.InitiateSprite(gownIndex, sLeaser, rCam);
+             */
             gillCurs.Emit(OpCodes.Ldarg_0);
             gillCurs.Emit(OpCodes.Ldarg_1);
             gillCurs.Emit(OpCodes.Ldarg_2);
-            gillCurs.EmitDelegate((PlayerGraphics self, RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam) =>
+            gillCurs.EmitDelegate((PlayerGraphics self, RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam) =>   // If self is Aquaticpup, resize the sLeaser.sprites array and initiate gill sprites
             {
                 if (self.player.slugcatStats.name == SlugpupStuff.VariantName.Aquaticpup)
                 {
                     Array.Resize(ref sLeaser.sprites, sLeaser.sprites.Length + self.gills.numberOfSprites);
-                    self.gills.startSprite = sLeaser.sprites.Length - self.gills.numberOfSprites;
-
                     self.gills.InitiateSprites(sLeaser, rCam);
                 }
             });
@@ -198,14 +189,19 @@ namespace SlugpupStuff
         public static void IL_PlayerGraphics_DrawSprites(ILContext il)
         {
             ILCursor drawCurs = new(il);
+
+            ILLabel branchLabel = il.DefineLabel();
+
             drawCurs.GotoNext(x => x.MatchLdsfld<MoreSlugcatsEnums.SlugcatStatsName>(nameof(MoreSlugcatsEnums.SlugcatStatsName.Slugpup)));
             drawCurs.GotoNext(MoveType.After, x => x.MatchCallOrCallvirt<FNode>("set_scaleX"));
-
+            /* GOTO AFTER
+             * sLeaser.sprites[1].scaleX = 0.9f + 0.2f * Mathf.Lerp(player.npcStats.Wideness, 0.5f, player.playerState.isPup ? 0.5f : 0f) + Mathf.Lerp(Mathf.Lerp(Mathf.Lerp(-0.05f, -0.15f, malnourished), 0.05f, num) * num2, 0.15f, player.sleepCurlUp);
+             */
             drawCurs.Emit(OpCodes.Ldarg_0);
             drawCurs.Emit(OpCodes.Ldarg_1);
             drawCurs.Emit(OpCodes.Ldloc_0);
             drawCurs.Emit(OpCodes.Ldloc, 4);
-            drawCurs.EmitDelegate((PlayerGraphics self, RoomCamera.SpriteLeaser sLeaser, float num, float num2) =>
+            drawCurs.EmitDelegate((PlayerGraphics self, RoomCamera.SpriteLeaser sLeaser, float num, float num2) =>   // If self is Rotundpup, set sLeaser.sprites[1].scaleX to be wider
             {
                 if (self.player.slugcatStats.name == SlugpupStuff.VariantName.Rotundpup)
                 {
@@ -215,11 +211,13 @@ namespace SlugpupStuff
 
             drawCurs.GotoNext(x => x.MatchLdsfld<MoreSlugcatsEnums.SlugcatStatsName>(nameof(MoreSlugcatsEnums.SlugcatStatsName.Slugpup)));
             drawCurs.GotoNext(MoveType.After, x => x.MatchCallOrCallvirt<FNode>("set_scaleX"));
-
+            /* GOTO AFTER
+             * sLeaser.sprites[0].scaleX = 1f + Mathf.Lerp(Mathf.Lerp(Mathf.Lerp(-0.05f, -0.15f, malnourished), 0.05f, num) * num2, 0.15f, player.sleepCurlUp);
+             */
             drawCurs.Emit(OpCodes.Ldarg_0);
             drawCurs.Emit(OpCodes.Ldarg_1);
             drawCurs.Emit(OpCodes.Ldloc_0);
-            drawCurs.EmitDelegate((PlayerGraphics self, RoomCamera.SpriteLeaser sLeaser, float num) =>
+            drawCurs.EmitDelegate((PlayerGraphics self, RoomCamera.SpriteLeaser sLeaser, float num) =>   // If self is Rotundpup, set sLeaser.sprites[0].scaleX to be wider
             {
                 if (self.player.slugcatStats.name == SlugpupStuff.VariantName.Rotundpup)
                 {
@@ -227,93 +225,81 @@ namespace SlugpupStuff
                 }
             });
 
-
-            drawCurs.GotoNext(x => x.MatchLdarg(0), x => x.MatchCallOrCallvirt<PlayerGraphics>("get_RenderAsPup"));
-
-            ILCursor breakCurs = drawCurs.Clone();
-            breakCurs.GotoNext(x => x.MatchLdstr("HeadA"));
-            breakCurs.GotoNext(x => x.MatchLdsfld<ModManager>(nameof(ModManager.MSC)));
-            ILLabel breakLabel = il.DefineLabel();
-            breakCurs.MarkLabel(breakLabel);
-
-            ILCursor skipCurs = drawCurs.Clone();
-            skipCurs.GotoPrev(MoveType.After, x => x.MatchCallOrCallvirt<FNode>("set_scaleX"));
-            ILLabel skipLabel = il.DefineLabel();
-            skipCurs.MarkLabel(skipLabel);
+            drawCurs.GotoNext(x => x.MatchCallOrCallvirt<PlayerGraphics>("get_RenderAsPup"));
+            /* GOTO 
+             * if (RenderAsPup && ModManager.MSC)
+             */
+            drawCurs = drawCurs.Clone();
+            drawCurs.GotoNext(MoveType.Before, x => x.Match(OpCodes.Br_S));
+            /* GOTO AFTER
+             * sLeaser.sprites[3].element = Futile.atlasManager.GetElementWithName("HeadC" + num7);
+             */
+            branchLabel = drawCurs.Next.Operand as ILLabel; // Mark branchLabel at 'if (ModManager.MSC && player.SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Spear)'
 
             drawCurs.Emit(OpCodes.Ldarg_0);
-            drawCurs.EmitDelegate((PlayerGraphics self) =>
+            drawCurs.Emit(OpCodes.Ldarg_1);
+            drawCurs.Emit(OpCodes.Ldloc, 9);
+            drawCurs.EmitDelegate((PlayerGraphics self, RoomCamera.SpriteLeaser sLeaser, int num4) =>   // If self is Tundrapup, set sLeaser.sprites[3].element to HeadB + num4 and branch to branchLabel
             {
                 if (self.player.slugcatStats.name == SlugpupStuff.VariantName.Tundrapup)
                 {
+                    sLeaser.sprites[3].element = Futile.atlasManager.GetElementWithName("HeadB" + num4);
                     return true;
                 }
                 return false;
             });
-            drawCurs.Emit(OpCodes.Brfalse_S, skipLabel);
-            drawCurs.Emit(OpCodes.Ldarg_0);
-            drawCurs.Emit(OpCodes.Ldarg_1);
-            drawCurs.Emit(OpCodes.Ldloc, 9);
-            drawCurs.EmitDelegate((PlayerGraphics self, RoomCamera.SpriteLeaser sLeaser, int num4) =>
-            {
-                if (self.player.slugcatStats.name == SlugpupStuff.VariantName.Tundrapup)
-                {
-                    sLeaser.sprites[3].element = Futile.atlasManager.GetElementWithName("HeadB" + num4.ToString());
-                }
-            });
-            drawCurs.Emit(OpCodes.Br_S, breakLabel);
+            drawCurs.Emit(OpCodes.Brtrue_S, branchLabel);
         }
         public static void PlayerGraphics_DrawSprites(On.PlayerGraphics.orig_DrawSprites orig, PlayerGraphics self, RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos) // replace with ilhook except tundrapup tongue
         {
             orig(self, sLeaser, rCam, timeStacker, camPos);
-            if (!SlugpupCWTs.pupGraphicsCWT.TryGetValue(self, out var pupGraphics))
+            if (SlugpupCWTs.pupGraphicsCWT.TryGetValue(self, out var pupGraphics))
             {
-                return;
-            }
-            if (self.player.room != null && self.player.slugcatStats.name == SlugpupStuff.VariantName.Aquaticpup)
-            {
-                self.gills.DrawSprites(sLeaser, rCam, timeStacker, camPos);
-            }
-            if (self.player.room != null && self.player.slugcatStats.name == SlugpupStuff.VariantName.Tundrapup)
-            {
-                float b = Mathf.Lerp(self.lastStretch, self.stretch, timeStacker);
-                Vector2 vector2;
-                Vector2 vector = Vector2.Lerp(self.ropeSegments[0].lastPos, self.ropeSegments[0].pos, timeStacker);
-                vector += Custom.DirVec(Vector2.Lerp(self.ropeSegments[1].lastPos, self.ropeSegments[1].pos, timeStacker), vector) * 1f;
-                float num5 = 0f;
-                for (int k = 1; k < self.ropeSegments.Length; k++)
+                if (self.player.room != null && self.player.slugcatStats.name == SlugpupStuff.VariantName.Aquaticpup)
                 {
-                    float num6 = (float)k / (float)(self.ropeSegments.Length - 1);
-                    if (k >= self.ropeSegments.Length - 2)
+                    self.gills.DrawSprites(sLeaser, rCam, timeStacker, camPos);
+                }
+                if (self.player.room != null && self.player.slugcatStats.name == SlugpupStuff.VariantName.Tundrapup)
+                {
+                    float b = Mathf.Lerp(self.lastStretch, self.stretch, timeStacker);
+                    Vector2 vector2;
+                    Vector2 vector = Vector2.Lerp(self.ropeSegments[0].lastPos, self.ropeSegments[0].pos, timeStacker);
+                    vector += Custom.DirVec(Vector2.Lerp(self.ropeSegments[1].lastPos, self.ropeSegments[1].pos, timeStacker), vector) * 1f;
+                    float num5 = 0f;
+                    for (int k = 1; k < self.ropeSegments.Length; k++)
                     {
-                        vector2 = new Vector2(sLeaser.sprites[9].x + camPos.x, sLeaser.sprites[9].y - 1 + camPos.y);
+                        float num6 = k / self.ropeSegments.Length - 1;
+                        if (k >= self.ropeSegments.Length - 2)
+                        {
+                            vector2 = new Vector2(sLeaser.sprites[9].x + camPos.x, sLeaser.sprites[9].y - 1 + camPos.y);
+                        }
+                        else
+                        {
+                            vector2 = Vector2.Lerp(self.ropeSegments[k].lastPos, self.ropeSegments[k].pos, timeStacker);
+                        }
+                        Vector2 a2 = Custom.PerpendicularVector((vector - vector2).normalized);
+                        float d4 = 0.2f + 1.6f * Mathf.Lerp(1f, b, Mathf.Pow(Mathf.Sin(num6 * (float)Math.PI), 0.7f));
+                        Vector2 vector4 = vector - a2 * d4;
+                        Vector2 vector5 = vector2 + a2 * d4;
+                        float num7 = Mathf.Sqrt(Mathf.Pow(vector4.x - vector5.x, 2f) + Mathf.Pow(vector4.y - vector5.y, 2f));
+                        if (!float.IsNaN(num7))
+                        {
+                            num5 += num7;
+                        }
+                        (sLeaser.sprites[pupGraphics.TongueSpriteIndex] as TriangleMesh).MoveVertice((k - 1) * 4, vector4 - camPos);
+                        (sLeaser.sprites[pupGraphics.TongueSpriteIndex] as TriangleMesh).MoveVertice((k - 1) * 4 + 1, vector + a2 * d4 - camPos);
+                        (sLeaser.sprites[pupGraphics.TongueSpriteIndex] as TriangleMesh).MoveVertice((k - 1) * 4 + 2, vector2 - a2 * d4 - camPos);
+                        (sLeaser.sprites[pupGraphics.TongueSpriteIndex] as TriangleMesh).MoveVertice((k - 1) * 4 + 3, vector5 - camPos);
+                        vector = vector2;
+                    }
+                    if (self.player.tongue.Free || self.player.tongue.Attached)
+                    {
+                        sLeaser.sprites[pupGraphics.TongueSpriteIndex].isVisible = true;
                     }
                     else
                     {
-                        vector2 = Vector2.Lerp(self.ropeSegments[k].lastPos, self.ropeSegments[k].pos, timeStacker);
+                        sLeaser.sprites[pupGraphics.TongueSpriteIndex].isVisible = false;
                     }
-                    Vector2 a2 = Custom.PerpendicularVector((vector - vector2).normalized);
-                    float d4 = 0.2f + 1.6f * Mathf.Lerp(1f, b, Mathf.Pow(Mathf.Sin(num6 * (float)Math.PI), 0.7f));
-                    Vector2 vector4 = vector - a2 * d4;
-                    Vector2 vector5 = vector2 + a2 * d4;
-                    float num7 = Mathf.Sqrt(Mathf.Pow(vector4.x - vector5.x, 2f) + Mathf.Pow(vector4.y - vector5.y, 2f));
-                    if (!float.IsNaN(num7))
-                    {
-                        num5 += num7;
-                    }
-                    (sLeaser.sprites[pupGraphics.TongueSpriteIndex] as TriangleMesh).MoveVertice((k - 1) * 4, vector4 - camPos);
-                    (sLeaser.sprites[pupGraphics.TongueSpriteIndex] as TriangleMesh).MoveVertice((k - 1) * 4 + 1, vector + a2 * d4 - camPos);
-                    (sLeaser.sprites[pupGraphics.TongueSpriteIndex] as TriangleMesh).MoveVertice((k - 1) * 4 + 2, vector2 - a2 * d4 - camPos);
-                    (sLeaser.sprites[pupGraphics.TongueSpriteIndex] as TriangleMesh).MoveVertice((k - 1) * 4 + 3, vector5 - camPos);
-                    vector = vector2;
-                }
-                if (self.player.tongue.Free || self.player.tongue.Attached)
-                {
-                    sLeaser.sprites[pupGraphics.TongueSpriteIndex].isVisible = true;
-                }
-                else
-                {
-                    sLeaser.sprites[pupGraphics.TongueSpriteIndex].isVisible = false;
                 }
             }
         }
@@ -328,10 +314,6 @@ namespace SlugpupStuff
         public static void PlayerGraphics_ApplyPalette(On.PlayerGraphics.orig_ApplyPalette orig, PlayerGraphics self, RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, RoomPalette palette)
         {
             orig(self, sLeaser, rCam, palette);
-            if (!SlugpupCWTs.pupGraphicsCWT.TryGetValue(self, out var pupGraphics))
-            {
-                return;
-            }
             Color color = self.player.ShortCutColor();
             if (self.gills != null && self.player.slugcatStats.name == SlugpupStuff.VariantName.Aquaticpup)
             {
@@ -362,7 +344,7 @@ namespace SlugpupStuff
                 self.gills.SetGillColors(color, effectCol);
                 self.gills.ApplyPalette(sLeaser, rCam, palette);
             }
-            if (self.player.slugcatStats.name == SlugpupStuff.VariantName.Tundrapup)
+            if (self.player.slugcatStats.name == SlugpupStuff.VariantName.Tundrapup && SlugpupCWTs.pupGraphicsCWT.TryGetValue(self, out var pupGraphics))
             {
                 float a = 0.95f;
                 float b = 1f;
@@ -467,8 +449,7 @@ namespace SlugpupStuff
             /* GOTO
              * else if ((player.objectInStomach != null || (ModManager.MSC && (player.SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Gourmand || >HERE< player.SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Spear))) && player.swallowAndRegurgitateCounter > 0)
              */
-
-            rotundLabel = rotundCurs.Prev.Operand as ILLabel; // Mark branchLabel after 'player.SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Gourmand'
+            rotundLabel = rotundCurs.Prev.Operand as ILLabel; // Mark branchLabel to after 'player.SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Gourmand'
 
             rotundCurs.Emit(OpCodes.Ldarg_0);
             rotundCurs.EmitDelegate((PlayerGraphics self) =>   // If self is Rotundpup, branch to rotundLabel
@@ -483,8 +464,7 @@ namespace SlugpupStuff
         }
         public static void SetupDMSSprites()
         {
-
-            SpriteDefinitions.AvailableSprites.Add(new SpriteDefinitions.AvailableSprite
+            DressMySlugcat.SpriteDefinitions.AvailableSprites.Add(new DressMySlugcat.SpriteDefinitions.AvailableSprite
             {
                 Name = "GILLS",
                 Description = "Gills",
@@ -492,6 +472,34 @@ namespace SlugpupStuff
                 RequiredSprites = ["LizardScaleA3", "LizardScaleB3"],
                 Slugcats = ["Aquaticpup"]
             });
+            for (int s = 0; s < DressMySlugcat.SpriteDefinitions.AvailableSprites.Count; s++)
+            {
+                if (DressMySlugcat.SpriteDefinitions.AvailableSprites[s].Name == "HEAD")
+                {
+                    for (int i = 0; i <= 17; i++)
+                    {
+                        DressMySlugcat.SpriteDefinitions.AvailableSprites[s].SlugcatSpecificReplacements.Add(new DressMySlugcat.SpriteDefinitions.AvailableSprite.SlugcatSpecificReplacement
+                        {
+                            Slugcat = "Tundrapup",
+                            GenericName = "HeadA" + i,
+                            SpecificName = "HeadB" + i
+                        });
+                    }
+                    break;
+                }
+            }
+        }
+        public static List<string> ValidPupNames(Func<List<string>> orig)
+        {
+            var list = orig();
+            list.AddRange(new List<string>
+            {
+                "Aquaticpup",
+                "Tundrapup",
+                "Hunterpup",
+                "Rotundpup"
+            });
+            return list;
         }
     }
 }
