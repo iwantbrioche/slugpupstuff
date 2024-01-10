@@ -1519,7 +1519,6 @@ namespace SlugpupStuff
                 return text;
             });
             variCurs.Emit(OpCodes.Stloc_0);
-            Logger.LogMessage(il.ToString());
         }
         public void PlayerNPCState_LoadFromString(ILContext il)
         {
