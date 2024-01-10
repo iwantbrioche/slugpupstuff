@@ -66,7 +66,7 @@ namespace SlugpupStuff
                 IL.MoreSlugcats.SlugNPCAI.GetUpcoming += IL_SlugNPCAI_GetUpcoming;
 
                 // Player OnHooks
-                On.Player.Update += Player_Update;
+                On.Player.UpdateMSC += Player_UpdateMSC;
                 On.Player.AllowGrabbingBatflys += Player_AllowGrabbingBatflys;
                 On.Player.CanEatMeat += Player_CanEatMeat;
                 On.Player.SaintTongueCheck += Player_SaintTongueCheck;
@@ -96,13 +96,13 @@ namespace SlugpupStuff
                 On.SlugcatStats.HiddenOrUnplayableSlugcat += SlugcatStats_HiddenOrUnplayableSlugcat;
                 On.Player.Tongue.Shoot += Tongue_Shoot;
                 On.MoreSlugcats.PlayerNPCState.ctor += PlayerNPCState_ctor;
+                On.MoreSlugcats.PlayerNPCState.ToString += PlayerNPCState_ToString;
+                On.MoreSlugcats.PlayerNPCState.LoadFromString += PlayerNPCState_LoadFromString;
 
                 // Other ILHooks
                 IL.Snail.Click += IL_Snail_Click;
                 IL.SlugcatStats.NourishmentOfObjectEaten += IL_SlugcatStats_NourishmentOfObjectEaten;
                 IL.MoreSlugcats.PlayerNPCState.CycleTick += IL_PlayerNPCState_CycleTick;
-                IL.MoreSlugcats.PlayerNPCState.ToString += IL_PlayerNPCState_ToString;
-                IL.MoreSlugcats.PlayerNPCState.LoadFromString += IL_PlayerNPCState_LoadFromString;
                 IL.RegionState.AdaptRegionStateToWorld += IL_RegionState_AdaptRegionStateToWorld;
 
 
@@ -192,9 +192,9 @@ namespace SlugpupStuff
              */
             itemTrackerCurs.Prev.OpCode = OpCodes.Ldc_I4_0; // Switch stopTrackingCarried to false
         }
-        public void Player_Update(On.Player.orig_Update orig, Player self, bool eu)
+        public void Player_UpdateMSC(On.Player.orig_UpdateMSC orig, Player self)
         {
-            orig(self, eu);
+            orig(self);
             VariantMechanicsAquaticpup(self);
         }
         public void SlugNPCAI_Move(On.MoreSlugcats.SlugNPCAI.orig_Move orig, SlugNPCAI self)

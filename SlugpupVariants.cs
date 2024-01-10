@@ -5,6 +5,7 @@ using MoreSlugcats;
 using RWCustom;
 using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
 using Random = UnityEngine.Random;
@@ -428,6 +429,7 @@ namespace SlugpupStuff
         {
             if (self.slugcatStats.name == VariantName.Aquaticpup)
             {
+                self.buoyancy = 0.9f;
                 if (self.grasps[0] != null && self.grasps[0].grabbed is WaterNut)
                 {
                     (self.grasps[0].grabbed as WaterNut).swellCounter--;
@@ -1476,6 +1478,57 @@ namespace SlugpupStuff
                 SlugpupCWTs.pupStateCWT.Add(self, _ = new SlugpupCWTs.PupNPCState());
             }
         }
+        public string PlayerNPCState_ToString(On.MoreSlugcats.PlayerNPCState.orig_ToString orig, PlayerNPCState self)
+        {
+            string text = orig(self);
+            if (self.player.realizedCreature is Player pup && SlugpupCWTs.pupStateCWT.TryGetValue(self, out var pupNPCState))
+            {
+                text += "Variant<cC>" + ((pup.slugcatStats.name != MoreSlugcatsEnums.SlugcatStatsName.Slugpup) ? pup.slugcatStats.name.value : "NULL") + "<cB>";
+                text += "PupsPlusStomach<cC>" + ((pupNPCState.PupsPlusStomachObject != null) ? pupNPCState.PupsPlusStomachObject.ToString() : "NULL") + "<cB>";
+            }
+            return text;
+
+        }
+        public void PlayerNPCState_LoadFromString(On.MoreSlugcats.PlayerNPCState.orig_LoadFromString orig, PlayerNPCState self, string[] s)
+        {
+            orig(self, s);
+            if (SlugpupCWTs.pupStateCWT.TryGetValue(self, out var pupNPCState))
+            {
+                for (int i = 0; i < s.Length - 1; i++)
+                {
+                    string[] array = Regex.Split(s[i], "<cC>");
+                    switch (array[0])
+                    {
+                        case "Variant":
+                            pupNPCState.Variant = array[1] switch
+                            {
+                                "Aquaticpup" => VariantName.Aquaticpup,
+                                "Tundrapup" => VariantName.Tundrapup,
+                                "Hunterpup" => VariantName.Hunterpup,
+                                "Rotundpup" => VariantName.Rotundpup,
+                                _ => null
+                            };
+                            break;
+                        case "PupsPlusStomach":
+                            string text = array[1];
+                            if (text != "NULL")
+                            {
+                                if (text.Contains("<oA>"))
+                                {
+                                    pupNPCState.PupsPlusStomachObject = SaveState.AbstractPhysicalObjectFromString(self.player.Room.world, text); ;
+                                }
+                                else if (text.Contains("<cA>"))
+                                {
+                                    pupNPCState.PupsPlusStomachObject = SaveState.AbstractCreatureFromString(self.player.Room.world, text, onlyInCurrentRegion: false);
+                                }
+                            }
+                            break;
+                    }
+                }
+            }
+            self.unrecognizedSaveStrings.Remove("Variant");
+            self.unrecognizedSaveStrings.Remove("PupsPlusStomach");
+        }
         public void IL_PlayerNPCState_CycleTick(ILContext il)
         {
             ILCursor foodCurs = new(il);
@@ -1497,99 +1550,9 @@ namespace SlugpupStuff
                 });
             }
         }
-        public void IL_PlayerNPCState_ToString(ILContext il)
-        {
-            ILCursor variCurs = new(il);
 
-            variCurs.GotoNext(x => x.MatchLdstr("Stomach<cC>"));
-            variCurs.GotoNext(MoveType.After, x => x.MatchStloc(0));
-            /* GOTO AFTER
-             * text = text + "Stomach<cC>" + ((StomachObject != null) ? StomachObject.ToString() : "NULL") + "<cB>";
-             */
-            variCurs.Emit(OpCodes.Ldarg_0);
-            variCurs.Emit(OpCodes.Ldloc_0);
-            variCurs.EmitDelegate((PlayerNPCState self, string text) =>   // Save data to a string
-            {
-                if (self.player.realizedCreature is Player pup && SlugpupCWTs.pupStateCWT.TryGetValue(self, out var pupNPCState))
-                {
-                    text += "Variant<cC>" + ((pup.slugcatStats.name != MoreSlugcatsEnums.SlugcatStatsName.Slugpup) ? pup.slugcatStats.name.value : "NULL") + "<cB>";
-                    text += "PupsPlusStomach<cC>" + ((pupNPCState.PupsPlusStomachObject != null) ? pupNPCState.PupsPlusStomachObject.ToString() : "NULL") + "<cB>";
-                }
-                return text;
-            });
-            variCurs.Emit(OpCodes.Stloc_0);
-        }
-        public void IL_PlayerNPCState_LoadFromString(ILContext il)
-        {
-            ILCursor variCurs = new(il);
-            ILCursor rerouteCurs = new(il);
 
-            ILLabel branchLabel = il.DefineLabel();
-            ILLabel myLabel = il.DefineLabel();
 
-            variCurs.GotoNext(x => x.MatchCall<SaveState>(nameof(SaveState.AbstractCreatureFromString)));
-            variCurs.GotoNext(MoveType.After, x => x.Match(OpCodes.Br_S));
-            /* GOTO AFTER
-             * StomachObject = SaveState.AbstractCreatureFromString(player.Room.world, text, onlyInCurrentRegion: false);
-             */
-            branchLabel = variCurs.Prev.Operand as ILLabel;
-            variCurs.MarkLabel(myLabel);
-            variCurs.Emit(OpCodes.Ldarg_0);
-            variCurs.Emit(OpCodes.Ldloc_1);
-            variCurs.EmitDelegate((PlayerNPCState self, string[] array) =>   // Load data from a string
-            {
-                if (SlugpupCWTs.pupStateCWT.TryGetValue(self, out var pupNPCState))
-                {
-                    switch (array[0])
-                    {
-                        case "Variant":
-                            pupNPCState.Variant = array[1] switch
-                            {
-                                "Aquaticpup" => VariantName.Aquaticpup,
-                                "Tundrapup" => VariantName.Tundrapup,
-                                "Hunterpup" => VariantName.Hunterpup,
-                                "Rotundpup" => VariantName.Rotundpup,
-                                _ => null
-                            };
-                            break;
-                        case "PupsPlusStomach":
-                            string text = array[1];
-                            if (text != "NULL")
-                            {
-                                if (text.Contains("<oA>"))
-                                {
-                                    pupNPCState.PupsPlusStomachObject = SaveState.AbstractPhysicalObjectFromString(self.player.Room.world, text);;
-                                }
-                                else if (text.Contains("<cA>"))
-                                {
-                                    pupNPCState.PupsPlusStomachObject = SaveState.AbstractCreatureFromString(self.player.Room.world, text, onlyInCurrentRegion: false);
-                                }
-                            }
-                            break;
-                    }
-                }
-
-            });
-            variCurs.Emit(OpCodes.Br_S, branchLabel);
-
-            rerouteCurs.GotoNext(x => x.MatchLdstr("Stomach"));
-            rerouteCurs.GotoNext(MoveType.Before, x => x.Match(OpCodes.Brfalse_S));
-            /* GOTO
-             * case "Stomach":
-             */
-            rerouteCurs.Next.Operand = myLabel;   // Change brfalse.s branch to my emits
-
-            variCurs.GotoNext(MoveType.Before, x => x.MatchRet());
-            /* GOTO AFTER
-             * unrecognizedSaveStrings.Remove("Stomach");
-             */
-            variCurs.Emit(OpCodes.Ldarg_0);
-            variCurs.EmitDelegate((PlayerNPCState self) =>   // Remove data from unrecognizedSaveStrings
-            {
-                self.unrecognizedSaveStrings.Remove("Variant");
-                self.unrecognizedSaveStrings.Remove("PupsPlusStomach");
-            });
-        }
 
         public static bool IsPearlpup(Player player) => Pearlcat.Hooks.IsPearlpup(player);
     }
