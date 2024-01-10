@@ -8,6 +8,8 @@ namespace SlugpupStuff
         public static readonly ConditionalWeakTable<PlayerGraphics, PupGraphics> pupGraphicsCWT = new();
 
         public static readonly ConditionalWeakTable<SlugNPCAI, PupVariables> pupCWT = new();
+
+        public static readonly ConditionalWeakTable<PlayerNPCState, PupNPCState> pupStateCWT = new();
         public class PupVariables
         {
         }
@@ -17,16 +19,10 @@ namespace SlugpupStuff
             public int TongueSpriteIndex = 0;
         }
 
+        public class PupNPCState
+        {
+            public SlugcatStats.Name Variant = null;
+        }
     }
 
 }
-
-
-
-
-
-
-
-
-
-

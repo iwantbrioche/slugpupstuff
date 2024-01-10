@@ -134,11 +134,10 @@ namespace SlugpupStuff
 
         public override void Update()
         {
-            char[] trim = "%".ToCharArray();
-            int aquaticValue = int.Parse(OPaquaticSlider.value.Trim(trim));
-            int tundraValue = int.Parse(OPtundraSlider.value.Trim(trim));
-            int hunterValue = int.Parse(OPhunterSlider.value.Trim(trim));
-            int rotundValue = int.Parse(OProtundSlider.value.Trim(trim));
+            int aquaticValue = int.Parse(OPaquaticSlider.value);
+            int tundraValue = int.Parse(OPtundraSlider.value);
+            int hunterValue = int.Parse(OPhunterSlider.value);
+            int rotundValue = int.Parse(OProtundSlider.value);
 
             int hunterMax = Mathf.Clamp(100 - rotundValue, 0, 100);
             int tundraMax = Mathf.Clamp(100 - hunterValue, 0, 100);

@@ -15,21 +15,12 @@ using Random = UnityEngine.Random;
 // rotund pup spitting up items when given disliked food or at random
 // better rotund exhaust behavior
 // better tundra pup ungrapple behavior
-// save variant
 //  starving stuff:
 // tundrapup less grapple length
 // rotundpup cant spit up items, thinner
 
 //      to do for misc stuff:
 // thumbnail for mod
-
-//      remix config:
-// manually set variant chances (JUST NEED TO IMPIMENT THIS)
-// set pup id to specific variant
-
-// oups..,......................,,,,,.........
-// fo later:
-// comment yer il hooks 
 
 
 namespace SlugpupStuff
@@ -104,11 +95,14 @@ namespace SlugpupStuff
                 On.SlugcatStats.SlugcatFoodMeter += SlugcatStats_SlugcatFoodMeter;
                 On.SlugcatStats.HiddenOrUnplayableSlugcat += SlugcatStats_HiddenOrUnplayableSlugcat;
                 On.Player.Tongue.Shoot += Tongue_Shoot;
+                On.MoreSlugcats.PlayerNPCState.ctor += PlayerNPCState_ctor;
 
                 // Other ILHooks
                 IL.Snail.Click += IL_Snail_Click;
                 IL.SlugcatStats.NourishmentOfObjectEaten += IL_SlugcatStats_NourishmentOfObjectEaten;
                 IL.MoreSlugcats.PlayerNPCState.CycleTick += IL_PlayerNPCState_CycleTick;
+                IL.MoreSlugcats.PlayerNPCState.ToString += PlayerNPCState_ToString;
+                IL.MoreSlugcats.PlayerNPCState.LoadFromString += PlayerNPCState_LoadFromString;
                 IL.RegionState.AdaptRegionStateToWorld += IL_RegionState_AdaptRegionStateToWorld;
 
 
@@ -561,12 +555,12 @@ namespace SlugpupStuff
             /* GOTO
              * AbstractPhysicalObject abstractPhysicalObject = ((AI != null) ? (base.State as PlayerNPCState).StomachObject : >HERE< objectInStomach);
              */
-
             ILLabel skipLabel = il.DefineLabel();
             pupCurs.MarkLabel(skipLabel); // Mark skipLabel at objectInStomach
 
             pupCurs = new(il);
-            pupCurs.Emit(OpCodes.Br_S, skipLabel); // Branch over ((AI != null) ? (base.State as PlayerNPCState).StomachObject because it's bad and redundant
+            // GOTO START
+            pupCurs.Emit(OpCodes.Br_S, skipLabel); // Branch over ((AI != null) ? (base.State as PlayerNPCState).StomachObject because it is a base-game bug
         }
         public void IL_RegionState_AdaptRegionStateToWorld(ILContext il)
         {
@@ -580,11 +574,16 @@ namespace SlugpupStuff
             stomachObjCurs.Emit(OpCodes.Ldloc, 5);
             stomachObjCurs.EmitDelegate((AbstractCreature abstractCreature) =>   // If abstractCreature is Player and it's playerState is PlayerNPCState, set StomachObject to objectInStomach
             {
-                if (abstractCreature.realizedCreature is Player { objectInStomach: not null } pup)
+                if (abstractCreature.realizedCreature is Player pup)
                 {
                     if (pup.playerState is PlayerNPCState)
                     {
-                        (pup.playerState as PlayerNPCState).StomachObject = pup.objectInStomach;
+                        if (pup.objectInStomach != null)
+                        {
+                            (pup.playerState as PlayerNPCState).StomachObject = pup.objectInStomach;
+                        }
+                        else (pup.playerState as PlayerNPCState).StomachObject = null;
+
                     }
                 }
             });

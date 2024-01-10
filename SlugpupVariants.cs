@@ -76,21 +76,25 @@ namespace SlugpupStuff
             {
                 Random.InitState(entityID.RandomSeed);
                 float variChance = Random.value;
+                float aquaticChance = (slugpupRemix.aquaticChance.Value - slugpupRemix.tundraChance.Value) / 100f;
+                float tundraChance = ((slugpupRemix.tundraChance.Value - slugpupRemix.hunterChance.Value) / 100f) + aquaticChance;
+                float hunterchance = ((slugpupRemix.hunterChance.Value - slugpupRemix.rotundChance.Value) / 100f) + tundraChance;
+                float rotundChance = (slugpupRemix.rotundChance.Value / 100f) + hunterchance;
 
                 // setup variant chance
-                if (variChance <= 0.18f || ID_AquaticPupID().Contains(entityID.RandomSeed))
+                if (variChance <= aquaticChance || ID_AquaticPupID().Contains(entityID.RandomSeed))
                 {
                     return VariantName.Aquaticpup;
                 }
-                else if (variChance <= 0.29f || ID_TundraPupID().Contains(entityID.RandomSeed))
+                else if (variChance <= tundraChance || ID_TundraPupID().Contains(entityID.RandomSeed))
                 {
                     return VariantName.Tundrapup;
                 }
-                else if (variChance <= 0.54f || ID_HunterPupID().Contains(entityID.RandomSeed))
+                else if (variChance <= hunterchance || ID_HunterPupID().Contains(entityID.RandomSeed))
                 {
                     return VariantName.Hunterpup;
                 }
-                else if (variChance <= 0.7f || ID_RotundPupID().Contains(entityID.RandomSeed))
+                else if (variChance <= rotundChance || ID_RotundPupID().Contains(entityID.RandomSeed))
                 {
                     return VariantName.Rotundpup;
                 }
@@ -341,6 +345,13 @@ namespace SlugpupStuff
                     }
                 }
                 SlugcatStats.Name variant = GetSlugpupVariant(player.abstractCreature.ID);
+                if (SlugpupCWTs.pupStateCWT.TryGetValue(player.playerState as PlayerNPCState, out var pupNPCState))
+                {
+                    if (pupNPCState.Variant != null)
+                    {
+                        variant = pupNPCState.Variant;
+                    }
+                }
                 if (variant != null)
                 {
                     Random.State state = Random.state;
@@ -361,6 +372,7 @@ namespace SlugpupStuff
         {
             ILCursor rotundCurs = new(il);
             ILCursor labelCurs = new(il);
+            
             ILLabel pupLabel = il.DefineLabel();
 
             labelCurs.GotoNext(MoveType.After, x => x.Match(OpCodes.Brfalse_S));
@@ -1027,9 +1039,8 @@ namespace SlugpupStuff
 
             aquaCurs.GotoNext(x => x.MatchCallOrCallvirt<Player>("get_isRivulet"));
             aquaCurs.GotoNext(MoveType.After, x => x.MatchLdcI4(20));
-            aquaCurs.Emit(OpCodes.Pop);
             aquaCurs.Emit(OpCodes.Ldarg_0);
-            aquaCurs.EmitDelegate((Player self) =>
+            aquaCurs.EmitDelegate((int i, Player self) =>
             {
                 if (self.slugcatStats.name == VariantName.Aquaticpup)
                 {
@@ -1045,7 +1056,7 @@ namespace SlugpupStuff
                         }
                     }
                 }
-                return 20;
+                return i;
             });
 
             aquaLblCurs.GotoNext(x => x.MatchCallOrCallvirt<Player>("get_isRivulet"));
@@ -1125,9 +1136,8 @@ namespace SlugpupStuff
 
             aquaCurs.GotoNext(x => x.MatchCallOrCallvirt<Player>("get_isRivulet"));
             aquaCurs.GotoNext(MoveType.After, x => x.MatchLdcR4(2.7f));
-            aquaCurs.Emit(OpCodes.Pop);
             aquaCurs.Emit(OpCodes.Ldarg_0);
-            aquaCurs.EmitDelegate((Player self) =>
+            aquaCurs.EmitDelegate((float f, Player self) =>
             {
                 if (self.slugcatStats.name == VariantName.Aquaticpup)
                 {
@@ -1143,14 +1153,13 @@ namespace SlugpupStuff
                         }
                     }
                 }
-                return 2.7f;
+                return f;
             });
 
             aquaCurs.GotoNext(x => x.MatchCallOrCallvirt<Player>("get_isRivulet"));
             aquaCurs.GotoNext(MoveType.After, x => x.MatchLdcR4(1f));
-            aquaCurs.Emit(OpCodes.Pop);
             aquaCurs.Emit(OpCodes.Ldarg_0);
-            aquaCurs.EmitDelegate((Player self) =>
+            aquaCurs.EmitDelegate((float f, Player self) =>
             {
                 if (self.slugcatStats.name == VariantName.Aquaticpup)
                 {
@@ -1166,14 +1175,13 @@ namespace SlugpupStuff
                         }
                     }
                 }
-                return 1f;
+                return f;
             });
 
             aquaCurs.GotoNext(x => x.MatchCallOrCallvirt<Player>("get_isRivulet"));
             aquaCurs.GotoNext(MoveType.After, x => x.MatchLdcR4(6f));
-            aquaCurs.Emit(OpCodes.Pop);
             aquaCurs.Emit(OpCodes.Ldarg_0);
-            aquaCurs.EmitDelegate((Player self) =>
+            aquaCurs.EmitDelegate((float f, Player self) =>
             {
                 if (self.slugcatStats.name == VariantName.Aquaticpup)
                 {
@@ -1189,14 +1197,13 @@ namespace SlugpupStuff
                         }
                     }
                 }
-                return 6f;
+                return f;
             });
 
             aquaCurs.GotoNext(x => x.MatchCallOrCallvirt<Player>("get_isRivulet"));
             aquaCurs.GotoNext(MoveType.After, x => x.MatchLdcR4(6f));
-            aquaCurs.Emit(OpCodes.Pop);
             aquaCurs.Emit(OpCodes.Ldarg_0);
-            aquaCurs.EmitDelegate((Player self) =>
+            aquaCurs.EmitDelegate((float f, Player self) =>
             {
                 if (self.slugcatStats.name == VariantName.Aquaticpup)
                 {
@@ -1212,14 +1219,13 @@ namespace SlugpupStuff
                         }
                     }
                 }
-                return 6f;
+                return f;
             });
 
             aquaCurs.GotoNext(x => x.MatchCallOrCallvirt<Player>("get_isRivulet"));
             aquaCurs.GotoNext(MoveType.After, x => x.MatchLdcR4(1f));
-            aquaCurs.Emit(OpCodes.Pop);
             aquaCurs.Emit(OpCodes.Ldarg_0);
-            aquaCurs.EmitDelegate((Player self) =>
+            aquaCurs.EmitDelegate((float f, Player self) =>
             {
                 if (self.slugcatStats.name == VariantName.Aquaticpup)
                 {
@@ -1235,14 +1241,13 @@ namespace SlugpupStuff
                         }
                     }
                 }
-                return 1f;
+                return f;
             });
 
             aquaCurs.GotoNext(x => x.MatchCallOrCallvirt<Player>("get_isRivulet"));
             aquaCurs.GotoNext(MoveType.After, x => x.MatchLdcI4(17));
-            aquaCurs.Emit(OpCodes.Pop);
             aquaCurs.Emit(OpCodes.Ldarg_0);
-            aquaCurs.EmitDelegate((Player self) =>
+            aquaCurs.EmitDelegate((int i, Player self) =>
             {
                 if (self.slugcatStats.name == VariantName.Aquaticpup)
                 {
@@ -1258,7 +1263,7 @@ namespace SlugpupStuff
                         }
                     }
                 }
-                return 17;
+                return i;
             });
 
             aquaCurs.GotoNext(x => x.MatchCallOrCallvirt<Player>("get_isRivulet"));
@@ -1292,9 +1297,8 @@ namespace SlugpupStuff
 
             aquaCurs.GotoNext(x => x.MatchCallOrCallvirt<Player>("get_isRivulet"));
             aquaCurs.GotoNext(MoveType.After, x => x.MatchLdcR4(4f));
-            aquaCurs.Emit(OpCodes.Pop);
             aquaCurs.Emit(OpCodes.Ldarg_0);
-            aquaCurs.EmitDelegate((Player self) =>
+            aquaCurs.EmitDelegate((float f, Player self) =>
             {
                 if (self.slugcatStats.name == VariantName.Aquaticpup)
                 {
@@ -1310,7 +1314,7 @@ namespace SlugpupStuff
                         }
                     }
                 }
-                return 4f;
+                return f;
             });
         }
         public void IL_Player_Collide(ILContext il)
@@ -1466,6 +1470,14 @@ namespace SlugpupStuff
                 });
             }
         }
+        public void PlayerNPCState_ctor(On.MoreSlugcats.PlayerNPCState.orig_ctor orig, PlayerNPCState self, AbstractCreature abstractCreature, int playerNumber)
+        {
+            orig(self, abstractCreature, playerNumber);
+            if (!SlugpupCWTs.pupStateCWT.TryGetValue(self, out _))
+            {
+                SlugpupCWTs.pupStateCWT.Add(self, _ = new SlugpupCWTs.PupNPCState());
+            }
+        }
         public void IL_PlayerNPCState_CycleTick(ILContext il)
         {
             ILCursor foodCurs = new(il);
@@ -1475,23 +1487,95 @@ namespace SlugpupStuff
                 foodCurs.Emit(OpCodes.Ldarg_0);
                 foodCurs.EmitDelegate((SlugcatStats.Name slugcat, PlayerNPCState self) =>
                 {
-                    if (pearlCat)
+                    if (SlugpupCWTs.pupStateCWT.TryGetValue(self, out var pupNPCState))
                     {
-                        if (IsPearlpup(self.player.realizedCreature as Player))
+                        SlugcatStats.Name variant = pupNPCState.Variant;
+                        if (variant != null)
                         {
-                            return slugcat;
+                            return variant;
                         }
-                    }
-                    SlugcatStats.Name variant = GetSlugpupVariant(self.player.ID);
-                    if (variant != null)
-                    {
-                        return variant;
                     }
                     return slugcat;
                 });
             }
         }
-        public static bool IsPearlpup(Player player) => Pearlcat.Hooks.IsPearlpup(player);
+        public void PlayerNPCState_ToString(ILContext il)
+        {
+            ILCursor variCurs = new(il);
 
+            variCurs.GotoNext(x => x.MatchLdstr("Stomach<cC>"));
+            variCurs.GotoNext(MoveType.After, x => x.MatchStloc(0));
+            /* GOTO AFTER
+             * text = text + "Stomach<cC>" + ((StomachObject != null) ? StomachObject.ToString() : "NULL") + "<cB>";
+             */
+            variCurs.Emit(OpCodes.Ldarg_0);
+            variCurs.Emit(OpCodes.Ldloc_0);
+            variCurs.EmitDelegate((PlayerNPCState self, string text) =>   // If player.realizedCreature is Player, add variant to save string
+            {
+                if (self.player.realizedCreature is Player)
+                {
+                    text += "Variant<cC>" + (((self.player.realizedCreature as Player).slugcatStats.name != MoreSlugcatsEnums.SlugcatStatsName.Slugpup) ? (self.player.realizedCreature as Player).slugcatStats.name.value : "NULL") + "<cB>";
+                }
+                return text;
+            });
+            variCurs.Emit(OpCodes.Stloc_0);
+            Logger.LogMessage(il.ToString());
+        }
+        public void PlayerNPCState_LoadFromString(ILContext il)
+        {
+            ILCursor variCurs = new(il);
+            ILCursor rerouteCurs = new(il);
+
+            ILLabel branchLabel = il.DefineLabel();
+            ILLabel myLabel = il.DefineLabel();
+
+            variCurs.GotoNext(x => x.MatchCall<SaveState>(nameof(SaveState.AbstractCreatureFromString)));
+            variCurs.GotoNext(MoveType.After, x => x.Match(OpCodes.Br_S));
+            /* GOTO AFTER
+             * StomachObject = SaveState.AbstractCreatureFromString(player.Room.world, text, onlyInCurrentRegion: false);
+             */
+            branchLabel = variCurs.Prev.Operand as ILLabel;
+            variCurs.MarkLabel(myLabel);
+            variCurs.Emit(OpCodes.Ldarg_0);
+            variCurs.Emit(OpCodes.Ldloc_1);
+            variCurs.Emit(OpCodes.Ldloc_2);
+            variCurs.EmitDelegate((PlayerNPCState self, string[] array, string switchy) =>   // Set pupNPCState.Variant from string[] array
+            {
+                if (switchy.Equals("Variant"))
+                {
+                    if (SlugpupCWTs.pupStateCWT.TryGetValue(self, out var pupNPCState))
+                    {
+                        pupNPCState.Variant = array[1] switch
+                        {
+                            "Aquaticpup" => VariantName.Aquaticpup,
+                            "Tundrapup" => VariantName.Tundrapup,
+                            "Hunterpup" => VariantName.Hunterpup,
+                            "Rotundpup" => VariantName.Rotundpup,
+                            _ => null
+                        };
+                    }
+                }
+            });
+            variCurs.Emit(OpCodes.Br_S, branchLabel);
+
+            rerouteCurs.GotoNext(x => x.MatchLdstr("Stomach"));
+            rerouteCurs.GotoNext(MoveType.Before, x => x.Match(OpCodes.Brfalse_S));
+            /* GOTO
+             * case "Stomach":
+             */
+            rerouteCurs.Next.Operand = myLabel;   // Change brfalse.s branch to my emits
+
+            variCurs.GotoNext(MoveType.Before, x => x.MatchRet());
+            /* GOTO AFTER
+             * unrecognizedSaveStrings.Remove("Stomach");
+             */
+            variCurs.Emit(OpCodes.Ldarg_0);
+            variCurs.EmitDelegate((PlayerNPCState self) =>   // Remove "Variant" from unrecognizedSaveStrings
+            {
+                self.unrecognizedSaveStrings.Remove("Variant");
+            });
+        }
+
+        public static bool IsPearlpup(Player player) => Pearlcat.Hooks.IsPearlpup(player);
     }
 }
