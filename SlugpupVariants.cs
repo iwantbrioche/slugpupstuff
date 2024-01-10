@@ -524,9 +524,8 @@ namespace SlugpupStuff
         }
         public void Player_TongueUpdate(On.Player.orig_TongueUpdate orig, Player self)
         {
-            bool pupisHeld = self.AI?.behaviorType == SlugNPCAI.BehaviorType.BeingHeld;
             Player parent = null;
-            if (pupisHeld)
+            if (self.AI?.behaviorType == SlugNPCAI.BehaviorType.BeingHeld)
             {
                 parent = self.grabbedBy[0].grabber as Player;
             }
@@ -573,7 +572,7 @@ namespace SlugpupStuff
                             if (!self.tongue.isZeroGMode())
                             {
                                 float num = Mathf.Lerp(1f, 1.15f, self.Adrenaline);
-                                if (!pupisHeld)
+                                if (self.AI?.behaviorType != SlugNPCAI.BehaviorType.BeingHeld)
                                 {
                                     if (parent.grasps[0] != null && parent.HeavyCarry(parent.grasps[0].grabbed) && !(parent.grasps[0].grabbed is Cicada))
                                     {
@@ -583,7 +582,7 @@ namespace SlugpupStuff
                                 parent.bodyChunks[0].vel.y = 6f * num;
                                 parent.bodyChunks[1].vel.y = 5f * num;
                                 parent.jumpBoost = 6.5f;
-                                if (pupisHeld)
+                                if (self.AI?.behaviorType == SlugNPCAI.BehaviorType.BeingHeld)
                                 {
                                     self.bodyChunks[0].vel.y = 6f * num;
                                     self.bodyChunks[1].vel.y = 5f * num;
@@ -739,7 +738,7 @@ namespace SlugpupStuff
         {
             if (self.cat.slugcatStats.name == VariantName.Aquaticpup)
             {
-                if (self.cat.grasps[0] != null && self.WantsToEatThis(self.cat.grasps[0].grabbed) && (self.cat.grasps[0].grabbed is not Creature || (self.cat.grasps[0].grabbed as Creature).dead || (double)Random.value < Math.Pow((double)Mathf.Lerp(0f, 1f, Mathf.InverseLerp(0.9f, 0.7f, self.creature.personality.sympathy)), 0.10000000149011612)))
+                if (self.cat.grasps[0] != null && self.WantsToEatThis(self.cat.grasps[0].grabbed) && (self.cat.grasps[0].grabbed is not Creature || (self.cat.grasps[0].grabbed as Creature).dead || Random.value < Math.Pow(Mathf.Lerp(0f, 1f, Mathf.InverseLerp(0.9f, 0.7f, self.creature.personality.sympathy)), 0.1)))
                 {
                     if (self.cat.grasps[0].grabbed is WaterNut && (self.cat.grasps[0].grabbed as WaterNut) != null)
                     {
@@ -747,7 +746,6 @@ namespace SlugpupStuff
                     }
                     return true;
                 }
-
             }
             return orig(self);
         }
@@ -1499,7 +1497,7 @@ namespace SlugpupStuff
                 });
             }
         }
-        public void PlayerNPCState_ToString(ILContext il)
+        public void IL_PlayerNPCState_ToString(ILContext il)
         {
             ILCursor variCurs = new(il);
 
@@ -1510,17 +1508,18 @@ namespace SlugpupStuff
              */
             variCurs.Emit(OpCodes.Ldarg_0);
             variCurs.Emit(OpCodes.Ldloc_0);
-            variCurs.EmitDelegate((PlayerNPCState self, string text) =>   // If player.realizedCreature is Player, add variant to save string
+            variCurs.EmitDelegate((PlayerNPCState self, string text) =>   // Save data to a string
             {
-                if (self.player.realizedCreature is Player)
+                if (self.player.realizedCreature is Player pup && SlugpupCWTs.pupStateCWT.TryGetValue(self, out var pupNPCState))
                 {
-                    text += "Variant<cC>" + (((self.player.realizedCreature as Player).slugcatStats.name != MoreSlugcatsEnums.SlugcatStatsName.Slugpup) ? (self.player.realizedCreature as Player).slugcatStats.name.value : "NULL") + "<cB>";
+                    text += "Variant<cC>" + ((pup.slugcatStats.name != MoreSlugcatsEnums.SlugcatStatsName.Slugpup) ? pup.slugcatStats.name.value : "NULL") + "<cB>";
+                    text += "PupsPlusStomach<cC>" + ((pupNPCState.PupsPlusStomachObject != null) ? pupNPCState.PupsPlusStomachObject.ToString() : "NULL") + "<cB>";
                 }
                 return text;
             });
             variCurs.Emit(OpCodes.Stloc_0);
         }
-        public void PlayerNPCState_LoadFromString(ILContext il)
+        public void IL_PlayerNPCState_LoadFromString(ILContext il)
         {
             ILCursor variCurs = new(il);
             ILCursor rerouteCurs = new(il);
@@ -1537,23 +1536,39 @@ namespace SlugpupStuff
             variCurs.MarkLabel(myLabel);
             variCurs.Emit(OpCodes.Ldarg_0);
             variCurs.Emit(OpCodes.Ldloc_1);
-            variCurs.Emit(OpCodes.Ldloc_2);
-            variCurs.EmitDelegate((PlayerNPCState self, string[] array, string switchy) =>   // Set pupNPCState.Variant from string[] array
+            variCurs.EmitDelegate((PlayerNPCState self, string[] array) =>   // Load data from a string
             {
-                if (switchy.Equals("Variant"))
+                if (SlugpupCWTs.pupStateCWT.TryGetValue(self, out var pupNPCState))
                 {
-                    if (SlugpupCWTs.pupStateCWT.TryGetValue(self, out var pupNPCState))
+                    switch (array[0])
                     {
-                        pupNPCState.Variant = array[1] switch
-                        {
-                            "Aquaticpup" => VariantName.Aquaticpup,
-                            "Tundrapup" => VariantName.Tundrapup,
-                            "Hunterpup" => VariantName.Hunterpup,
-                            "Rotundpup" => VariantName.Rotundpup,
-                            _ => null
-                        };
+                        case "Variant":
+                            pupNPCState.Variant = array[1] switch
+                            {
+                                "Aquaticpup" => VariantName.Aquaticpup,
+                                "Tundrapup" => VariantName.Tundrapup,
+                                "Hunterpup" => VariantName.Hunterpup,
+                                "Rotundpup" => VariantName.Rotundpup,
+                                _ => null
+                            };
+                            break;
+                        case "PupsPlusStomach":
+                            string text = array[1];
+                            if (text != "NULL")
+                            {
+                                if (text.Contains("<oA>"))
+                                {
+                                    pupNPCState.PupsPlusStomachObject = SaveState.AbstractPhysicalObjectFromString(self.player.Room.world, text);;
+                                }
+                                else if (text.Contains("<cA>"))
+                                {
+                                    pupNPCState.PupsPlusStomachObject = SaveState.AbstractCreatureFromString(self.player.Room.world, text, onlyInCurrentRegion: false);
+                                }
+                            }
+                            break;
                     }
                 }
+
             });
             variCurs.Emit(OpCodes.Br_S, branchLabel);
 
@@ -1569,9 +1584,10 @@ namespace SlugpupStuff
              * unrecognizedSaveStrings.Remove("Stomach");
              */
             variCurs.Emit(OpCodes.Ldarg_0);
-            variCurs.EmitDelegate((PlayerNPCState self) =>   // Remove "Variant" from unrecognizedSaveStrings
+            variCurs.EmitDelegate((PlayerNPCState self) =>   // Remove data from unrecognizedSaveStrings
             {
                 self.unrecognizedSaveStrings.Remove("Variant");
+                self.unrecognizedSaveStrings.Remove("PupsPlusStomach");
             });
         }
 

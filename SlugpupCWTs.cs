@@ -16,12 +16,13 @@ namespace SlugpupStuff
 
         public class PupGraphics
         {
-            public int TongueSpriteIndex = 0;
+            public int TongueSpriteIndex;
         }
 
         public class PupNPCState
         {
-            public SlugcatStats.Name Variant = null;
+            public SlugcatStats.Name Variant;
+            public AbstractPhysicalObject PupsPlusStomachObject;
         }
     }
 

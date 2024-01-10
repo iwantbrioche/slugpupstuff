@@ -101,8 +101,8 @@ namespace SlugpupStuff
                 IL.Snail.Click += IL_Snail_Click;
                 IL.SlugcatStats.NourishmentOfObjectEaten += IL_SlugcatStats_NourishmentOfObjectEaten;
                 IL.MoreSlugcats.PlayerNPCState.CycleTick += IL_PlayerNPCState_CycleTick;
-                IL.MoreSlugcats.PlayerNPCState.ToString += PlayerNPCState_ToString;
-                IL.MoreSlugcats.PlayerNPCState.LoadFromString += PlayerNPCState_LoadFromString;
+                IL.MoreSlugcats.PlayerNPCState.ToString += IL_PlayerNPCState_ToString;
+                IL.MoreSlugcats.PlayerNPCState.LoadFromString += IL_PlayerNPCState_LoadFromString;
                 IL.RegionState.AdaptRegionStateToWorld += IL_RegionState_AdaptRegionStateToWorld;
 
 
@@ -380,15 +380,17 @@ namespace SlugpupStuff
              */
             stomachObjCurs.Emit(OpCodes.Ldarg_0);
             stomachObjCurs.Emit(OpCodes.Ldarg_1);
-            stomachObjCurs.EmitDelegate((Player self, AbstractCreature abstractCreature) =>   // If game session is a Story Session and StomachObject is not null, set objectInStomach to StomachObject
+            stomachObjCurs.EmitDelegate((Player self, AbstractCreature abstractCreature) =>   // If game session is a Story Session and PupsPlusStomachObject is not null, set objectInStomach to PupsPlusStomachObject
             {
-                if (self.room.game.session is StoryGameSession && (self.playerState as PlayerNPCState).StomachObject != null)
+                if (SlugpupCWTs.pupStateCWT.TryGetValue(self.playerState as PlayerNPCState, out var pupNPCState))
                 {
-                    self.objectInStomach = (self.playerState as PlayerNPCState).StomachObject;
-                    self.objectInStomach.pos = abstractCreature.pos;
+                    if (self.room.game.session is StoryGameSession && pupNPCState.PupsPlusStomachObject != null)
+                    {
+                        self.objectInStomach = pupNPCState.PupsPlusStomachObject;
+                        self.objectInStomach.pos = abstractCreature.pos;
+                    }
                 }
             });
-
         }
         public void IL_Player_SwallowObject(ILContext il)
         {
@@ -572,18 +574,17 @@ namespace SlugpupStuff
              * saveState.pendingFriendCreatures.Add(SaveState.AbstractCreatureToStringStoryWorld(abstractCreature));
              */
             stomachObjCurs.Emit(OpCodes.Ldloc, 5);
-            stomachObjCurs.EmitDelegate((AbstractCreature abstractCreature) =>   // If abstractCreature is Player and it's playerState is PlayerNPCState, set StomachObject to objectInStomach
+            stomachObjCurs.EmitDelegate((AbstractCreature abstractCreature) =>   // If abstractCreature is Player and it's playerState is PlayerNPCState, set PupsPlusStomachObject to objectInStomach
             {
-                if (abstractCreature.realizedCreature is Player pup)
+                if (abstractCreature.realizedCreature is Player pup && pup.playerState is PlayerNPCState)
                 {
-                    if (pup.playerState is PlayerNPCState)
+                    if (SlugpupCWTs.pupStateCWT.TryGetValue(pup.playerState as PlayerNPCState, out var pupNPCState))
                     {
                         if (pup.objectInStomach != null)
                         {
-                            (pup.playerState as PlayerNPCState).StomachObject = pup.objectInStomach;
+                            pupNPCState.PupsPlusStomachObject = pup.objectInStomach;
                         }
-                        else (pup.playerState as PlayerNPCState).StomachObject = null;
-
+                        else pupNPCState.PupsPlusStomachObject = null;
                     }
                 }
             });
