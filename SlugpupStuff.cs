@@ -2,20 +2,12 @@
 using Mono.Cecil.Cil;
 using MonoMod.Cil;
 using MoreSlugcats;
-using RWCustom;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
 using Random = UnityEngine.Random;
-
-//       to do for variants:
-// rotund pup spitting up items when given disliked food or at random
-// better rotund exhaust behavior
-
-//      to do for misc stuff:
-// thumbnail for mod
 
 
 namespace SlugpupStuff
@@ -53,11 +45,11 @@ namespace SlugpupStuff
                 On.MoreSlugcats.SlugNPCAI.LethalWeaponScore += SlugNPCAI_LethalWeaponScore;
                 On.MoreSlugcats.SlugNPCAI.GetFoodType += SlugNPCAI_GetFoodType;
                 On.MoreSlugcats.SlugNPCAI.Move += SlugNPCAI_Move;
-                On.MoreSlugcats.SlugNPCAI.DecideBehavior += SlugNPCAI_DecideBehavior;
 
 
                 // Slugpup ILHooks
                 IL.MoreSlugcats.SlugNPCAI.ctor += IL_SlugNPCAI_ctor;
+                IL.MoreSlugcats.SlugNPCAI.DecideBehavior += IL_SlugNPCAI_DecideBehavior;
 
                 // Player OnHooks
                 On.Player.UpdateMSC += Player_UpdateMSC;
@@ -118,6 +110,7 @@ namespace SlugpupStuff
         }
 
 
+
         public void RainWorld_PostModsInit(On.RainWorld.orig_PostModsInit orig, RainWorld self)
         {
             orig(self);
@@ -128,11 +121,6 @@ namespace SlugpupStuff
                 if (ModManager.ActiveMods.Any(mod => mod.id == "dressmyslugcat"))
                 {
                     SlugpupGraphics.SetupDMSSprites();
-                    new MonoMod.RuntimeDetour.Hook(
-                        typeof(DressMySlugcat.Utils).GetProperty(nameof(DressMySlugcat.Utils.ValidSlugcatNames), 
-                            System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static).GetGetMethod(),
-                        SlugpupGraphics.ValidPupNames
-                        );
                 }
                 if (ModManager.ActiveMods.Any(mod => mod.id == "yeliah.slugpupFieldtrip"))
                 {
@@ -192,6 +180,14 @@ namespace SlugpupStuff
         public void SlugNPCAI_Move(On.MoreSlugcats.SlugNPCAI.orig_Move orig, SlugNPCAI self)
         {
             orig(self);
+            if (self.cat.gourmandExhausted)
+            {
+                if (self.threatTracker.ThreatOfTile(self.creature.pos, false) < 0.2f && self.behaviorType != SlugNPCAI.BehaviorType.Fleeing)
+                {
+                    self.cat.input[0].x = 0;
+                    self.cat.input[0].y = 0;
+                }
+            }
             if (self.cat.slugcatStats.name == VariantName.Tundrapup)
             {
                 if (self.stuckTracker.Utility() > 0.1f)
@@ -234,19 +230,103 @@ namespace SlugpupStuff
                     self.cat.ReleaseGrasp(0);
                 }
             }
-        }
-        public void SlugNPCAI_DecideBehavior(On.MoreSlugcats.SlugNPCAI.orig_DecideBehavior orig, SlugNPCAI self)
-        {
-            orig(self);
-            if (self.cat.gourmandExhausted)
+
+            if (SlugpupCWTs.pupCWT.TryGetValue(self, out var pupVariables))
             {
-                if (self.threatTracker.TotalTrackedThreats > 0)
+                if (self.cat.slugcatStats.name == VariantName.Rotundpup)
                 {
-                    self.behaviorType = SlugNPCAI.BehaviorType.Fleeing;
+                    if (self.foodReaction < -110 && self.FunStuff && self.cat.objectInStomach == null && !pupVariables.regurgitating)
+                    {
+                        pupVariables.wantsToRegurgitate = true;
+                    }
                 }
-                else
+                if (pupVariables.wantsToRegurgitate)
                 {
-                    self.behaviorType = SlugNPCAI.BehaviorType.Idle;
+                    PupRegurgitate(self.cat);
+                }
+                if (pupVariables.wantsToSwallowObject && self.cat.grasps[0]?.grabbed != null)
+                {
+                    PupSwallowObject(self.cat, 0);
+                }
+            }
+        }
+        public void IL_SlugNPCAI_DecideBehavior(ILContext il)
+        {
+            ILCursor exhausCurs = new(il);
+
+            ILLabel branchLabel = il.DefineLabel();
+
+            exhausCurs.GotoNext(x => x.MatchCall<SlugNPCAI>(nameof(SlugNPCAI.AttackingThreat)));
+            exhausCurs.GotoNext(MoveType.After, x => x.Match(OpCodes.Brfalse_S));
+            /* GOTO AFTER
+             * if (AttackingThreat())
+             */
+            branchLabel = exhausCurs.Prev.Operand as ILLabel;
+
+            exhausCurs.Emit(OpCodes.Ldarg_0);
+            exhausCurs.EmitDelegate((SlugNPCAI self) =>
+            {
+                if (self.cat.gourmandExhausted)
+                {
+                    return true;
+                }
+                return false;
+            });
+            exhausCurs.Emit(OpCodes.Brtrue_S, branchLabel);
+        }
+        public void PupSwallowObject(Player self, int grabbedIndex)
+        {
+            if (SlugpupCWTs.pupCWT.TryGetValue(self.AI, out var pupVariables))
+            {
+                if (self.objectInStomach == null && self.CanBeSwallowed(self.grasps[grabbedIndex].grabbed) && self.Consious)
+                {
+                    pupVariables.swallowing = true;
+                    self.swallowAndRegurgitateCounter++;
+                    self.AI.heldWiggle = 0;
+                    if (self.swallowAndRegurgitateCounter > 90)
+                    {
+                        self.SwallowObject(grabbedIndex);
+                        self.swallowAndRegurgitateCounter = 0;
+                        (self.graphicsModule as PlayerGraphics).swallowing = 20;
+
+                        pupVariables.swallowing = false;
+                        pupVariables.wantsToSwallowObject = false;
+                    }
+                }
+            }
+        }
+        public void PupRegurgitate(Player self, int grabbedIndex = -1)
+        {
+            if (SlugpupCWTs.pupCWT.TryGetValue(self.AI, out var pupVariables))
+            {
+                pupVariables.regurgitating = true;
+                self.swallowAndRegurgitateCounter++;
+
+                bool spitUpObject = false;
+                if (self.slugcatStats.name == VariantName.Rotundpup && self.objectInStomach == null && grabbedIndex == -1)
+                {
+                    spitUpObject = true;
+                }
+                self.AI.heldWiggle = 0;
+                if (self.swallowAndRegurgitateCounter > 110)
+                {
+                    if (!spitUpObject || (spitUpObject && self.FoodInStomach > 0 && !self.Malnourished))
+                    {
+                        if (spitUpObject)
+                        {
+                            self.SubtractFood(1);
+                        }
+                        self.Regurgitate();
+                    }
+                    else
+                    {
+                        self.firstChunk.vel += new Vector2(Random.Range(-1f, 1f), 0f);
+                        self.Stun(30);
+                    }
+
+                    self.swallowAndRegurgitateCounter = 0;
+                    pupVariables.regurgitating = false;
+                    pupVariables.wantsToRegurgitate = false;
                 }
             }
         }
@@ -262,7 +342,7 @@ namespace SlugpupStuff
                     break;
                 }
             }
-            if (pupGrabbed != null)
+            if (pupGrabbed != null && SlugpupCWTs.pupCWT.TryGetValue(pupGrabbed.AI, out var pupVariables))
             {
                 foreach (var grasped in self.grasps)
                 {
@@ -284,50 +364,15 @@ namespace SlugpupStuff
 
                     if (grabbedIndex > -1 && self.grasps[grabbedIndex].grabbed != null)
                     {
-                        if (pupGrabbed.objectInStomach == null && pupGrabbed.CanBeSwallowed(self.grasps[grabbedIndex].grabbed) && pupGrabbed.Consious)
-                        {
-                            pupGrabbed.swallowAndRegurgitateCounter++;
-                            pupGrabbed.AI.heldWiggle = 0;
-                            if (pupGrabbed.swallowAndRegurgitateCounter > 90)
-                            {
-                                pupGrabbed.SwallowObject(grabbedIndex);
-                                pupGrabbed.swallowAndRegurgitateCounter = 0;
-                                (pupGrabbed.graphicsModule as PlayerGraphics).swallowing = 20;
-                            }
-                        }
+                        PupSwallowObject(pupGrabbed, grabbedIndex);
                     }
                     if ((pupGrabbed.objectInStomach != null || pupGrabbed.slugcatStats.name == VariantName.Rotundpup && slugpupRemix.ManualItemGen.Value) && pupGrabbed.Consious)
                     {
-                        pupGrabbed.swallowAndRegurgitateCounter++;
-                        bool spitUpObject = false;
-                        if (pupGrabbed.slugcatStats.name == VariantName.Rotundpup && pupGrabbed.objectInStomach == null && grabbedIndex == -1)
-                        {
-                            spitUpObject = true;
-                        }
-                        pupGrabbed.AI.heldWiggle = 0;
-                        if (pupGrabbed.swallowAndRegurgitateCounter > 110)
-                        {
-                            if (!spitUpObject || (spitUpObject && pupGrabbed.FoodInStomach > 0 && !pupGrabbed.Malnourished))
-                            {
-                                if (spitUpObject)
-                                {
-                                    pupGrabbed.SubtractFood(1);
-                                }
-                                pupGrabbed.Regurgitate();
-                            }
-                            else
-                            {
-                                pupGrabbed.firstChunk.vel += new Vector2(Random.Range(-1f, 1f), 0f);
-                                pupGrabbed.Stun(30);
-                            }
-
-                            pupGrabbed.swallowAndRegurgitateCounter = 0;
-                        }
+                        PupRegurgitate(pupGrabbed, grabbedIndex);
                     }
                     else
                     {
                         orig(self, eu);
-                        return;
                     }
                 }
                 else
@@ -337,13 +382,11 @@ namespace SlugpupStuff
                         pupGrabbed.swallowAndRegurgitateCounter--;
                     }
                     orig(self, eu);
-                    return;
                 }
             }
             else
             {
                 orig(self, eu);
-                return;
             }
         }
         public void IL_Player_ctor(ILContext il)
@@ -520,9 +563,9 @@ namespace SlugpupStuff
 
             counterCurs.EmitDelegate((Player self) =>   // If grabbed by a player and player is holding pckp + up, branch to graspedLabel
             {
-                if (self.grabbedBy.Count > 0 && self.grabbedBy[0].grabber is Player parent)
+                if (self.isNPC && SlugpupCWTs.pupCWT.TryGetValue(self.AI, out var pupVariables))
                 {
-                    if (parent.input[0].pckp && parent.input[0].y == 1)
+                    if (pupVariables.regurgitating || pupVariables.swallowing)
                     {
                         return true;
                     }
@@ -564,11 +607,11 @@ namespace SlugpupStuff
             staggerCursor.GotoNext(x => x.MatchCallvirt<Player>(nameof(Player.SaintStagger))); // Goto '(item as Player).SaintStagger(1500);'
             staggerCursor.GotoNext(MoveType.After, x => x.MatchLdloc(10)); // Goto before ldloc.s 10 in 'else if (item is Player)'
 
-            staggerCursor.EmitDelegate((PhysicalObject physicalObject) =>   // If physicalObject is Tundrapup, do SaintStagger
+            staggerCursor.EmitDelegate((PhysicalObject item) =>   // If physicalObject is Tundrapup, do SaintStagger
             {
-                if (physicalObject is Player && (physicalObject as Player).slugcatStats.name == VariantName.Tundrapup)
+                if (item is Player pup && pup.slugcatStats.name == VariantName.Tundrapup)
                 {
-                    (physicalObject as Player).SaintStagger(1500);
+                    pup.SaintStagger(1500);
                 }
             });
             staggerCursor.Emit(OpCodes.Ldloc, 10); // Push ldloc.s 10 back onto stack

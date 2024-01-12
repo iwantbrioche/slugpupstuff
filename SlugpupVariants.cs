@@ -1,5 +1,4 @@
-﻿using Expedition;
-using Mono.Cecil.Cil;
+﻿using Mono.Cecil.Cil;
 using MonoMod.Cil;
 using MoreSlugcats;
 using RWCustom;
@@ -542,85 +541,92 @@ namespace SlugpupStuff
         }
         public void Player_TongueUpdate(On.Player.orig_TongueUpdate orig, Player self)
         {
-            Player parent = null;
-            if (self.grabbedBy.Count > 0 && self.grabbedBy[0].grabber is Player player)
+            if (self.isNPC)
             {
-                parent = player;
-            }
-            if (self.onBack != null)
-            {
-                parent = self.onBack.slugOnBack.owner;
-                while (parent.onBack != null)
+                Player parent = null;
+                if (self.grabbedBy.Count > 0 && self.grabbedBy[0].grabber is Player player)
                 {
-                    parent = parent.onBack.slugOnBack.owner;
+                    parent = player;
                 }
-            }
-            if (parent != null)
-            {
-                if (self.tongue == null || self.room == null) return;
-
-                if (parent.SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Artificer && parent.input[0].jmp && parent.input[1].pckp)
+                if (self.onBack != null)
                 {
-                    self.tongue.Release();
+                    parent = self.onBack.slugOnBack.owner;
+                    while (parent.onBack != null)
+                    {
+                        parent = parent.onBack.slugOnBack.owner;
+                    }
                 }
-
-                self.tongue.baseChunk = parent.bodyChunks[0];
-                if (self.tongue.Attached)
+                if (parent != null)
                 {
-                    self.tongueAttachTime++;
-                    if (self.Stunned)
+                    if (self.tongue == null || self.room == null) return;
+
+                    if (parent.SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Artificer && parent.input[0].jmp && parent.input[1].pckp)
                     {
                         self.tongue.Release();
                     }
-                    else
+
+                    self.tongue.baseChunk = parent.bodyChunks[0];
+                    if (self.tongue.Attached)
                     {
-                        if (parent.input[0].y > 0)
-                        {
-                            self.tongue.decreaseRopeLength(3f);
-                        }
-
-                        if (parent.input[0].y < 0)
-                        {
-                            self.tongue.increaseRopeLength(3f);
-                        }
-
-                        if (parent.input[0].jmp && !parent.input[1].jmp && self.tongueAttachTime >= 2)
+                        self.tongueAttachTime++;
+                        if (self.Stunned)
                         {
                             self.tongue.Release();
-                            if (!self.tongue.isZeroGMode())
+                        }
+                        else
+                        {
+                            if (parent.input[0].y > 0)
                             {
-                                float num = Mathf.Lerp(1f, 1.15f, self.Adrenaline);
-                                if (self.grabbedBy.Count > 0)
-                                {
-                                    if (parent.grasps[0] != null && parent.HeavyCarry(parent.grasps[0].grabbed) && parent.grasps[0].grabbed is not Cicada)
-                                    {
-                                        num += Mathf.Min(Mathf.Max(0f, self.onBack.slugOnBack.owner.grasps[0].grabbed.TotalMass - 0.2f) * 1.5f, 1.3f);
-                                    }
-                                }
-                                parent.bodyChunks[0].vel.y = 6f * num;
-                                parent.bodyChunks[1].vel.y = 5f * num;
-                                parent.jumpBoost = 6.5f;
-                                if (self.grabbedBy.Count > 0)
-                                {
-                                    self.bodyChunks[0].vel.y = 6f * num;
-                                    self.bodyChunks[1].vel.y = 5f * num;
-                                    self.jumpBoost = 6.5f;
-                                }
+                                self.tongue.decreaseRopeLength(3f);
                             }
 
-                            self.room.PlaySound(SoundID.Slugcat_Normal_Jump, self.mainBodyChunk, loop: false, 1f, 1f);
+                            if (parent.input[0].y < 0)
+                            {
+                                self.tongue.increaseRopeLength(3f);
+                            }
+
+                            if (parent.input[0].jmp && !parent.input[1].jmp && self.tongueAttachTime >= 2)
+                            {
+                                self.tongue.Release();
+                                if (!self.tongue.isZeroGMode())
+                                {
+                                    float num = Mathf.Lerp(1f, 1.15f, self.Adrenaline);
+                                    if (self.grabbedBy.Count > 0)
+                                    {
+                                        if (parent.grasps[0] != null && parent.HeavyCarry(parent.grasps[0].grabbed) && parent.grasps[0].grabbed is not Cicada)
+                                        {
+                                            num += Mathf.Min(Mathf.Max(0f, self.onBack.slugOnBack.owner.grasps[0].grabbed.TotalMass - 0.2f) * 1.5f, 1.3f);
+                                        }
+                                    }
+                                    parent.bodyChunks[0].vel.y = 6f * num;
+                                    parent.bodyChunks[1].vel.y = 5f * num;
+                                    parent.jumpBoost = 6.5f;
+                                    if (self.grabbedBy.Count > 0)
+                                    {
+                                        self.bodyChunks[0].vel.y = 6f * num;
+                                        self.bodyChunks[1].vel.y = 5f * num;
+                                        self.jumpBoost = 6.5f;
+                                    }
+                                }
+
+                                self.room.PlaySound(SoundID.Slugcat_Normal_Jump, self.mainBodyChunk, loop: false, 1f, 1f);
+                            }
                         }
+                    }
+                    else
+                    {
+                        self.tongueAttachTime = 0;
+                    }
+
+                    self.tongue.Update();
+                    if (self.tongue.rope.totalLength > self.tongue.totalRope * 2.5f)
+                    {
+                        self.tongue.Release();
                     }
                 }
                 else
                 {
-                    self.tongueAttachTime = 0;
-                }
-
-                self.tongue.Update();
-                if (self.tongue.rope.totalLength > self.tongue.totalRope * 2.5f)
-                {
-                    self.tongue.Release();
+                    orig(self);
                 }
             }
             else
@@ -630,66 +636,69 @@ namespace SlugpupStuff
         }
         public void Tongue_Shoot(On.Player.Tongue.orig_Shoot orig, Player.Tongue self, Vector2 dir)
         {
-            Player parent = null;
-            if (self.player.grabbedBy.Count > 0 && self.player.grabbedBy[0].grabber is Player player)
+            if (self.player.isNPC)
             {
-                parent = player;
-            }
-            if (self.player.onBack != null)
-            {
-                parent = self.player.onBack.slugOnBack.owner;
-                while (parent.onBack != null)
+                Player parent = null;
+                if (self.player.grabbedBy.Count > 0 && self.player.grabbedBy[0].grabber is Player player)
                 {
-                    parent = parent.onBack.slugOnBack.owner;
+                    parent = player;
                 }
-            }
-            self.resetRopeLength();
-            if (self.Attached)
-            {
-                self.Release();
-            }
-            else if (parent != null && !slugpupRemix.SaintTundraGrapple.Value && parent.SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Saint)
-            {
-                return;
-            }
-            else if (self.mode == Player.Tongue.Mode.Retracted)
-            {
-                self.mode = Player.Tongue.Mode.ShootingOut;
-                self.player.room.PlaySound(SoundID.Tube_Worm_Shoot_Tongue, self.baseChunk);
-                float num = parent != null ? parent.input[0].x : self.player.input[0].x;
-                float num2 = parent != null ? parent.input[0].y : self.player.input[0].y;
-                if (self.isZeroGMode() && (num != 0f || num2 != 0f))
+                if (self.player.onBack != null)
                 {
-                    dir = new Vector2(num, num2).normalized;
-                    if (parent != null)
+                    parent = self.player.onBack.slugOnBack.owner;
+                    while (parent.onBack != null)
                     {
-                        parent.bodyChunks[0].vel = new Vector2(self.GetTargetZeroGVelo(parent.bodyChunks[0].vel.x, dir.x), self.GetTargetZeroGVelo(parent.bodyChunks[0].vel.y, dir.y));
-                        parent.bodyChunks[1].vel = new Vector2(self.GetTargetZeroGVelo(parent.bodyChunks[1].vel.x, dir.x), self.GetTargetZeroGVelo(parent.bodyChunks[1].vel.y, dir.y));
+                        parent = parent.onBack.slugOnBack.owner;
+                    }
+                }
+                self.resetRopeLength();
+                if (self.Attached)
+                {
+                    self.Release();
+                }
+                else if (parent != null && !slugpupRemix.SaintTundraGrapple.Value && parent.SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Saint)
+                {
+                    return;
+                }
+                else if (self.mode == Player.Tongue.Mode.Retracted)
+                {
+                    self.mode = Player.Tongue.Mode.ShootingOut;
+                    self.player.room.PlaySound(SoundID.Tube_Worm_Shoot_Tongue, self.baseChunk);
+                    float num = parent != null ? parent.input[0].x : self.player.input[0].x;
+                    float num2 = parent != null ? parent.input[0].y : self.player.input[0].y;
+                    if (self.isZeroGMode() && (num != 0f || num2 != 0f))
+                    {
+                        dir = new Vector2(num, num2).normalized;
+                        if (parent != null)
+                        {
+                            parent.bodyChunks[0].vel = new Vector2(self.GetTargetZeroGVelo(parent.bodyChunks[0].vel.x, dir.x), self.GetTargetZeroGVelo(parent.bodyChunks[0].vel.y, dir.y));
+                            parent.bodyChunks[1].vel = new Vector2(self.GetTargetZeroGVelo(parent.bodyChunks[1].vel.x, dir.x), self.GetTargetZeroGVelo(parent.bodyChunks[1].vel.y, dir.y));
+                        }
+                        else
+                        {
+                            self.player.bodyChunks[0].vel = new Vector2(self.GetTargetZeroGVelo(self.player.bodyChunks[0].vel.x, dir.x), self.GetTargetZeroGVelo(self.player.bodyChunks[0].vel.y, dir.y));
+                            self.player.bodyChunks[1].vel = new Vector2(self.GetTargetZeroGVelo(self.player.bodyChunks[1].vel.x, dir.x), self.GetTargetZeroGVelo(self.player.bodyChunks[1].vel.y, dir.y));
+                        }
                     }
                     else
                     {
-                        self.player.bodyChunks[0].vel = new Vector2(self.GetTargetZeroGVelo(self.player.bodyChunks[0].vel.x, dir.x), self.GetTargetZeroGVelo(self.player.bodyChunks[0].vel.y, dir.y));
-                        self.player.bodyChunks[1].vel = new Vector2(self.GetTargetZeroGVelo(self.player.bodyChunks[1].vel.x, dir.x), self.GetTargetZeroGVelo(self.player.bodyChunks[1].vel.y, dir.y));
+                        dir = self.AutoAim(dir);
                     }
-                }
-                else
-                {
-                    dir = self.AutoAim(dir);
-                }
 
-                self.pos = self.baseChunk.pos + dir * 5f;
-                self.elastic = 1f;
-                if (!self.player.Malnourished)
-                {
-                    self.vel = dir * 70f;
-                    self.requestedRopeLength = 140f;
+                    self.pos = self.baseChunk.pos + dir * 5f;
+                    self.elastic = 1f;
+                    if (!self.player.Malnourished)
+                    {
+                        self.vel = dir * 70f;
+                        self.requestedRopeLength = 140f;
+                    }
+                    else
+                    {
+                        self.vel = dir * 35f;
+                        self.requestedRopeLength = 100f;
+                    }
+                    self.returning = false;
                 }
-                else
-                {
-                    self.vel = dir * 35f;
-                    self.requestedRopeLength = 100f;
-                }
-                self.returning = false;
             }
             else
             {

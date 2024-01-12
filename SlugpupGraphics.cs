@@ -460,6 +460,11 @@ namespace SlugpupStuff
         }
         public static void SetupDMSSprites()
         {
+            new MonoMod.RuntimeDetour.Hook(
+                typeof(DressMySlugcat.Utils).GetProperty(nameof(DressMySlugcat.Utils.ValidSlugcatNames),
+                    System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static).GetGetMethod(),
+                SlugpupGraphics.ValidPupNames);
+
             DressMySlugcat.SpriteDefinitions.AvailableSprites.Add(new DressMySlugcat.SpriteDefinitions.AvailableSprite
             {
                 Name = "GILLS",

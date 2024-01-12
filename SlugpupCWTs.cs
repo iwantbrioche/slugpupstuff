@@ -12,7 +12,10 @@ namespace SlugpupStuff
         public static readonly ConditionalWeakTable<PlayerNPCState, PupNPCState> pupStateCWT = new();
         public class PupVariables
         {
-
+            public bool regurgitating;
+            public bool swallowing;
+            public bool wantsToRegurgitate;
+            public bool wantsToSwallowObject;
         }
 
         public class PupGraphics
