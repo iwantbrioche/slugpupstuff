@@ -61,9 +61,9 @@ namespace SlugpupStuff
             int grabbedIndex = -1;
             foreach (var grasped in (self.owner.owner as Player).grasps)
             {
-                if (grasped != null && grasped.grabbed is Player && (grasped.grabbed as Player).isNPC)
+                if (grasped != null && grasped.grabbed is Player pup && pup.isNPC)
                 {
-                    pupGrabbed = grasped.grabbed as Player;
+                    pupGrabbed = pup;
                     break;
                 }
             }
@@ -71,7 +71,7 @@ namespace SlugpupStuff
             {
                 foreach (var grasped in (self.owner.owner as Player).grasps)
                 {
-                    if (grasped != null && grasped.grabbed != null && grasped.grabbed != pupGrabbed)
+                    if (grasped?.grabbed != null && grasped.grabbed != pupGrabbed)
                     {
                         grabbedIndex = grasped.graspUsed;
                         break;
@@ -205,7 +205,7 @@ namespace SlugpupStuff
             {
                 if (self.player.slugcatStats.name == SlugpupStuff.VariantName.Rotundpup)
                 {
-                    sLeaser.sprites[1].scaleX = 1.2f + 0.2f * Mathf.Lerp(self.player.npcStats.Wideness, 0.5f, self.RenderAsPup ? 0.5f : 0f) + Mathf.Lerp(Mathf.Lerp(Mathf.Lerp(-0.05f, -0.15f, self.malnourished), 0.05f, num) * num2, 0.15f, self.player.sleepCurlUp);
+                    sLeaser.sprites[1].scaleX = 1.2f + 0.2f * Mathf.Lerp(self.player.npcStats.Wideness, 0.5f, self.RenderAsPup ? 0.5f : 0f) + Mathf.Lerp(Mathf.Lerp(Mathf.Lerp(-0.05f, -0.2f, self.malnourished), 0.05f, num) * num2, 0.15f, self.player.sleepCurlUp);
                 }
             });
 
@@ -221,15 +221,11 @@ namespace SlugpupStuff
             {
                 if (self.player.slugcatStats.name == SlugpupStuff.VariantName.Rotundpup)
                 {
-                    sLeaser.sprites[0].scaleX = 1f + 0.2f * Mathf.Lerp(self.player.npcStats.Wideness, 0.5f, self.RenderAsPup ? 0.5f : 0f) + self.player.sleepCurlUp * 0.2f + 0.05f * num - 0.05f * self.malnourished;
+                    sLeaser.sprites[0].scaleX = 1f + 0.2f * Mathf.Lerp(self.player.npcStats.Wideness, 0.5f, self.RenderAsPup ? 0.5f : 0f) + self.player.sleepCurlUp * 0.2f + 0.05f * num - 0.1f * self.malnourished;
                 }
             });
 
             drawCurs.GotoNext(x => x.MatchCallOrCallvirt<PlayerGraphics>("get_RenderAsPup"));
-            /* GOTO 
-             * if (RenderAsPup && ModManager.MSC)
-             */
-            drawCurs = drawCurs.Clone();
             drawCurs.GotoNext(MoveType.Before, x => x.Match(OpCodes.Br_S));
             /* GOTO AFTER
              * sLeaser.sprites[3].element = Futile.atlasManager.GetElementWithName("HeadC" + num7);

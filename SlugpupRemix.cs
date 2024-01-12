@@ -131,7 +131,6 @@ namespace SlugpupStuff
                 OPregularChance
                 );
         }
-
         public override void Update()
         {
             int aquaticValue = int.Parse(OPaquaticSlider.value);

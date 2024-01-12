@@ -439,9 +439,9 @@ namespace SlugpupStuff
                     }
                 }
                 Player parent = null;
-                if (self.AI?.behaviorType == SlugNPCAI.BehaviorType.BeingHeld)
+                if (self.grabbedBy.Count > 0 && self.grabbedBy[0].grabber is Player player)
                 {
-                    parent = self.grabbedBy[0].grabber as Player;
+                    parent = player;
                 }
                 if (parent != null && parent.SlugCatClass != MoreSlugcatsEnums.SlugcatStatsName.Rivulet)
                 {
@@ -451,50 +451,66 @@ namespace SlugpupStuff
         }
         public void Player_VariantMechanicsTundrapup(On.Player.orig_ClassMechanicsSaint orig, Player self)
         {
-            Player parent = null;
-            if (self.AI?.behaviorType == SlugNPCAI.BehaviorType.BeingHeld)
+            if (self.slugcatStats.name == VariantName.Tundrapup || (self.SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Saint && self.isNPC))
             {
-                parent = self.grabbedBy[0].grabber as Player;
-            }
-            if (self.onBack != null && slugpupRemix.BackTundraGrapple.Value)
-            {
-                parent = self.onBack.slugOnBack.owner;
-                while (parent.onBack != null)
+                Player parent = null;
+                if (self.grabbedBy.Count > 0 && self.grabbedBy[0].grabber is Player player)
                 {
-                    parent = parent.onBack.slugOnBack.owner;
+                    parent = player;
                 }
-            }
-            if (self.slugcatStats.name == VariantName.Tundrapup && parent == null)
-            {
-                if (self.input[0].jmp && !self.input[1].jmp && !self.input[0].pckp && self.canJump <= 0 && self.bodyMode != Player.BodyModeIndex.Crawl && self.animation != Player.AnimationIndex.ClimbOnBeam && self.animation != Player.AnimationIndex.AntlerClimb && self.animation != Player.AnimationIndex.HangFromBeam && self.SaintTongueCheck())
+                if (self.onBack != null && slugpupRemix.BackTundraGrapple.Value)
                 {
-                    Vector2 vector = new(self.flipDirection, 0.7f);
-                    Vector2 normalized = vector.normalized;
-                    if (self.input[0].y > 0)
+                    parent = self.onBack.slugOnBack.owner;
+                    while (parent.onBack != null)
                     {
-                        normalized = new Vector2(0f, 1f);
+                        parent = parent.onBack.slugOnBack.owner;
                     }
-                    normalized = (normalized + self.mainBodyChunk.vel.normalized * 0.2f).normalized;
-                    self.tongue.Shoot(normalized);
                 }
-            }
-            else if (parent != null && (self.slugcatStats.name == VariantName.Tundrapup || (self.slugcatStats.name == MoreSlugcatsEnums.SlugcatStatsName.Saint && self.playerState.isPup && self.onBack != null)))
-            {
-                if (parent.input[0].jmp && !parent.input[1].jmp && !parent.input[0].pckp && parent.canJump <= 0 && parent.bodyMode != Player.BodyModeIndex.Crawl && parent.animation != Player.AnimationIndex.ClimbOnBeam && parent.animation != Player.AnimationIndex.AntlerClimb && parent.animation != Player.AnimationIndex.HangFromBeam && self.SaintTongueCheck())
+                if (parent != null)
                 {
-                    Vector2 vector = new(parent.flipDirection, 0.7f);
-                    Vector2 normalized = vector.normalized;
-                    if (parent.input[0].y > 0)
+
+                    if (parent.input[0].jmp && !parent.input[1].jmp && !parent.input[0].pckp && parent.canJump <= 0 && parent.bodyMode != Player.BodyModeIndex.Crawl && parent.animation != Player.AnimationIndex.ClimbOnBeam && parent.animation != Player.AnimationIndex.AntlerClimb && parent.animation != Player.AnimationIndex.HangFromBeam && self.SaintTongueCheck())
                     {
-                        normalized = new Vector2(0f, 1f);
+                        Vector2 vector = new(parent.flipDirection, 0.7f);
+                        Vector2 normalized = vector.normalized;
+                        if (parent.input[0].y > 0)
+                        {
+                            normalized = new Vector2(0f, 1f);
+                        }
+                        normalized = (normalized + self.mainBodyChunk.vel.normalized * 0.2f).normalized;
+                        self.tongue.Shoot(normalized);
                     }
-                    normalized = (normalized + self.mainBodyChunk.vel.normalized * 0.2f).normalized;
-                    self.tongue.Shoot(normalized);
+                }
+                else
+                {
+                    if (self.input[0].jmp && !self.input[1].jmp && !self.input[0].pckp && self.canJump <= 0 && self.bodyMode != Player.BodyModeIndex.Crawl && self.animation != Player.AnimationIndex.ClimbOnBeam && self.animation != Player.AnimationIndex.AntlerClimb && self.animation != Player.AnimationIndex.HangFromBeam && self.SaintTongueCheck())
+                    {
+                        Vector2 vector = new(self.flipDirection, 0.7f);
+                        Vector2 normalized = vector.normalized;
+                        if (self.input[0].y > 0)
+                        {
+                            normalized = new Vector2(0f, 1f);
+                        }
+                        normalized = (normalized + self.mainBodyChunk.vel.normalized * 0.2f).normalized;
+                        self.tongue.Shoot(normalized);
+                    }
                 }
             }
             else
             {
                 orig(self);
+            }
+        }
+        public void Player_ThrownSpear(On.Player.orig_ThrownSpear orig, Player self, Spear spear)
+        {
+            orig(self, spear);
+            if (self.slugcatStats.name == VariantName.Rotundpup && !self.gourmandExhausted)
+            {
+                if ((self.room != null && self.room.gravity == 0f) || Mathf.Abs(spear.firstChunk.vel.x) < 1f)
+                {
+                    spear.firstChunk.vel += spear.firstChunk.vel.normalized * 4.5f;
+                }
+                self.gourmandAttackNegateTime = 80;
             }
         }
         public bool Player_CanEatMeat(On.Player.orig_CanEatMeat orig, Player self, Creature crit)
@@ -527,9 +543,9 @@ namespace SlugpupStuff
         public void Player_TongueUpdate(On.Player.orig_TongueUpdate orig, Player self)
         {
             Player parent = null;
-            if (self.AI?.behaviorType == SlugNPCAI.BehaviorType.BeingHeld)
+            if (self.grabbedBy.Count > 0 && self.grabbedBy[0].grabber is Player player)
             {
-                parent = self.grabbedBy[0].grabber as Player;
+                parent = player;
             }
             if (self.onBack != null)
             {
@@ -542,18 +558,18 @@ namespace SlugpupStuff
             if (parent != null)
             {
                 if (self.tongue == null || self.room == null) return;
-                if (parent.SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Artificer && parent.input[0].jmp && parent.input[1].pckp) self.tongue.Release();
+
+                if (parent.SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Artificer && parent.input[0].jmp && parent.input[1].pckp)
+                {
+                    self.tongue.Release();
+                }
+
                 self.tongue.baseChunk = parent.bodyChunks[0];
                 if (self.tongue.Attached)
                 {
                     self.tongueAttachTime++;
                     if (self.Stunned)
                     {
-                        if (RainWorld.ShowLogs)
-                        {
-                            Debug.Log("Tongue stun detatch?");
-                        }
-
                         self.tongue.Release();
                     }
                     else
@@ -574,9 +590,9 @@ namespace SlugpupStuff
                             if (!self.tongue.isZeroGMode())
                             {
                                 float num = Mathf.Lerp(1f, 1.15f, self.Adrenaline);
-                                if (self.AI?.behaviorType != SlugNPCAI.BehaviorType.BeingHeld)
+                                if (self.grabbedBy.Count > 0)
                                 {
-                                    if (parent.grasps[0] != null && parent.HeavyCarry(parent.grasps[0].grabbed) && !(parent.grasps[0].grabbed is Cicada))
+                                    if (parent.grasps[0] != null && parent.HeavyCarry(parent.grasps[0].grabbed) && parent.grasps[0].grabbed is not Cicada)
                                     {
                                         num += Mathf.Min(Mathf.Max(0f, self.onBack.slugOnBack.owner.grasps[0].grabbed.TotalMass - 0.2f) * 1.5f, 1.3f);
                                     }
@@ -584,7 +600,7 @@ namespace SlugpupStuff
                                 parent.bodyChunks[0].vel.y = 6f * num;
                                 parent.bodyChunks[1].vel.y = 5f * num;
                                 parent.jumpBoost = 6.5f;
-                                if (self.AI?.behaviorType == SlugNPCAI.BehaviorType.BeingHeld)
+                                if (self.grabbedBy.Count > 0)
                                 {
                                     self.bodyChunks[0].vel.y = 6f * num;
                                     self.bodyChunks[1].vel.y = 5f * num;
@@ -615,9 +631,9 @@ namespace SlugpupStuff
         public void Tongue_Shoot(On.Player.Tongue.orig_Shoot orig, Player.Tongue self, Vector2 dir)
         {
             Player parent = null;
-            if (self.player.AI?.behaviorType == SlugNPCAI.BehaviorType.BeingHeld)
+            if (self.player.grabbedBy.Count > 0 && self.player.grabbedBy[0].grabber is Player player)
             {
-                parent = self.player.grabbedBy[0].grabber as Player;
+                parent = player;
             }
             if (self.player.onBack != null)
             {
@@ -627,45 +643,74 @@ namespace SlugpupStuff
                     parent = parent.onBack.slugOnBack.owner;
                 }
             }
-            if (parent != null)
+            self.resetRopeLength();
+            if (self.Attached)
             {
-                self.resetRopeLength();
-                if (self.Attached)
+                self.Release();
+            }
+            else if (parent != null && !slugpupRemix.SaintTundraGrapple.Value && parent.SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Saint)
+            {
+                return;
+            }
+            else if (self.mode == Player.Tongue.Mode.Retracted)
+            {
+                self.mode = Player.Tongue.Mode.ShootingOut;
+                self.player.room.PlaySound(SoundID.Tube_Worm_Shoot_Tongue, self.baseChunk);
+                float num = parent != null ? parent.input[0].x : self.player.input[0].x;
+                float num2 = parent != null ? parent.input[0].y : self.player.input[0].y;
+                if (self.isZeroGMode() && (num != 0f || num2 != 0f))
                 {
-                    self.Release();
-                }
-                else if (!slugpupRemix.SaintTundraGrapple.Value && parent.SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Saint)
-                {
-                    return;
-                }
-                else if (self.mode == Player.Tongue.Mode.Retracted)
-                {
-                    self.mode = Player.Tongue.Mode.ShootingOut;
-                    self.player.room.PlaySound(SoundID.Tube_Worm_Shoot_Tongue, self.baseChunk);
-                    float num = parent.input[0].x;
-                    float num2 = parent.input[0].y;
-                    if (self.isZeroGMode() && (num != 0f || num2 != 0f))
+                    dir = new Vector2(num, num2).normalized;
+                    if (parent != null)
                     {
-                        dir = new Vector2(num, num2).normalized;
                         parent.bodyChunks[0].vel = new Vector2(self.GetTargetZeroGVelo(parent.bodyChunks[0].vel.x, dir.x), self.GetTargetZeroGVelo(parent.bodyChunks[0].vel.y, dir.y));
                         parent.bodyChunks[1].vel = new Vector2(self.GetTargetZeroGVelo(parent.bodyChunks[1].vel.x, dir.x), self.GetTargetZeroGVelo(parent.bodyChunks[1].vel.y, dir.y));
                     }
                     else
                     {
-                        dir = self.AutoAim(dir);
+                        self.player.bodyChunks[0].vel = new Vector2(self.GetTargetZeroGVelo(self.player.bodyChunks[0].vel.x, dir.x), self.GetTargetZeroGVelo(self.player.bodyChunks[0].vel.y, dir.y));
+                        self.player.bodyChunks[1].vel = new Vector2(self.GetTargetZeroGVelo(self.player.bodyChunks[1].vel.x, dir.x), self.GetTargetZeroGVelo(self.player.bodyChunks[1].vel.y, dir.y));
                     }
-
-                    self.pos = self.baseChunk.pos + dir * 5f;
-                    self.vel = dir * 70f;
-                    self.elastic = 1f;
-                    self.requestedRopeLength = 140f;
-                    self.returning = false;
                 }
+                else
+                {
+                    dir = self.AutoAim(dir);
+                }
+
+                self.pos = self.baseChunk.pos + dir * 5f;
+                self.elastic = 1f;
+                if (!self.player.Malnourished)
+                {
+                    self.vel = dir * 70f;
+                    self.requestedRopeLength = 140f;
+                }
+                else
+                {
+                    self.vel = dir * 35f;
+                    self.requestedRopeLength = 100f;
+                }
+                self.returning = false;
             }
             else
             {
                 orig(self, dir);
             }
+        }
+        public void Tongue_decreaseRopeLength(On.Player.Tongue.orig_decreaseRopeLength orig, Player.Tongue self, float amount)
+        {
+            if (self.player.isNPC && self.player.Malnourished)
+            {
+                amount /= 2f;
+            }
+            orig(self, amount);
+        }
+        public void Tongue_increaseRopeLength(On.Player.Tongue.orig_increaseRopeLength orig, Player.Tongue self, float amount)
+        {
+            if (self.player.isNPC && self.player.Malnourished)
+            {
+                amount /= 2.5f;
+            }
+            orig(self, amount);
         }
         public SlugNPCAI.Food SlugNPCAI_GetFoodType(On.MoreSlugcats.SlugNPCAI.orig_GetFoodType orig, SlugNPCAI self, PhysicalObject food)
         {
@@ -1023,7 +1068,7 @@ namespace SlugpupStuff
                 {
                     foreach (var grasped in self.grasps)
                     {
-                        if (grasped?.grabbed is Player && (grasped.grabbed as Player).slugcatStats.name == VariantName.Aquaticpup)
+                        if (grasped?.grabbed is Player pupGrabbed && pupGrabbed.slugcatStats.name == VariantName.Aquaticpup)
                         {
                             self.bodyChunks[0].vel += vector2 * ((vector2.y > 0.5f) ? 300f : 50f);
                             self.airInLungs -= (ModManager.MMF ? 0.18f : 0.2f) * num2;
@@ -1050,7 +1095,7 @@ namespace SlugpupStuff
                 {
                     foreach (var grasped in self.grasps)
                     {
-                        if (grasped?.grabbed is Player && (grasped.grabbed as Player).slugcatStats.name == VariantName.Aquaticpup)
+                        if (grasped?.grabbed is Player pupGrabbed && pupGrabbed.slugcatStats.name == VariantName.Aquaticpup)
                         {
                             return 12;
                         }
@@ -1099,7 +1144,7 @@ namespace SlugpupStuff
                     {
                         foreach (var grasped in self.grasps)
                         {
-                            if (grasped?.grabbed is Player && (grasped.grabbed as Player).slugcatStats.name == VariantName.Aquaticpup)
+                            if (grasped?.grabbed is Player pupGrabbed && pupGrabbed.slugcatStats.name == VariantName.Aquaticpup)
                             {
                                 self.waterFriction = 0.99f;
                             }
@@ -1126,7 +1171,7 @@ namespace SlugpupStuff
                 {
                     foreach (var grasped in self.grasps)
                     {
-                        if (grasped?.grabbed is Player && (grasped.grabbed as Player).slugcatStats.name == VariantName.Aquaticpup)
+                        if (grasped?.grabbed is Player pupGrabbed && pupGrabbed.slugcatStats.name == VariantName.Aquaticpup)
                         {
                             self.waterFriction = 0.999f;
                         }
@@ -1147,7 +1192,7 @@ namespace SlugpupStuff
                 {
                     foreach (var grasped in self.grasps)
                     {
-                        if (grasped?.grabbed is Player && (grasped.grabbed as Player).slugcatStats.name == VariantName.Aquaticpup)
+                        if (grasped?.grabbed is Player pupGrabbed && pupGrabbed.slugcatStats.name == VariantName.Aquaticpup)
                         {
                             return 5f;
                         }
@@ -1169,7 +1214,7 @@ namespace SlugpupStuff
                 {
                     foreach (var grasped in self.grasps)
                     {
-                        if (grasped?.grabbed is Player && (grasped.grabbed as Player).slugcatStats.name == VariantName.Aquaticpup)
+                        if (grasped?.grabbed is Player pupGrabbed && pupGrabbed.slugcatStats.name == VariantName.Aquaticpup)
                         {
                             return 1.5f;
                         }
@@ -1191,7 +1236,7 @@ namespace SlugpupStuff
                 {
                     foreach (var grasped in self.grasps)
                     {
-                        if (grasped?.grabbed is Player && (grasped.grabbed as Player).slugcatStats.name == VariantName.Aquaticpup)
+                        if (grasped?.grabbed is Player pupGrabbed && pupGrabbed.slugcatStats.name == VariantName.Aquaticpup)
                         {
                             return 16f;
                         }
@@ -1213,7 +1258,7 @@ namespace SlugpupStuff
                 {
                     foreach (var grasped in self.grasps)
                     {
-                        if (grasped?.grabbed is Player && (grasped.grabbed as Player).slugcatStats.name == VariantName.Aquaticpup)
+                        if (grasped?.grabbed is Player pupGrabbed && pupGrabbed.slugcatStats.name == VariantName.Aquaticpup)
                         {
                             return 16f;
                         }
@@ -1235,7 +1280,7 @@ namespace SlugpupStuff
                 {
                     foreach (var grasped in self.grasps)
                     {
-                        if (grasped?.grabbed is Player && (grasped.grabbed as Player).slugcatStats.name == VariantName.Aquaticpup)
+                        if (grasped?.grabbed is Player pupGrabbed && pupGrabbed.slugcatStats.name == VariantName.Aquaticpup)
                         {
                             return 3f;
                         }
@@ -1257,7 +1302,7 @@ namespace SlugpupStuff
                 {
                     foreach (var grasped in self.grasps)
                     {
-                        if (grasped?.grabbed is Player && (grasped.grabbed as Player).slugcatStats.name == VariantName.Aquaticpup)
+                        if (grasped?.grabbed is Player pupGrabbed && pupGrabbed.slugcatStats.name == VariantName.Aquaticpup)
                         {
                             return 9;
                         }
@@ -1285,7 +1330,7 @@ namespace SlugpupStuff
                 {
                     foreach (var grasped in self.grasps)
                     {
-                        if (grasped?.grabbed is Player && (grasped.grabbed as Player).slugcatStats.name == VariantName.Aquaticpup)
+                        if (grasped?.grabbed is Player pupGrabbed && pupGrabbed.slugcatStats.name == VariantName.Aquaticpup)
                         {
                             return true;
                         }
@@ -1308,7 +1353,7 @@ namespace SlugpupStuff
                 {
                     foreach (var grasped in self.grasps)
                     {
-                        if (grasped?.grabbed is Player && (grasped.grabbed as Player).slugcatStats.name == VariantName.Aquaticpup)
+                        if (grasped?.grabbed is Player pupGrabbed && pupGrabbed.slugcatStats.name == VariantName.Aquaticpup)
                         {
                             return 10f;
                         }
@@ -1320,16 +1365,25 @@ namespace SlugpupStuff
         public void IL_Player_Collide(ILContext il)
         {
             ILCursor rotundCurs = new(il);
+            ILCursor rotundLabelCurs = new(il);
+
+            ILLabel branchLabel = il.DefineLabel();
+
             rotundCurs.GotoNext(x => x.MatchLdsfld<ModManager>(nameof(ModManager.MSC)));
             rotundCurs.GotoNext(MoveType.After, x => x.MatchLdsfld<ModManager>(nameof(ModManager.MSC)), x => x.Match(OpCodes.Brfalse));
+            /* GOTO BEFORE
+             * if (SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Gourmand && animation == AnimationIndex.Roll && gourmandAttackNegateTime <= 0)
+             */
+            rotundLabelCurs = rotundCurs.Clone();
 
-            ILCursor rotundLabelCurs = rotundCurs.Clone();
             rotundLabelCurs.GotoNext(MoveType.After, x => x.Match(OpCodes.Brfalse));
-            ILLabel skipLabel = il.DefineLabel();
-            rotundLabelCurs.MarkLabel(skipLabel);
+            /* GOTO 
+             * if (SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Gourmand >HERE< && animation == AnimationIndex.Roll && gourmandAttackNegateTime <= 0)
+             */
+            rotundLabelCurs.MarkLabel(branchLabel); // Mark branchLabel after 'SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Gourmand'
 
             rotundCurs.Emit(OpCodes.Ldarg_0);
-            rotundCurs.EmitDelegate((Player self) =>
+            rotundCurs.EmitDelegate((Player self) =>    // If self is Rotundpup or Rotundpup on back, branch to branchLabel
             {
                 Player pupOnBack = null;
                 if (self.slugOnBack?.slugcat != null)
@@ -1346,7 +1400,34 @@ namespace SlugpupStuff
                 }
                 return false;
             });
-            rotundCurs.Emit(OpCodes.Brtrue_S, skipLabel);
+            rotundCurs.Emit(OpCodes.Brtrue_S, branchLabel);
+
+            rotundCurs.GotoNext(MoveType.After, x => x.MatchLdcR4(4f));
+            /* GOTO
+             * float num = 4f;
+             */
+            rotundCurs.Emit(OpCodes.Ldarg_0);
+            rotundCurs.EmitDelegate((float f, Player self) =>   // If extra Rotundpups on back or self is Gourmand and Rotundpup on back, increase f
+            {
+                Player pupOnBack = null;
+                if (self.slugOnBack?.slugcat != null)
+                {
+                    pupOnBack = self.slugOnBack.slugcat;
+                    while (pupOnBack.slugOnBack?.slugcat != null)
+                    {
+                        if (pupOnBack.slugcatStats.name == VariantName.Rotundpup)
+                        {
+                            f *= 1.25f;
+                        }
+                        pupOnBack = pupOnBack.slugOnBack.slugcat;
+                    }
+                }
+                if (pupOnBack != null && pupOnBack.slugcatStats.name == VariantName.Rotundpup && self.SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Gourmand)
+                {
+                    f *= 1.35f;
+                }
+                return f;
+            });
         }
         public void IL_Player_SlugSlamConditions(ILContext il)
         {

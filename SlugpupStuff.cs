@@ -11,13 +11,8 @@ using Debug = UnityEngine.Debug;
 using Random = UnityEngine.Random;
 
 //       to do for variants:
-// slug slam extra weight with gourm or other rotunds on back 
 // rotund pup spitting up items when given disliked food or at random
 // better rotund exhaust behavior
-// better tundra pup ungrapple behavior
-//  starving stuff:
-// tundrapup less grapple length
-// rotundpup cant spit up items, thinner
 
 //      to do for misc stuff:
 // thumbnail for mod
@@ -63,7 +58,6 @@ namespace SlugpupStuff
 
                 // Slugpup ILHooks
                 IL.MoreSlugcats.SlugNPCAI.ctor += IL_SlugNPCAI_ctor;
-                IL.MoreSlugcats.SlugNPCAI.GetUpcoming += IL_SlugNPCAI_GetUpcoming;
 
                 // Player OnHooks
                 On.Player.UpdateMSC += Player_UpdateMSC;
@@ -73,6 +67,9 @@ namespace SlugpupStuff
                 On.Player.ClassMechanicsSaint += Player_VariantMechanicsTundrapup;
                 On.Player.GrabUpdate += Player_SlugpupStorageHook;
                 On.Player.TongueUpdate += Player_TongueUpdate;
+                On.Player.Tongue.increaseRopeLength += Tongue_increaseRopeLength;
+                On.Player.Tongue.decreaseRopeLength += Tongue_decreaseRopeLength;
+                On.Player.ThrownSpear += Player_ThrownSpear;
 
                 // Player ILHooks
                 IL.Player.ctor += IL_Player_ctor;
@@ -87,7 +84,6 @@ namespace SlugpupStuff
                 IL.Player.ThrowObject += IL_Player_ThrowObject;
                 IL.Player.ObjectEaten += IL_Player_ObjectEaten;
                 IL.Player.FoodInRoom_Room_bool += IL_Player_FoodInRoom;
-                IL.Player.StomachGlowLightColor += IL_Player_StomachGlowLightColor;
                 IL.Player.NPCStats.ctor += IL_NPCStats_ctor;
 
                 // Other OnHooks
@@ -102,9 +98,8 @@ namespace SlugpupStuff
                 // Other ILHooks
                 IL.Snail.Click += IL_Snail_Click;
                 IL.SlugcatStats.NourishmentOfObjectEaten += IL_SlugcatStats_NourishmentOfObjectEaten;
-                IL.MoreSlugcats.PlayerNPCState.CycleTick += IL_PlayerNPCState_CycleTick;
                 IL.RegionState.AdaptRegionStateToWorld += IL_RegionState_AdaptRegionStateToWorld;
-
+                IL.MoreSlugcats.PlayerNPCState.CycleTick += IL_PlayerNPCState_CycleTick;
 
 
                 IsInit = true;
@@ -121,7 +116,6 @@ namespace SlugpupStuff
                 throw;
             }
         }
-
 
 
         public void RainWorld_PostModsInit(On.RainWorld.orig_PostModsInit orig, RainWorld self)
@@ -177,10 +171,8 @@ namespace SlugpupStuff
                 SetSlugpupPersonality(self.cat);
                 if (RainWorld.ShowLogs)
                 {
-                    Debug.Log($"slugcat name set to {self.cat.slugcatStats.name}");
-                    Debug.Log($"slugcat class set to {self.cat.SlugCatClass}");
+                    Debug.Log($"slugpup variant set to: {self.cat.slugcatStats.name}");
                 }
-
             }
         }
         public void IL_SlugNPCAI_ctor(ILContext il)
@@ -258,24 +250,15 @@ namespace SlugpupStuff
                 }
             }
         }
-        private void IL_SlugNPCAI_GetUpcoming(ILContext il)
-        {
-            ILCursor upcomingCurs = new(il);
-
-            upcomingCurs.GotoNext(x => x.MatchLdcI4(5));
-
-            upcomingCurs.Next.OpCode = OpCodes.Ldc_I4;
-            upcomingCurs.Next.Operand = 20;
-        }
         public void Player_SlugpupStorageHook(On.Player.orig_GrabUpdate orig, Player self, bool eu)
         {
             Player pupGrabbed = null;
             int grabbedIndex = -1;
             foreach (var grasped in self.grasps)
             {
-                if (grasped?.grabbed is Player && (grasped.grabbed as Player).isNPC)
+                if (grasped?.grabbed is Player pup && pup.isNPC)
                 {
-                    pupGrabbed = grasped.grabbed as Player;
+                    pupGrabbed = pup;
                     break;
                 }
             }
@@ -324,7 +307,7 @@ namespace SlugpupStuff
                         pupGrabbed.AI.heldWiggle = 0;
                         if (pupGrabbed.swallowAndRegurgitateCounter > 110)
                         {
-                            if (!spitUpObject || (spitUpObject && pupGrabbed.FoodInStomach > 0))
+                            if (!spitUpObject || (spitUpObject && pupGrabbed.FoodInStomach > 0 && !pupGrabbed.Malnourished))
                             {
                                 if (spitUpObject)
                                 {
@@ -365,11 +348,11 @@ namespace SlugpupStuff
         }
         public void IL_Player_ctor(ILContext il)
         {
-            ILCursor stomachObjCurs = new(il);
+            ILCursor pupCurs = new(il);
 
-            stomachObjCurs.GotoNext(x => x.MatchLdfld<PlayerNPCState>(nameof(PlayerNPCState.Glowing)));
-            stomachObjCurs.GotoNext(x => x.MatchLdfld<PlayerNPCState>(nameof(PlayerNPCState.Glowing)));
-            stomachObjCurs.GotoNext(MoveType.After, x => x.MatchCall<Player>(nameof(Player.SetMalnourished)));
+            pupCurs.GotoNext(x => x.MatchLdfld<PlayerNPCState>(nameof(PlayerNPCState.Glowing)));
+            pupCurs.GotoNext(x => x.MatchLdfld<PlayerNPCState>(nameof(PlayerNPCState.Glowing)));
+            pupCurs.GotoNext(MoveType.After, x => x.MatchCall<Player>(nameof(Player.SetMalnourished)));
             /* GOTO
              *  if (isSlugpup && playerState is PlayerNPCState)
              *  {
@@ -378,9 +361,9 @@ namespace SlugpupStuff
              *      >HERE<
              *  }
              */
-            stomachObjCurs.Emit(OpCodes.Ldarg_0);
-            stomachObjCurs.Emit(OpCodes.Ldarg_1);
-            stomachObjCurs.EmitDelegate((Player self, AbstractCreature abstractCreature) =>   // If game session is a Story Session and PupsPlusStomachObject is not null, set objectInStomach to PupsPlusStomachObject
+            pupCurs.Emit(OpCodes.Ldarg_0);
+            pupCurs.Emit(OpCodes.Ldarg_1);
+            pupCurs.EmitDelegate((Player self, AbstractCreature abstractCreature) =>   // If game session is a Story Session and PupsPlusStomachObject is not null, set objectInStomach to PupsPlusStomachObject
             {
                 if (SlugpupCWTs.pupStateCWT.TryGetValue(self.playerState as PlayerNPCState, out var pupNPCState))
                 {
@@ -406,9 +389,9 @@ namespace SlugpupStuff
             parentCurs.Emit(OpCodes.Ldloc_0); // abstractPhysicalObject
             parentCurs.EmitDelegate((Player self, int grasp, AbstractPhysicalObject abstractPhysicalObject) =>  // If grabbed by a player, set abstractPhysicalObject to object in the player's grasps[grasp]
             {
-                if (self.AI?.behaviorType == SlugNPCAI.BehaviorType.BeingHeld)
+                if (self.grabbedBy.Count > 0 && self.grabbedBy[0].grabber is Player parent)
                 {
-                    return (self.grabbedBy[0].grabber as Player).grasps[grasp].grabbed.abstractPhysicalObject;
+                    return parent.grasps[grasp].grabbed.abstractPhysicalObject;
                 }
                 return abstractPhysicalObject;
             });
@@ -435,9 +418,9 @@ namespace SlugpupStuff
             parentCurs.Emit(OpCodes.Ldarg_1); // grasp
             parentCurs.EmitDelegate((Player self, int grasp) =>   // If grabbed by a player, make the player drop the object in their grasps[grasp]
             {
-                if (self.AI?.behaviorType == SlugNPCAI.BehaviorType.BeingHeld)
+                if (self.grabbedBy.Count > 0 && self.grabbedBy[0].grabber is Player parent)
                 {
-                    (self.grabbedBy[0].grabber as Player).ReleaseGrasp(grasp);
+                    parent.ReleaseGrasp(grasp);
                 }
             });
 
@@ -445,7 +428,7 @@ namespace SlugpupStuff
             graspedCurs.Emit(OpCodes.Ldarg_0);
             graspedCurs.EmitDelegate((Player self) =>   // If grabbed by a player, branch to releaseLabel
             {
-                if (self.AI?.behaviorType == SlugNPCAI.BehaviorType.BeingHeld)
+                if (self.grabbedBy.Count > 0 && self.grabbedBy[0].grabber is Player)
                 {
                     return true;
                 }
@@ -493,9 +476,9 @@ namespace SlugpupStuff
             parentCurs.EmitDelegate((Player self) =>   // If grabbed by a player, make player grab regurgitated object and branch to branchLabel
             {
                 Player parent = null;
-                if (self.AI?.behaviorType == SlugNPCAI.BehaviorType.BeingHeld)
+                if (self.grabbedBy.Count > 0 && self.grabbedBy[0].grabber is Player player)
                 {
-                    parent = self.grabbedBy[0].grabber as Player;
+                    parent = player;
                     if (parent != null && parent.FreeHand() > -1)
                     {
                         if (ModManager.MMF && ((parent.grasps[0] != null) ^ (parent.grasps[1] != null)) && parent.Grabability(self.objectInStomach.realizedObject) == Player.ObjectGrabability.BigOneHand)
@@ -537,9 +520,9 @@ namespace SlugpupStuff
 
             counterCurs.EmitDelegate((Player self) =>   // If grabbed by a player and player is holding pckp + up, branch to graspedLabel
             {
-                if (self.AI?.behaviorType == SlugNPCAI.BehaviorType.BeingHeld)
+                if (self.grabbedBy.Count > 0 && self.grabbedBy[0].grabber is Player parent)
                 {
-                    if ((self.grabbedBy[0].grabber as Player).input[0].pckp && (self.grabbedBy[0].grabber as Player).input[0].y == 1)
+                    if (parent.input[0].pckp && parent.input[0].y == 1)
                     {
                         return true;
                     }
@@ -548,21 +531,6 @@ namespace SlugpupStuff
             });
             counterCurs.Emit(OpCodes.Brtrue_S, graspedLabel);
             counterCurs.Emit(OpCodes.Ldarg_0); // Push ldarg.0 back onto stack
-        }
-        public void IL_Player_StomachGlowLightColor(ILContext il)
-        {
-            ILCursor pupCurs = new(il);
-
-            pupCurs.GotoNext(MoveType.After, x => x.Match(OpCodes.Brtrue_S));
-            /* GOTO
-             * AbstractPhysicalObject abstractPhysicalObject = ((AI != null) ? (base.State as PlayerNPCState).StomachObject : >HERE< objectInStomach);
-             */
-            ILLabel skipLabel = il.DefineLabel();
-            pupCurs.MarkLabel(skipLabel); // Mark skipLabel at objectInStomach
-
-            pupCurs = new(il);
-            // GOTO START
-            pupCurs.Emit(OpCodes.Br_S, skipLabel); // Branch over ((AI != null) ? (base.State as PlayerNPCState).StomachObject because it is a base-game bug
         }
         public void IL_RegionState_AdaptRegionStateToWorld(ILContext il)
         {

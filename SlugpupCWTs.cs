@@ -12,6 +12,7 @@ namespace SlugpupStuff
         public static readonly ConditionalWeakTable<PlayerNPCState, PupNPCState> pupStateCWT = new();
         public class PupVariables
         {
+
         }
 
         public class PupGraphics
