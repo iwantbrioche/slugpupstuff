@@ -12,7 +12,8 @@ using Random = UnityEngine.Random;
 
 namespace SlugpupStuff
 {
-    [BepInPlugin(MOD_ID, "Slugpup Stuff", "1.0")]
+    [BepInPlugin(MOD_ID, "Slugpup Stuff", "1.2")]
+    [BepInDependency("emeralds_features", BepInDependency.DependencyFlags.SoftDependency)]
     public partial class SlugpupStuff : BaseUnityPlugin
     {
         public const string MOD_ID = "iwantbread.slugpupstuff";
@@ -31,6 +32,11 @@ namespace SlugpupStuff
             try
             {
                 if (IsInit) return;
+
+                if (ModManager.ActiveMods.Any(mod => mod.id == "emeralds_features"))
+                {
+                    emeralds = true;
+                }
 
                 MachineConnector.SetRegisteredOI(MOD_ID, slugpupRemix);
                 VariantName.RegisterValues();
@@ -73,7 +79,8 @@ namespace SlugpupStuff
                 IL.Player.SlugSlamConditions += IL_Player_SlugSlamConditions;
                 IL.Player.Collide += IL_Player_Collide;
                 IL.Player.ClassMechanicsGourmand += IL_Player_ClassMechanicsGourmand;
-                IL.Player.ThrowObject += IL_Player_ThrowObject;
+                IL.Player.ThrowObject += IL_Rotund_ThrowObject;
+                if (!emeralds) IL.Player.ThrowObject += IL_Tundra_ThrowObject;
                 IL.Player.ObjectEaten += IL_Player_ObjectEaten;
                 IL.Player.FoodInRoom_Room_bool += IL_Player_FoodInRoom;
                 IL.Player.NPCStats.ctor += IL_NPCStats_ctor;
@@ -134,6 +141,11 @@ namespace SlugpupStuff
                 {
                     pearlCat = true;
                 }
+                if (ModManager.ActiveMods.Any(mod => mod.id == "SimplifiedMoveset"))
+                {
+                    simpMoveset = true;
+                    IL.Player.ClassMechanicsGourmand -= IL_Player_ClassMechanicsGourmand;
+                }
 
                 PostIsInit = true;
             }
@@ -150,7 +162,7 @@ namespace SlugpupStuff
         public void SlugNPCAI_ctor(On.MoreSlugcats.SlugNPCAI.orig_ctor orig, SlugNPCAI self, AbstractCreature abstractCreature, World world)
         {
             orig(self, abstractCreature, world);
-            if (self.cat.SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Slugpup)
+            if (self.cat.SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Slugpup && self.creature.creatureTemplate.type == MoreSlugcatsEnums.CreatureTemplateType.SlugNPC)
             {
                 if (!SlugpupCWTs.pupCWT.TryGetValue(self, out _))
                 {
@@ -274,11 +286,16 @@ namespace SlugpupStuff
             });
             exhausCurs.Emit(OpCodes.Brtrue_S, branchLabel);
         }
-        public void PupSwallowObject(Player self, int grabbedIndex)
+        public void PupSwallowObject(Player self, int grabbedIndex, bool grabbed = false)
         {
+            Player parent = null;
+            if (grabbed && self.grabbedBy.Count > 0 && self.grabbedBy[0].grabber is Player player)
+            {
+                parent = player;
+            }
             if (SlugpupCWTs.pupCWT.TryGetValue(self.AI, out var pupVariables))
             {
-                if (self.objectInStomach == null && self.CanBeSwallowed(self.grasps[grabbedIndex].grabbed) && self.Consious)
+                if (self.objectInStomach == null && self.CanBeSwallowed(grabbed ? parent.grasps[grabbedIndex].grabbed : self.grasps[grabbedIndex].grabbed) && self.Consious)
                 {
                     pupVariables.swallowing = true;
                     self.swallowAndRegurgitateCounter++;
@@ -295,7 +312,7 @@ namespace SlugpupStuff
                 }
             }
         }
-        public void PupRegurgitate(Player self, int grabbedIndex = -1)
+        public void PupRegurgitate(Player self)
         {
             if (SlugpupCWTs.pupCWT.TryGetValue(self.AI, out var pupVariables))
             {
@@ -303,7 +320,7 @@ namespace SlugpupStuff
                 self.swallowAndRegurgitateCounter++;
 
                 bool spitUpObject = false;
-                if (self.slugcatStats.name == VariantName.Rotundpup && self.objectInStomach == null && grabbedIndex == -1)
+                if (self.slugcatStats.name == VariantName.Rotundpup && self.objectInStomach == null)
                 {
                     spitUpObject = true;
                 }
@@ -364,11 +381,11 @@ namespace SlugpupStuff
 
                     if (grabbedIndex > -1 && self.grasps[grabbedIndex].grabbed != null)
                     {
-                        PupSwallowObject(pupGrabbed, grabbedIndex);
+                        PupSwallowObject(pupGrabbed, grabbedIndex, true);
                     }
                     if ((pupGrabbed.objectInStomach != null || pupGrabbed.slugcatStats.name == VariantName.Rotundpup && slugpupRemix.ManualItemGen.Value) && pupGrabbed.Consious)
                     {
-                        PupRegurgitate(pupGrabbed, grabbedIndex);
+                        PupRegurgitate(pupGrabbed);
                     }
                     else
                     {
@@ -623,6 +640,8 @@ namespace SlugpupStuff
         public static bool slugpupSafari = false;
         public static bool rainbowPups = false;
         public static bool pearlCat = false;
+        public static bool simpMoveset = false;
+        public static bool emeralds = false;
 
 
     }

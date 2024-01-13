@@ -505,6 +505,10 @@ namespace SlugpupStuff
             orig(self, spear);
             if (self.slugcatStats.name == VariantName.Rotundpup && !self.gourmandExhausted)
             {
+                if (simpMoveset)
+                {
+                    self.gourmandExhausted = true;
+                }
                 if ((self.room != null && self.room.gravity == 0f) || Mathf.Abs(spear.firstChunk.vel.x) < 1f)
                 {
                     spear.firstChunk.vel += spear.firstChunk.vel.normalized * 4.5f;
@@ -1467,18 +1471,72 @@ namespace SlugpupStuff
             });
             rotundCurs.Emit(OpCodes.Brtrue_S, skipLable);
         }
-        public void IL_Player_ThrowObject(ILContext il)
+        public void IL_Tundra_ThrowObject(ILContext il)
         {
             ILCursor pupthrowCurs = new(il);
-            pupthrowCurs.GotoNext(MoveType.After, x => x.MatchLdsfld<ModManager>(nameof(ModManager.MSC)), x => x.Match(OpCodes.Brfalse_S));
 
-            ILCursor rotundLabelCurs = pupthrowCurs.Clone();
-            rotundLabelCurs.GotoNext(MoveType.After, x => x.Match(OpCodes.Brfalse_S));
-            ILLabel skipLabel = il.DefineLabel();
-            rotundLabelCurs.MarkLabel(skipLabel);
+            ILLabel spearLabel = il.DefineLabel();
+            ILLabel rockLabel = il.DefineLabel();
+
+            pupthrowCurs.GotoNext(x => x.MatchLdsfld<MoreSlugcatsEnums.SlugcatStatsName>(nameof(MoreSlugcatsEnums.SlugcatStatsName.Saint)));
+            pupthrowCurs.GotoNext(x => x.MatchLdarg(0));
+            /* GOTO AFTER
+             * if (ModManager.MSC && base.grasps[grasp].grabbed is Spear && SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Saint && (!ModManager.Expedition || (ModManager.Expedition && !room.game.rainWorld.ExpeditionMode)))
+             */
+            pupthrowCurs.MarkLabel(spearLabel);
+
+            pupthrowCurs.GotoPrev(MoveType.Before, x => x.MatchLdarg(0));
+            /* GOTO
+             * if (ModManager.MSC && base.grasps[grasp].grabbed is Spear >HERE< && SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Saint && (!ModManager.Expedition || (ModManager.Expedition && !room.game.rainWorld.ExpeditionMode)))
+             */
+            pupthrowCurs.Emit(OpCodes.Ldarg_0);
+            pupthrowCurs.EmitDelegate((Player self) =>  // If self is Tundrapup, branch to spearLabel
+            {
+                if (self.slugcatStats.name == VariantName.Tundrapup)
+                {
+                    return true;
+                }
+                return false;
+            });
+            pupthrowCurs.Emit(OpCodes.Brtrue_S, spearLabel);
+
+            pupthrowCurs.GotoNext(x => x.MatchLdelemRef());
+            pupthrowCurs.GotoNext(x => x.Match(OpCodes.Brfalse_S));
+
+            rockLabel = pupthrowCurs.Next.Operand as ILLabel;
+
+            pupthrowCurs.GotoPrev(MoveType.After, x => x.MatchLdsfld<ModManager>(nameof(ModManager.MSC)), x => x.Match(OpCodes.Brfalse));
 
             pupthrowCurs.Emit(OpCodes.Ldarg_0);
-            pupthrowCurs.EmitDelegate((Player self) =>
+            pupthrowCurs.EmitDelegate((Player self) =>  // If self is Tundrapup, branch to rockLabel
+            {
+                if (self.slugcatStats.name == VariantName.Tundrapup)
+                {
+                    return true;
+                }
+                return false;
+            });
+            pupthrowCurs.Emit(OpCodes.Brtrue_S, rockLabel);
+        }
+        public void IL_Rotund_ThrowObject(ILContext il)
+        {
+            ILCursor pupthrowCurs = new(il);
+
+            ILLabel rotundLabel = il.DefineLabel();
+
+            pupthrowCurs.GotoNext(x => x.MatchLdsfld<MoreSlugcatsEnums.SlugcatStatsName>(nameof(MoreSlugcatsEnums.SlugcatStatsName.Gourmand)));
+            pupthrowCurs.GotoNext(MoveType.After, x => x.Match(OpCodes.Brfalse_S));
+            /* GOTO
+             * if (ModManager.MSC && SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Gourmand >HERE< && base.grasps[grasp].grabbed is Spear)
+             */
+            pupthrowCurs.MarkLabel(rotundLabel);
+
+            pupthrowCurs.GotoPrev(MoveType.After, x => x.MatchLdsfld<ModManager>(nameof(ModManager.MSC)), x => x.Match(OpCodes.Brfalse_S));
+            /* GOTO
+             * if (ModManager.MSC >HERE< && SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Gourmand && base.grasps[grasp].grabbed is Spear)
+             */
+            pupthrowCurs.Emit(OpCodes.Ldarg_0);
+            pupthrowCurs.EmitDelegate((Player self) =>  // If self is Rotundpup, branch to rotundLabel
             {
                 if (self.slugcatStats.name == VariantName.Rotundpup)
                 {
@@ -1486,45 +1544,7 @@ namespace SlugpupStuff
                 }
                 return false;
             });
-            pupthrowCurs.Emit(OpCodes.Brtrue_S, skipLabel);
-
-            pupthrowCurs.GotoNext(x => x.MatchLdsfld<ModManager>(nameof(ModManager.MSC)));
-            pupthrowCurs.GotoNext(MoveType.After, x => x.MatchLdsfld<ModManager>(nameof(ModManager.MSC)), x => x.Match(OpCodes.Brfalse_S));
-            pupthrowCurs.GotoNext(MoveType.After, x => x.Match(OpCodes.Brfalse_S));
-
-            ILCursor tundraLabelCurs = pupthrowCurs.Clone();
-            tundraLabelCurs.GotoNext(MoveType.After, x => x.Match(OpCodes.Brfalse_S));
-            ILLabel skipLabel2 = il.DefineLabel();
-            tundraLabelCurs.MarkLabel(skipLabel2);
-
-            pupthrowCurs.Emit(OpCodes.Ldarg_0);
-            pupthrowCurs.EmitDelegate((Player self) =>
-            {
-                if (self.slugcatStats.name == VariantName.Tundrapup)
-                {
-                    return true;
-                }
-                return false;
-            });
-            pupthrowCurs.Emit(OpCodes.Brtrue_S, skipLabel2);
-
-            pupthrowCurs.GotoNext(MoveType.After, x => x.MatchLdsfld<ModManager>(nameof(ModManager.MSC)), x => x.Match(OpCodes.Brfalse));
-
-            tundraLabelCurs = pupthrowCurs.Clone();
-            tundraLabelCurs.GotoNext(MoveType.After, x => x.Match(OpCodes.Brfalse_S));
-            ILLabel skipLabel3 = il.DefineLabel();
-            tundraLabelCurs.MarkLabel(skipLabel3);
-
-            pupthrowCurs.Emit(OpCodes.Ldarg_0);
-            pupthrowCurs.EmitDelegate((Player self) =>
-            {
-                if (self.slugcatStats.name == VariantName.Tundrapup)
-                {
-                    return true;
-                }
-                return false;
-            });
-            pupthrowCurs.Emit(OpCodes.Brtrue_S, skipLabel3);
+            pupthrowCurs.Emit(OpCodes.Brtrue_S, rotundLabel);
         }
         public void IL_Player_ObjectEaten(ILContext il)
         {

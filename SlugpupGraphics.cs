@@ -482,7 +482,7 @@ namespace SlugpupStuff
                         DressMySlugcat.SpriteDefinitions.AvailableSprites[s].SlugcatSpecificReplacements.Add(new DressMySlugcat.SpriteDefinitions.AvailableSprite.SlugcatSpecificReplacement
                         {
                             Slugcat = "Tundrapup",
-                            GenericName = "HeadA" + i,
+                            GenericName = "HeadC" + i,
                             SpecificName = "HeadB" + i
                         });
                     }
