@@ -106,11 +106,6 @@ namespace SlugpupStuff
             catch (Exception ex)
             {
                 Logger.LogError("Pups+ failed to load!");
-                if (ex is KeyNotFoundException)
-                {
-                    Logger.LogInfo("This is likely because of Emerald's Tweaks! This is a known incompatability that will be fixed when Emerald's Tweaks updates!");
-                    Logger.LogInfo("If after Emerald's Tweaks is disabled and this issue still persists, contact the developer over steam or on the Rainworld Discord Server at @iwantbread");
-                }
                 Logger.LogError(ex);
                 throw;
             }
