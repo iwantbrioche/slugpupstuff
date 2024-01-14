@@ -17,6 +17,7 @@ namespace SlugpupStuff
     public partial class SlugpupStuff : BaseUnityPlugin
     {
         public const string MOD_ID = "iwantbread.slugpupstuff";
+        public const string LOOK_AT_ME = "Hey you, yeah you! If you are looking at this mod's code with ilSpy, dnSpy, or some other decompiler, then check out the github at https://github.com/iwantbrioche/slugpupstuff";
         private bool IsInit;
         private bool PostIsInit;
         private SlugpupRemix slugpupRemix;
@@ -210,7 +211,6 @@ namespace SlugpupStuff
         public void SlugNPCAI_Update(On.MoreSlugcats.SlugNPCAI.orig_Update orig, SlugNPCAI self)
         {
             orig(self);
-
             if (self.nap)
             {
                 self.cat.emoteSleepCounter += Mathf.Clamp(0.0008f / self.cat.abstractCreature.personality.energy, 0.0008f, 0.05f);
@@ -281,16 +281,16 @@ namespace SlugpupStuff
             });
             exhausCurs.Emit(OpCodes.Brtrue_S, branchLabel);
         }
-        public void PupSwallowObject(Player self, int grabbedIndex, bool grabbed = false)
+        public void PupSwallowObject(Player self, int grabbedIndex)
         {
             Player parent = null;
-            if (grabbed && self.grabbedBy.Count > 0 && self.grabbedBy[0].grabber is Player player)
+            if (self.grabbedBy.Count > 0 && self.grabbedBy[0].grabber is Player player)
             {
                 parent = player;
             }
             if (SlugpupCWTs.pupCWT.TryGetValue(self.AI, out var pupVariables))
             {
-                if (self.objectInStomach == null && self.CanBeSwallowed(grabbed ? parent.grasps[grabbedIndex].grabbed : self.grasps[grabbedIndex].grabbed) && self.Consious)
+                if (self.objectInStomach == null && self.CanBeSwallowed(parent != null ? parent.grasps[grabbedIndex].grabbed : self.grasps[grabbedIndex].grabbed) && self.Consious)
                 {
                     pupVariables.swallowing = true;
                     self.swallowAndRegurgitateCounter++;
@@ -309,7 +309,7 @@ namespace SlugpupStuff
         }
         public void PupRegurgitate(Player self)
         {
-            if (SlugpupCWTs.pupCWT.TryGetValue(self.AI, out var pupVariables))
+            if (SlugpupCWTs.pupCWT.TryGetValue(self.AI, out var pupVariables) && self.Consious)
             {
                 pupVariables.regurgitating = true;
                 self.swallowAndRegurgitateCounter++;
@@ -354,7 +354,7 @@ namespace SlugpupStuff
                     break;
                 }
             }
-            if (pupGrabbed != null && SlugpupCWTs.pupCWT.TryGetValue(pupGrabbed.AI, out var pupVariables))
+            if (pupGrabbed != null)
             {
                 foreach (var grasped in self.grasps)
                 {
@@ -376,9 +376,9 @@ namespace SlugpupStuff
 
                     if (grabbedIndex > -1 && self.grasps[grabbedIndex].grabbed != null)
                     {
-                        PupSwallowObject(pupGrabbed, grabbedIndex, true);
+                        PupSwallowObject(pupGrabbed, grabbedIndex);
                     }
-                    if ((pupGrabbed.objectInStomach != null || pupGrabbed.slugcatStats.name == VariantName.Rotundpup && slugpupRemix.ManualItemGen.Value) && pupGrabbed.Consious)
+                    else if ((pupGrabbed.objectInStomach != null || pupGrabbed.slugcatStats.name == VariantName.Rotundpup && slugpupRemix.ManualItemGen.Value))
                     {
                         PupRegurgitate(pupGrabbed);
                     }
@@ -422,10 +422,18 @@ namespace SlugpupStuff
             {
                 if (SlugpupCWTs.pupStateCWT.TryGetValue(self.playerState as PlayerNPCState, out var pupNPCState))
                 {
-                    if (self.room.game.session is StoryGameSession && pupNPCState.PupsPlusStomachObject != null)
+                    if (self.room.game.session is StoryGameSession)
                     {
-                        self.objectInStomach = pupNPCState.PupsPlusStomachObject;
-                        self.objectInStomach.pos = abstractCreature.pos;
+                        if (pupNPCState.PupsPlusStomachObject != null)
+                        {
+                            self.objectInStomach = pupNPCState.PupsPlusStomachObject;
+                            self.objectInStomach.pos = abstractCreature.pos;
+                        }
+                        else
+                        {
+                            self.objectInStomach = null;
+                        }
+
                     }
                 }
             });
@@ -444,7 +452,7 @@ namespace SlugpupStuff
             parentCurs.Emit(OpCodes.Ldloc_0); // abstractPhysicalObject
             parentCurs.EmitDelegate((Player self, int grasp, AbstractPhysicalObject abstractPhysicalObject) =>  // If grabbed by a player, set abstractPhysicalObject to object in the player's grasps[grasp]
             {
-                if (self.grabbedBy.Count > 0 && self.grabbedBy[0].grabber is Player parent)
+                if (self.isNPC && self.grabbedBy.Count > 0 && self.grabbedBy[0].grabber is Player parent)
                 {
                     return parent.grasps[grasp].grabbed.abstractPhysicalObject;
                 }
@@ -457,7 +465,7 @@ namespace SlugpupStuff
             graspedCurs.Emit(OpCodes.Ldarg_0);
             graspedCurs.EmitDelegate((Player self) =>   // If grabbed by a player, branch to abstObjLabel
             {
-                if (self.AI?.behaviorType == SlugNPCAI.BehaviorType.BeingHeld)
+                if (self.isNPC && self.grabbedBy.Count > 0 && self.grabbedBy[0].grabber is Player parent)
                 {
                     return true;
                 }
@@ -473,7 +481,7 @@ namespace SlugpupStuff
             parentCurs.Emit(OpCodes.Ldarg_1); // grasp
             parentCurs.EmitDelegate((Player self, int grasp) =>   // If grabbed by a player, make the player drop the object in their grasps[grasp]
             {
-                if (self.grabbedBy.Count > 0 && self.grabbedBy[0].grabber is Player parent)
+                if (self.isNPC && self.grabbedBy.Count > 0 && self.grabbedBy[0].grabber is Player parent)
                 {
                     parent.ReleaseGrasp(grasp);
                 }
@@ -483,7 +491,7 @@ namespace SlugpupStuff
             graspedCurs.Emit(OpCodes.Ldarg_0);
             graspedCurs.EmitDelegate((Player self) =>   // If grabbed by a player, branch to releaseLabel
             {
-                if (self.grabbedBy.Count > 0 && self.grabbedBy[0].grabber is Player)
+                if (self.isNPC && self.grabbedBy.Count > 0 && self.grabbedBy[0].grabber is Player)
                 {
                     return true;
                 }
@@ -530,10 +538,8 @@ namespace SlugpupStuff
             parentCurs.Emit(OpCodes.Ldarg_0);
             parentCurs.EmitDelegate((Player self) =>   // If grabbed by a player, make player grab regurgitated object and branch to branchLabel
             {
-                Player parent = null;
-                if (self.grabbedBy.Count > 0 && self.grabbedBy[0].grabber is Player player)
+                if (self.isNPC && self.grabbedBy.Count > 0 && self.grabbedBy[0].grabber is Player parent)
                 {
-                    parent = player;
                     if (parent != null && parent.FreeHand() > -1)
                     {
                         if (ModManager.MMF && ((parent.grasps[0] != null) ^ (parent.grasps[1] != null)) && parent.Grabability(self.objectInStomach.realizedObject) == Player.ObjectGrabability.BigOneHand)
@@ -553,8 +559,8 @@ namespace SlugpupStuff
                         {
                             parent.SlugcatGrab(self.objectInStomach.realizedObject, parent.FreeHand());
                         }
+                        return true;
                     }
-                    return true;
                 }
                 return false;
             });
@@ -599,9 +605,9 @@ namespace SlugpupStuff
             stomachObjCurs.Emit(OpCodes.Ldloc, 5);
             stomachObjCurs.EmitDelegate((AbstractCreature abstractCreature) =>   // If abstractCreature is Player and it's playerState is PlayerNPCState, set PupsPlusStomachObject to objectInStomach
             {
-                if (abstractCreature.realizedCreature is Player pup && pup.playerState is PlayerNPCState)
+                if (abstractCreature.realizedCreature is Player pup && pup.isNPC && pup.playerState is PlayerNPCState playerNPCState)
                 {
-                    if (SlugpupCWTs.pupStateCWT.TryGetValue(pup.playerState as PlayerNPCState, out var pupNPCState))
+                    if (SlugpupCWTs.pupStateCWT.TryGetValue(playerNPCState, out var pupNPCState))
                     {
                         if (pup.objectInStomach != null)
                         {

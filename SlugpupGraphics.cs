@@ -108,31 +108,28 @@ namespace SlugpupStuff
         public static void IL_PlayerGraphics_InitiateSprites(ILContext il)
         {
             ILCursor initCurs = new(il);
-            ILCursor breakCurs = new(il);
             ILCursor gillCurs = new(il);
             
             ILLabel branchLabel = il.DefineLabel();
 
             initCurs.GotoNext(x => x.MatchLdstr("HipsA"));
-            initCurs.GotoNext(MoveType.After, x => x.MatchLdsfld<ModManager>(nameof(ModManager.MSC)), x => x.Match(OpCodes.Brfalse_S));
+            initCurs.GotoNext(x => x.MatchLdsfld<ModManager>(nameof(ModManager.MSC)));
+            initCurs.GotoNext(MoveType.Before, x => x.MatchLdarg(1));
+            /* GOTO
+             * sLeaser.sprites[3] = new FSprite("HeadB0");
+             */
+            initCurs.MarkLabel(branchLabel);
+            initCurs.GotoPrev(MoveType.Before, x => x.MatchLdarg(0));
             /* GOTO
              * if (ModManager.MSC >HERE< && player.SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Saint)
              */
-            breakCurs = initCurs.Clone();
-            breakCurs.GotoNext(x => x.Match(OpCodes.Br_S));
-            /* GOTO
-             * sLeaser.sprites[4] = new FSprite("LegsA0");
-             */
-            branchLabel = breakCurs.Next.Operand as ILLabel; // Mark branchLabel at 'sLeaser.sprites[4] = new FSprite("LegsA0");'
-
 
             initCurs.Emit(OpCodes.Ldarg_0);
             initCurs.Emit(OpCodes.Ldarg_1);
-            initCurs.EmitDelegate((PlayerGraphics self, RoomCamera.SpriteLeaser sLeaser) =>   // If self is Tundrapup, set sLeaser.sprite[3] to HeadB0 and branch to branchLabel
+            initCurs.EmitDelegate((PlayerGraphics self, RoomCamera.SpriteLeaser sLeaser) =>   // If self is Tundrapup, branch to branchLabel
             {
                 if (self.player.slugcatStats.name == SlugpupStuff.VariantName.Tundrapup)
                 {
-                    sLeaser.sprites[3] = new FSprite("HeadB0", true);
                     return true;
                 }
                 return false;
@@ -225,7 +222,7 @@ namespace SlugpupStuff
                 }
             });
 
-            drawCurs.GotoNext(x => x.MatchCallOrCallvirt<PlayerGraphics>("get_RenderAsPup"));
+            drawCurs.GotoNext(x => x.MatchCall<PlayerGraphics>("get_RenderAsPup"));
             drawCurs.GotoNext(MoveType.Before, x => x.Match(OpCodes.Br_S));
             /* GOTO AFTER
              * sLeaser.sprites[3].element = Futile.atlasManager.GetElementWithName("HeadC" + num7);

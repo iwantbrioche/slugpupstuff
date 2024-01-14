@@ -595,11 +595,11 @@ namespace SlugpupStuff
                                 if (!self.tongue.isZeroGMode())
                                 {
                                     float num = Mathf.Lerp(1f, 1.15f, self.Adrenaline);
-                                    if (self.grabbedBy.Count > 0)
+                                    if (self.onBack != null)
                                     {
                                         if (parent.grasps[0] != null && parent.HeavyCarry(parent.grasps[0].grabbed) && parent.grasps[0].grabbed is not Cicada)
                                         {
-                                            num += Mathf.Min(Mathf.Max(0f, self.onBack.slugOnBack.owner.grasps[0].grabbed.TotalMass - 0.2f) * 1.5f, 1.3f);
+                                            num += Mathf.Min(Mathf.Max(0f, parent.grasps[0].grabbed.TotalMass - 0.2f) * 1.5f, 1.3f);
                                         }
                                     }
                                     parent.bodyChunks[0].vel.y = 6f * num;
