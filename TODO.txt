@@ -6,3 +6,5 @@ Fix gills changing colors on different screens
 
 BUGS TO INVESTIGATE
 BeastMasterPupExtras (Something about the way it spawns pups)
+Revivify
+Cowboy Slugcat

@@ -17,7 +17,6 @@ namespace SlugpupStuff
     public partial class SlugpupStuff : BaseUnityPlugin
     {
         public const string MOD_ID = "iwantbread.slugpupstuff";
-        public const string LOOK_AT_ME = "Hey you, yeah you! If you are looking at this mod's code with ilSpy, dnSpy, or some other decompiler, then check out the github at https://github.com/iwantbrioche/slugpupstuff";
         private bool IsInit;
         private bool PostIsInit;
         private SlugpupRemix slugpupRemix;
@@ -422,9 +421,9 @@ namespace SlugpupStuff
             {
                 if (SlugpupCWTs.pupStateCWT.TryGetValue(self.playerState as PlayerNPCState, out var pupNPCState))
                 {
-                    if (self.room.game.session is StoryGameSession)
+                    if (abstractCreature.Room.world.game.session is StoryGameSession)
                     {
-                        if (pupNPCState.PupsPlusStomachObject != null)
+                        if (pupNPCState?.PupsPlusStomachObject != null)
                         {
                             self.objectInStomach = pupNPCState.PupsPlusStomachObject;
                             self.objectInStomach.pos = abstractCreature.pos;
