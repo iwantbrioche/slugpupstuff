@@ -11,6 +11,9 @@
     <Reference Include="Assembly-CSharp">
       <HintPath>lib\Assembly-CSharp-nstrip.dll</HintPath>
     </Reference>
+    <Reference Include="BeastMasterPupExtras">
+      <HintPath>..\..\..\Steam Games\steamapps\workshop\content\312520\2943737047\plugins\BeastMasterPupExtras.dll</HintPath>
+    </Reference>
     <Reference Include="BepInEx">
       <HintPath>..\rain world references\BepInEx.dll</HintPath>
     </Reference>

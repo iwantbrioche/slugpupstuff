@@ -3,7 +3,6 @@ using Mono.Cecil.Cil;
 using MonoMod.Cil;
 using MoreSlugcats;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
@@ -12,7 +11,7 @@ using Random = UnityEngine.Random;
 
 namespace SlugpupStuff
 {
-    [BepInPlugin(MOD_ID, "Slugpup Stuff", "1.2")]
+    [BepInPlugin(MOD_ID, "Slugpup Stuff", "1.2.4")]
     [BepInDependency("emeralds_features", BepInDependency.DependencyFlags.SoftDependency)]
     public partial class SlugpupStuff : BaseUnityPlugin
     {
@@ -58,6 +57,7 @@ namespace SlugpupStuff
                 IL.MoreSlugcats.SlugNPCAI.DecideBehavior += IL_SlugNPCAI_DecideBehavior;
 
                 // Player OnHooks
+                On.Player.ctor += Player_ctor;
                 On.Player.UpdateMSC += Player_UpdateMSC;
                 On.Player.AllowGrabbingBatflys += Player_AllowGrabbingBatflys;
                 On.Player.CanEatMeat += Player_CanEatMeat;
@@ -68,6 +68,7 @@ namespace SlugpupStuff
                 On.Player.Tongue.increaseRopeLength += Tongue_increaseRopeLength;
                 On.Player.Tongue.decreaseRopeLength += Tongue_decreaseRopeLength;
                 On.Player.ThrownSpear += Player_ThrownSpear;
+                On.Player.SlugSlamConditions += Player_SlugSlamConditions;
 
                 // Player ILHooks
                 IL.Player.ctor += IL_Player_ctor;
@@ -141,6 +142,10 @@ namespace SlugpupStuff
                     simpMoveset = true;
                     IL.Player.ClassMechanicsGourmand -= IL_Player_ClassMechanicsGourmand;
                 }
+                if (ModManager.ActiveMods.Any(mod => mod.id == "NoirCatto.BeastMasterPupExtras"))
+                {
+                    Debug.LogError("BeastMasterPupExtras is incompatible with Pups+!");
+                }
 
                 PostIsInit = true;
             }
@@ -157,17 +162,9 @@ namespace SlugpupStuff
         public void SlugNPCAI_ctor(On.MoreSlugcats.SlugNPCAI.orig_ctor orig, SlugNPCAI self, AbstractCreature abstractCreature, World world)
         {
             orig(self, abstractCreature, world);
-            if (self.cat.SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Slugpup && self.creature.creatureTemplate.type == MoreSlugcatsEnums.CreatureTemplateType.SlugNPC)
+            if (!SlugpupCWTs.pupCWT.TryGetValue(self, out _))
             {
-                if (!SlugpupCWTs.pupCWT.TryGetValue(self, out _))
-                {
-                    SlugpupCWTs.pupCWT.Add(self, _ = new SlugpupCWTs.PupVariables());
-                }
-                SetSlugpupPersonality(self.cat);
-                if (RainWorld.ShowLogs)
-                {
-                    Debug.Log($"slugpup variant set to: {self.cat.slugcatStats.name}");
-                }
+                SlugpupCWTs.pupCWT.Add(self, _ = new SlugpupCWTs.PupVariables());
             }
         }
         public void IL_SlugNPCAI_ctor(ILContext il)
@@ -178,6 +175,15 @@ namespace SlugpupStuff
              * AddModule(new ItemTracker(this, 10, 10, -1, -1, stopTrackingCarried: >HERE< true))
              */
             itemTrackerCurs.Prev.OpCode = OpCodes.Ldc_I4_0; // Switch stopTrackingCarried to false
+        }
+        public void Player_ctor(On.Player.orig_ctor orig, Player self, AbstractCreature abstractCreature, World world)
+        {
+            orig(self, abstractCreature, world);
+            if (self.npcStats != null) self.npcStats = new Player.NPCStats(self); 
+            if (self.slugcatStats.name == VariantName.Tundrapup)
+            {
+                self.tongue = new Player.Tongue(self, 0);
+            }
         }
         public void Player_UpdateMSC(On.Player.orig_UpdateMSC orig, Player self)
         {

@@ -155,17 +155,16 @@ namespace SlugpupStuff
         public static void PlayerGraphics_InitiateSprites(On.PlayerGraphics.orig_InitiateSprites orig, PlayerGraphics self, RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam)
         {
             orig(self, sLeaser, rCam);
-            if (!SlugpupCWTs.pupGraphicsCWT.TryGetValue(self, out var pupGraphics))
+            if (SlugpupCWTs.pupGraphicsCWT.TryGetValue(self, out var pupGraphics))
             {
-                return;
-            }
-            if (self.player.slugcatStats.name == SlugpupStuff.VariantName.Tundrapup)
-            {
-                Array.Resize(ref sLeaser.sprites, sLeaser.sprites.Length + 1);
-                pupGraphics.TongueSpriteIndex = sLeaser.sprites.Length - 1;
+                if (self.player.slugcatStats.name == SlugpupStuff.VariantName.Tundrapup)
+                {
+                    Array.Resize(ref sLeaser.sprites, sLeaser.sprites.Length + 1);
+                    pupGraphics.TongueSpriteIndex = sLeaser.sprites.Length - 1;
 
-                sLeaser.sprites[pupGraphics.TongueSpriteIndex] = TriangleMesh.MakeLongMesh(self.ropeSegments.Length - 1, false, true);
-                rCam.ReturnFContainer("Midground").AddChild(sLeaser.sprites[pupGraphics.TongueSpriteIndex]);
+                    sLeaser.sprites[pupGraphics.TongueSpriteIndex] = TriangleMesh.MakeLongMesh(self.ropeSegments.Length - 1, false, true);
+                    rCam.ReturnFContainer("Midground").AddChild(sLeaser.sprites[pupGraphics.TongueSpriteIndex]);
+                }
             }
             if (self.player.slugcatStats.name == SlugpupStuff.VariantName.Hunterpup)
             {
@@ -312,7 +311,6 @@ namespace SlugpupStuff
             {
                 Random.State state = Random.state;
                 Random.InitState(self.player.abstractCreature.ID.RandomSeed);
-                Random.state = state;
                 Color.RGBToHSV(color, out float H, out float S, out float V);
                 H *= 1 + Random.Range(0.35f, 0.7f);
                 S *= 1 + Random.Range(0.15f, 1.4f);
@@ -336,6 +334,7 @@ namespace SlugpupStuff
 
                 self.gills.SetGillColors(color, effectCol);
                 self.gills.ApplyPalette(sLeaser, rCam, palette);
+                Random.state = state;
             }
             if (self.player.slugcatStats.name == SlugpupStuff.VariantName.Tundrapup && SlugpupCWTs.pupGraphicsCWT.TryGetValue(self, out var pupGraphics))
             {

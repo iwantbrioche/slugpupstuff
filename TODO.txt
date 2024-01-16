@@ -1,10 +1,14 @@
 ﻿TODO
-Change the food hooks to be more compatible
-Fix flashing gills when rain is nearing
-Fix gills changing colors on different screens
 
 
 BUGS TO INVESTIGATE
-BeastMasterPupExtras (Something about the way it spawns pups)
 Revivify
 Cowboy Slugcat
+Slugpup Safari item passup
+
+DONE
+Pupify black screen
+Flashing Gills
+
+UNFIXABLE
+BeastMasterPupExtras
