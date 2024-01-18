@@ -70,13 +70,25 @@ namespace SlugpupStuff
             List<int> idlist = [];
             return idlist;
         }
-        public SlugcatStats.Name GetSlugpupVariant(EntityID entityID)
+        public SlugcatStats.Name GetSlugpupVariant(Player player)
         {
             SlugcatStats.Name variant = null;
-            Random.State state = Random.state;
-            if (entityID != null && !ID_PupIDExclude().Contains(entityID.RandomSeed))
+            if (pearlCat && IsPearlpup(player))
             {
-                Random.InitState(entityID.RandomSeed);
+                return null;
+            }
+                if (SlugpupCWTs.pupAbstractCWT.TryGetValue(player.abstractCreature, out var pupAbstract))
+                {
+                    if (pupAbstract.aquatic) return VariantName.Aquaticpup;
+                    if (pupAbstract.tundra) return VariantName.Tundrapup;
+                    if (pupAbstract.hunter) return VariantName.Hunterpup;
+                    if (pupAbstract.rotund) return VariantName.Rotundpup;
+                if (pupAbstract.regular) return null;
+                }
+            Random.State state = Random.state;
+            if (player.abstractCreature.ID != null && !ID_PupIDExclude().Contains(player.abstractCreature.ID.RandomSeed))
+            {
+                Random.InitState(player.abstractCreature.ID.RandomSeed);
                 float variChance = Random.value;
                 float aquaticChance = (slugpupRemix.aquaticChance.Value - slugpupRemix.tundraChance.Value) / 100f;
                 float tundraChance = ((slugpupRemix.tundraChance.Value - slugpupRemix.hunterChance.Value) / 100f) + aquaticChance;
@@ -84,19 +96,19 @@ namespace SlugpupStuff
                 float rotundChance = (slugpupRemix.rotundChance.Value / 100f) + hunterchance;
 
                 // setup variant chance
-                if (variChance <= aquaticChance || ID_AquaticPupID().Contains(entityID.RandomSeed))
+                if (variChance <= aquaticChance || ID_AquaticPupID().Contains(player.abstractCreature.ID.RandomSeed))
                 {
                     variant = VariantName.Aquaticpup;
                 }
-                else if (variChance <= tundraChance || ID_TundraPupID().Contains(entityID.RandomSeed))
+                else if (variChance <= tundraChance || ID_TundraPupID().Contains(player.abstractCreature.ID.RandomSeed))
                 {
                     variant = VariantName.Tundrapup;
                 }
-                else if (variChance <= hunterchance || ID_HunterPupID().Contains(entityID.RandomSeed))
+                else if (variChance <= hunterchance || ID_HunterPupID().Contains(player.abstractCreature.ID.RandomSeed))
                 {
                     variant = VariantName.Hunterpup;
                 }
-                else if (variChance <= rotundChance || ID_RotundPupID().Contains(entityID.RandomSeed))
+                else if (variChance <= rotundChance || ID_RotundPupID().Contains(player.abstractCreature.ID.RandomSeed))
                 {
                     variant = VariantName.Rotundpup;
                 }
@@ -114,7 +126,7 @@ namespace SlugpupStuff
                 {
                     // Higher Energy Calculation
                     self.abstractCreature.personality.energy = Random.value;
-                    self.abstractCreature.personality.energy = Mathf.Clamp(Custom.PushFromHalf(self.abstractCreature.personality.energy + 0.15f + 0.05f * (1.25f * self.abstractCreature.personality.energy), 1.65f), 0f, 1f);
+                    self.abstractCreature.personality.energy = Mathf.Clamp(Custom.PushFromHalf(self.abstractCreature.personality.energy + 0.15f + 0.1f * (1.25f * self.abstractCreature.personality.energy), 0.4f), 0f, 1f);
                     // Base Personality Calculations
                     self.abstractCreature.personality.nervous = Mathf.Lerp(Random.value, Mathf.Lerp(self.abstractCreature.personality.energy, 1f - self.abstractCreature.personality.bravery, 0.5f), Mathf.Pow(Random.value, 0.25f));
                     self.abstractCreature.personality.aggression = Mathf.Lerp(Random.value, (self.abstractCreature.personality.energy + self.abstractCreature.personality.bravery) / 2f * (1f - self.abstractCreature.personality.sympathy), Mathf.Pow(Random.value, 0.25f));
@@ -343,16 +355,9 @@ namespace SlugpupStuff
             {
                 if (SlugpupCWTs.pupStateCWT.TryGetValue(player.playerState as PlayerNPCState, out var pupNPCState))
                 {
-                    if (player.SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Slugpup && player.abstractCreature.creatureTemplate.type == MoreSlugcatsEnums.CreatureTemplateType.SlugNPC)
+                if (player.isSlugpup && player.abstractCreature.creatureTemplate.type == MoreSlugcatsEnums.CreatureTemplateType.SlugNPC)
                     {
-                        if (pearlCat && IsPearlpup(player))
-                        {
-                            return;
-                        }
-                        if (pupNPCState.Variant == null)
-                        {
-                            pupNPCState.Variant = GetSlugpupVariant(player.abstractCreature.ID);
-                        }
+                        pupNPCState.Variant ??= GetSlugpupVariant(player);
                     }
                 }
             });
@@ -367,14 +372,17 @@ namespace SlugpupStuff
             {
                 if (player.playerState is PlayerNPCState && SlugpupCWTs.pupStateCWT.TryGetValue(player.playerState as PlayerNPCState, out var pupNPCState))
                 {
-                    Random.State state = Random.state;
-                    Random.InitState(player.abstractCreature.ID.RandomSeed);
-                    if (pupNPCState.Variant == VariantName.Hunterpup)
+                    if (player.isSlugpup && player.abstractCreature.creatureTemplate.type == MoreSlugcatsEnums.CreatureTemplateType.SlugNPC)
                     {
-                        self.Size = Mathf.Pow(Random.Range(0.75f, 1.75f), 1.5f);
-                        self.Wideness = Mathf.Pow(Random.Range(0.5f, 1.25f), 1.5f);
+                        Random.State state = Random.state;
+                        Random.InitState(player.abstractCreature.ID.RandomSeed);
+                        if (pupNPCState.Variant == VariantName.Hunterpup)
+                        {
+                            self.Size = Mathf.Pow(Random.Range(0.75f, 1.75f), 1.5f);
+                            self.Wideness = Mathf.Pow(Random.Range(0.5f, 1.25f), 1.5f);
+                        }
+                        Random.state = state;
                     }
-                    Random.state = state;
                 }
             });
 
@@ -389,14 +397,13 @@ namespace SlugpupStuff
             {
                 if (player.playerState is PlayerNPCState && SlugpupCWTs.pupStateCWT.TryGetValue(player.playerState as PlayerNPCState, out var pupNPCState))
                 {
-                    if (pupNPCState.Variant != null)
+                    if (player.isSlugpup && player.abstractCreature.creatureTemplate.type == MoreSlugcatsEnums.CreatureTemplateType.SlugNPC)
                     {
-                        SetSlugpupPersonality(player);
-                        if (RainWorld.ShowLogs)
+                        if (pupNPCState.Variant != null)
                         {
-                            Debug.Log($"slugpup variant set to: {pupNPCState.Variant}");
+                            SetSlugpupPersonality(player);
+                            slugcatStats = new SlugcatStats(pupNPCState.Variant, malnourished);
                         }
-                        slugcatStats = new SlugcatStats(pupNPCState.Variant, malnourished);
                     }
                 }
                 return slugcatStats;
@@ -540,7 +547,7 @@ namespace SlugpupStuff
             orig(self, spear);
             if (self.slugcatStats.name == VariantName.Rotundpup && !self.gourmandExhausted)
             {
-                if (simpMoveset)
+                if (simpMovesetGourmand)
                 {
                     self.gourmandExhausted = true;
                 }
@@ -1485,7 +1492,6 @@ namespace SlugpupStuff
                 return f;
             });
         }
-
         public void IL_Player_SlugSlamConditions(ILContext il)
         {
             ILCursor rotundLabelCurs = new(il);
@@ -1704,7 +1710,57 @@ namespace SlugpupStuff
                 });
             }
         }
-
+        public void AbstractCreature_setCustomFlags(On.AbstractCreature.orig_setCustomFlags orig, AbstractCreature self)
+        {
+            if (self.creatureTemplate.type == MoreSlugcatsEnums.CreatureTemplateType.SlugNPC)
+            {
+                if (SlugpupCWTs.pupAbstractCWT.TryGetValue(self, out var pupAbstract))
+                {
+                    if (self.spawnData == null || self.spawnData[0] != '{')
+                    {
+                        orig(self);
+                        return;
+                    }
+                    string[] array = self.spawnData.Substring(1, self.spawnData.Length - 2).Split([',']);
+                    for (int i = 0; i < array.Length; i++)
+                    {
+                        if (array[i].Length > 0)
+                        {
+                            switch (array[i].Split([':'])[0])
+                            {
+                                case "Aquatic":
+                                    pupAbstract.aquatic = true;
+                                    break;
+                                case "Tundra":
+                                    pupAbstract.tundra = true;
+                                    break;
+                                case "Hunter":
+                                    pupAbstract.hunter = true;
+                                    break;
+                                case "Rotund":
+                                    pupAbstract.rotund = true;
+                                    break;
+                                case "Regular":
+                                    pupAbstract.regular = true;
+                                    break;
+                            }
+                        }
+                    }
+                }
+            }
+            orig(self);
+        }
+        public void AbstractCreature_MSCStateAI(On.AbstractCreature.orig_MSCStateAI orig, AbstractCreature self)
+        {
+            orig(self);
+            if (self.creatureTemplate.type == MoreSlugcatsEnums.CreatureTemplateType.SlugNPC)
+            {
+                if (!SlugpupCWTs.pupAbstractCWT.TryGetValue(self, out _))
+                {
+                    SlugpupCWTs.pupAbstractCWT.Add(self, _ = new SlugpupCWTs.PupAbstract());
+                }
+            }
+        }
 
 
 

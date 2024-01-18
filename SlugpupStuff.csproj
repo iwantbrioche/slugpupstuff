@@ -11,11 +11,17 @@
     <Reference Include="Assembly-CSharp">
       <HintPath>lib\Assembly-CSharp-nstrip.dll</HintPath>
     </Reference>
+    <Reference Include="BeastMaster">
+      <HintPath>..\..\..\Steam Games\steamapps\workshop\content\312520\2920903670\plugins\BeastMaster.dll</HintPath>
+    </Reference>
     <Reference Include="BeastMasterPupExtras">
       <HintPath>..\..\..\Steam Games\steamapps\workshop\content\312520\2943737047\plugins\BeastMasterPupExtras.dll</HintPath>
     </Reference>
     <Reference Include="BepInEx">
       <HintPath>..\rain world references\BepInEx.dll</HintPath>
+    </Reference>
+    <Reference Include="DevConsole">
+      <HintPath>..\..\..\Steam Games\steamapps\workshop\content\312520\2920528044\plugins\DevConsole.dll</HintPath>
     </Reference>
     <Reference Include="DressMySlugcat">
       <HintPath>..\..\..\Steam Games\steamapps\workshop\content\312520\2948971756\plugins\DressMySlugcat.dll</HintPath>
@@ -43,6 +49,9 @@
     </Reference>
     <Reference Include="Pearlcat">
       <HintPath>..\..\..\Steam Games\steamapps\workshop\content\312520\3013739512\plugins\Pearlcat.dll</HintPath>
+    </Reference>
+    <Reference Include="SimplifiedMoveset">
+      <HintPath>..\..\..\Steam Games\steamapps\workshop\content\312520\2931679448\plugins\SimplifiedMoveset.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine">
       <HintPath>..\rain world references\UnityEngine.dll</HintPath>

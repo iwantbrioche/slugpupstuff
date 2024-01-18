@@ -94,6 +94,8 @@ namespace SlugpupStuff
                 On.MoreSlugcats.PlayerNPCState.ctor += PlayerNPCState_ctor;
                 On.MoreSlugcats.PlayerNPCState.ToString += PlayerNPCState_ToString;
                 On.MoreSlugcats.PlayerNPCState.LoadFromString += PlayerNPCState_LoadFromString;
+                On.AbstractCreature.MSCStateAI += AbstractCreature_MSCStateAI;
+                On.AbstractCreature.setCustomFlags += AbstractCreature_setCustomFlags;
 
                 // Other ILHooks
                 IL.Snail.Click += IL_Snail_Click;
@@ -139,12 +141,24 @@ namespace SlugpupStuff
                 }
                 if (ModManager.ActiveMods.Any(mod => mod.id == "SimplifiedMoveset"))
                 {
-                    simpMoveset = true;
-                    IL.Player.ClassMechanicsGourmand -= IL_Player_ClassMechanicsGourmand;
+                    PupsPlusModCompat.SimpMovesetGourmandOn();
+                    if (simpMovesetGourmand)
+                    {
+                        IL.Player.ClassMechanicsGourmand -= IL_Player_ClassMechanicsGourmand;
+                    }
                 }
                 if (ModManager.ActiveMods.Any(mod => mod.id == "NoirCatto.BeastMasterPupExtras"))
                 {
                     Debug.LogError("BeastMasterPupExtras is incompatible with Pups+!");
+                    On.AbstractCreature.MSCRealizeCustom += AbstractCreature_MSCRealizeCustom;
+                }
+                if (ModManager.ActiveMods.Any(mod => mod.id == "fyre.BeastMaster"))
+                {
+
+                }
+                if (ModManager.ActiveMods.Any(mod => mod.id == "slime-cubed.devconsole"))
+                {
+                    PupsPlusModCompat.RegisterSpawnPupCommand();
                 }
 
                 PostIsInit = true;
@@ -157,7 +171,10 @@ namespace SlugpupStuff
             }
         }
 
-
+        private void AbstractCreature_MSCRealizeCustom(On.AbstractCreature.orig_MSCRealizeCustom orig, AbstractCreature self)
+        {
+            throw new NotImplementedException();
+        }
 
         public void SlugNPCAI_ctor(On.MoreSlugcats.SlugNPCAI.orig_ctor orig, SlugNPCAI self, AbstractCreature abstractCreature, World world)
         {
@@ -179,7 +196,11 @@ namespace SlugpupStuff
         public void Player_ctor(On.Player.orig_ctor orig, Player self, AbstractCreature abstractCreature, World world)
         {
             orig(self, abstractCreature, world);
-            if (self.npcStats != null) self.npcStats = new Player.NPCStats(self); 
+            if (self.npcStats != null) self.npcStats = new Player.NPCStats(self);
+            if (RainWorld.ShowLogs && self.isNPC)
+            {
+                Debug.Log($"slugpup variant set to: {self.slugcatStats.name}");
+            }
             if (self.slugcatStats.name == VariantName.Tundrapup)
             {
                 self.tongue = new Player.Tongue(self, 0);
@@ -226,22 +247,17 @@ namespace SlugpupStuff
                         (self.cat.graphicsModule as PlayerGraphics).blink = 5;
                     }
                     self.cat.sleepCurlUp = Mathf.SmoothStep(self.cat.sleepCurlUp, 1f, self.cat.emoteSleepCounter - 1.4f);
-                    return;
                 }
-                self.cat.sleepCurlUp = Mathf.Max(0f, self.cat.sleepCurlUp - 0.1f);
+                else
+                {
+                    self.cat.sleepCurlUp = Mathf.Max(0f, self.cat.sleepCurlUp - 0.1f);
+                }
             }
             else
             {
                 self.cat.emoteSleepCounter = 0f;
             }
 
-            if (self.cat.grasps[0] != null && self.cat.HeavyCarry(self.cat.grasps[0].grabbed))
-            {
-                if (self.behaviorType == SlugNPCAI.BehaviorType.BeingHeld || self.behaviorType == SlugNPCAI.BehaviorType.OnHead)
-                {
-                    self.cat.ReleaseGrasp(0);
-                }
-            }
 
             if (SlugpupCWTs.pupCWT.TryGetValue(self, out var pupVariables))
             {
@@ -427,7 +443,7 @@ namespace SlugpupStuff
             {
                 if (SlugpupCWTs.pupStateCWT.TryGetValue(self.playerState as PlayerNPCState, out var pupNPCState))
                 {
-                    if (abstractCreature.Room.world.game.session is StoryGameSession)
+                    if (abstractCreature.Room?.world?.game?.session is StoryGameSession)
                     {
                         if (pupNPCState?.PupsPlusStomachObject != null)
                         {
@@ -642,11 +658,10 @@ namespace SlugpupStuff
 
 
 
-
         public static bool slugpupSafari = false;
         public static bool rainbowPups = false;
         public static bool pearlCat = false;
-        public static bool simpMoveset = false;
+        public static bool simpMovesetGourmand = false;
         public static bool emeralds = false;
 
 

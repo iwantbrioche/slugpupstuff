@@ -1,14 +1,16 @@
-﻿TODO
+﻿Pups+ 1.2.5
+TODO
+Ask Noir about BeastMasterPupExtras
+Fix pupify regular food bar
+Nerf Tundrapup grapple
+Buff Rotundpup on back exhaust
+Don't sleep emote everytime
+Emerald's rainbow pups
+Simplified Moveset gourmand
 
 
 BUGS TO INVESTIGATE
-Revivify
-Cowboy Slugcat
-Slugpup Safari item passup
+Dress My Slugcat tundrapup heads
 
 DONE
-Pupify black screen
-Flashing Gills
-
-UNFIXABLE
-BeastMasterPupExtras
+Dev Console spawn pup command
