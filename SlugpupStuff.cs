@@ -150,7 +150,6 @@ namespace SlugpupStuff
                 if (ModManager.ActiveMods.Any(mod => mod.id == "NoirCatto.BeastMasterPupExtras"))
                 {
                     Debug.LogError("BeastMasterPupExtras is incompatible with Pups+!");
-                    On.AbstractCreature.MSCRealizeCustom += AbstractCreature_MSCRealizeCustom;
                 }
                 if (ModManager.ActiveMods.Any(mod => mod.id == "fyre.BeastMaster"))
                 {
