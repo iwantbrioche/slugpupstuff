@@ -107,34 +107,9 @@ namespace SlugpupStuff
         }
         public static void IL_PlayerGraphics_InitiateSprites(ILContext il)
         {
-            ILCursor initCurs = new(il);
             ILCursor gillCurs = new(il);
             
             ILLabel branchLabel = il.DefineLabel();
-
-            initCurs.GotoNext(x => x.MatchLdstr("HipsA"));
-            initCurs.GotoNext(x => x.MatchLdsfld<ModManager>(nameof(ModManager.MSC)));
-            initCurs.GotoNext(MoveType.Before, x => x.MatchLdarg(1));
-            /* GOTO
-             * sLeaser.sprites[3] = new FSprite("HeadB0");
-             */
-            initCurs.MarkLabel(branchLabel);
-            initCurs.GotoPrev(MoveType.Before, x => x.MatchLdarg(0));
-            /* GOTO
-             * if (ModManager.MSC >HERE< && player.SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Saint)
-             */
-
-            initCurs.Emit(OpCodes.Ldarg_0);
-            initCurs.Emit(OpCodes.Ldarg_1);
-            initCurs.EmitDelegate((PlayerGraphics self, RoomCamera.SpriteLeaser sLeaser) =>   // If self is Tundrapup, branch to branchLabel
-            {
-                if (self.player.slugcatStats.name == SlugpupStuff.VariantName.Tundrapup)
-                {
-                    return true;
-                }
-                return false;
-            });
-            initCurs.Emit(OpCodes.Brtrue_S, branchLabel);
 
             gillCurs.GotoNext(MoveType.After, x => x.MatchCallvirt<PlayerGraphics.Gown>(nameof(PlayerGraphics.Gown.InitiateSprite)));
             /* GOTO AFTER
@@ -159,6 +134,7 @@ namespace SlugpupStuff
             {
                 if (self.player.slugcatStats.name == SlugpupStuff.VariantName.Tundrapup)
                 {
+
                     Array.Resize(ref sLeaser.sprites, sLeaser.sprites.Length + 1);
                     pupGraphics.TongueSpriteIndex = sLeaser.sprites.Length - 1;
 
@@ -220,27 +196,6 @@ namespace SlugpupStuff
                     sLeaser.sprites[0].scaleX = 1f + 0.2f * Mathf.Lerp(self.player.npcStats.Wideness, 0.5f, self.RenderAsPup ? 0.5f : 0f) + self.player.sleepCurlUp * 0.2f + 0.05f * num - 0.1f * self.malnourished;
                 }
             });
-
-            drawCurs.GotoNext(x => x.MatchCall<PlayerGraphics>("get_RenderAsPup"));
-            drawCurs.GotoNext(MoveType.Before, x => x.Match(OpCodes.Br_S));
-            /* GOTO AFTER
-             * sLeaser.sprites[3].element = Futile.atlasManager.GetElementWithName("HeadC" + num7);
-             */
-            branchLabel = drawCurs.Next.Operand as ILLabel; // Mark branchLabel at 'if (ModManager.MSC && player.SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Spear)'
-
-            drawCurs.Emit(OpCodes.Ldarg_0);
-            drawCurs.Emit(OpCodes.Ldarg_1);
-            drawCurs.Emit(OpCodes.Ldloc, 9);
-            drawCurs.EmitDelegate((PlayerGraphics self, RoomCamera.SpriteLeaser sLeaser, int num4) =>   // If self is Tundrapup, set sLeaser.sprites[3].element to HeadB + num4 and branch to branchLabel
-            {
-                if (self.player.slugcatStats.name == SlugpupStuff.VariantName.Tundrapup)
-                {
-                    sLeaser.sprites[3].element = Futile.atlasManager.GetElementWithName("HeadB" + num4);
-                    return true;
-                }
-                return false;
-            });
-            drawCurs.Emit(OpCodes.Brtrue_S, branchLabel);
         }
         public static void PlayerGraphics_DrawSprites(On.PlayerGraphics.orig_DrawSprites orig, PlayerGraphics self, RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos) // replace with ilhook except tundrapup tongue
         {
@@ -251,48 +206,53 @@ namespace SlugpupStuff
                 {
                     self.gills.DrawSprites(sLeaser, rCam, timeStacker, camPos);
                 }
-                if (self.player.room != null && self.player.slugcatStats.name == SlugpupStuff.VariantName.Tundrapup)
+                if (self.player.slugcatStats.name == SlugpupStuff.VariantName.Tundrapup)
                 {
-                    float b = Mathf.Lerp(self.lastStretch, self.stretch, timeStacker);
-                    Vector2 vector2;
-                    Vector2 vector = Vector2.Lerp(self.ropeSegments[0].lastPos, self.ropeSegments[0].pos, timeStacker);
-                    vector += Custom.DirVec(Vector2.Lerp(self.ropeSegments[1].lastPos, self.ropeSegments[1].pos, timeStacker), vector) * 1f;
-                    float num5 = 0f;
-                    for (int k = 1; k < self.ropeSegments.Length; k++)
+                    string rotation = sLeaser.sprites[3].element.name.Remove(0, 5);
+                    sLeaser.sprites[3].element = Futile.atlasManager.GetElementWithName("HeadB" + rotation);
+                    if (self.player.room != null)
                     {
-                        float num6 = k / self.ropeSegments.Length - 1;
-                        if (k >= self.ropeSegments.Length - 2)
+                        float b = Mathf.Lerp(self.lastStretch, self.stretch, timeStacker);
+                        Vector2 vector2;
+                        Vector2 vector = Vector2.Lerp(self.ropeSegments[0].lastPos, self.ropeSegments[0].pos, timeStacker);
+                        vector += Custom.DirVec(Vector2.Lerp(self.ropeSegments[1].lastPos, self.ropeSegments[1].pos, timeStacker), vector) * 1f;
+                        float num5 = 0f;
+                        for (int k = 1; k < self.ropeSegments.Length; k++)
                         {
-                            vector2 = new Vector2(sLeaser.sprites[9].x + camPos.x, sLeaser.sprites[9].y - 1 + camPos.y);
+                            float num6 = k / self.ropeSegments.Length - 1;
+                            if (k >= self.ropeSegments.Length - 2)
+                            {
+                                vector2 = new Vector2(sLeaser.sprites[9].x + camPos.x, sLeaser.sprites[9].y - 1 + camPos.y);
+                            }
+                            else
+                            {
+                                vector2 = Vector2.Lerp(self.ropeSegments[k].lastPos, self.ropeSegments[k].pos, timeStacker);
+                            }
+                            Vector2 a2 = Custom.PerpendicularVector((vector - vector2).normalized);
+                            float d4 = 0.2f + 1.6f * Mathf.Lerp(1f, b, Mathf.Pow(Mathf.Sin(num6 * (float)Math.PI), 0.7f));
+                            Vector2 vector4 = vector - a2 * d4;
+                            Vector2 vector5 = vector2 + a2 * d4;
+                            float num7 = Mathf.Sqrt(Mathf.Pow(vector4.x - vector5.x, 2f) + Mathf.Pow(vector4.y - vector5.y, 2f));
+                            if (!float.IsNaN(num7))
+                            {
+                                num5 += num7;
+                            }
+                            (sLeaser.sprites[pupGraphics.TongueSpriteIndex] as TriangleMesh).MoveVertice((k - 1) * 4, vector4 - camPos);
+                            (sLeaser.sprites[pupGraphics.TongueSpriteIndex] as TriangleMesh).MoveVertice((k - 1) * 4 + 1, vector + a2 * d4 - camPos);
+                            (sLeaser.sprites[pupGraphics.TongueSpriteIndex] as TriangleMesh).MoveVertice((k - 1) * 4 + 2, vector2 - a2 * d4 - camPos);
+                            (sLeaser.sprites[pupGraphics.TongueSpriteIndex] as TriangleMesh).MoveVertice((k - 1) * 4 + 3, vector5 - camPos);
+                            vector = vector2;
+                        }
+                        if (self.player.tongue.Free || self.player.tongue.Attached)
+                        {
+                            sLeaser.sprites[pupGraphics.TongueSpriteIndex].isVisible = true;
                         }
                         else
                         {
-                            vector2 = Vector2.Lerp(self.ropeSegments[k].lastPos, self.ropeSegments[k].pos, timeStacker);
+                            sLeaser.sprites[pupGraphics.TongueSpriteIndex].isVisible = false;
                         }
-                        Vector2 a2 = Custom.PerpendicularVector((vector - vector2).normalized);
-                        float d4 = 0.2f + 1.6f * Mathf.Lerp(1f, b, Mathf.Pow(Mathf.Sin(num6 * (float)Math.PI), 0.7f));
-                        Vector2 vector4 = vector - a2 * d4;
-                        Vector2 vector5 = vector2 + a2 * d4;
-                        float num7 = Mathf.Sqrt(Mathf.Pow(vector4.x - vector5.x, 2f) + Mathf.Pow(vector4.y - vector5.y, 2f));
-                        if (!float.IsNaN(num7))
-                        {
-                            num5 += num7;
-                        }
-                        (sLeaser.sprites[pupGraphics.TongueSpriteIndex] as TriangleMesh).MoveVertice((k - 1) * 4, vector4 - camPos);
-                        (sLeaser.sprites[pupGraphics.TongueSpriteIndex] as TriangleMesh).MoveVertice((k - 1) * 4 + 1, vector + a2 * d4 - camPos);
-                        (sLeaser.sprites[pupGraphics.TongueSpriteIndex] as TriangleMesh).MoveVertice((k - 1) * 4 + 2, vector2 - a2 * d4 - camPos);
-                        (sLeaser.sprites[pupGraphics.TongueSpriteIndex] as TriangleMesh).MoveVertice((k - 1) * 4 + 3, vector5 - camPos);
-                        vector = vector2;
                     }
-                    if (self.player.tongue.Free || self.player.tongue.Attached)
-                    {
-                        sLeaser.sprites[pupGraphics.TongueSpriteIndex].isVisible = true;
-                    }
-                    else
-                    {
-                        sLeaser.sprites[pupGraphics.TongueSpriteIndex].isVisible = false;
-                    }
-                }
+                }  
             }
         }
         public static bool PlayerGraphics_SaintFaceCondition(On.PlayerGraphics.orig_SaintFaceCondition orig, PlayerGraphics self)

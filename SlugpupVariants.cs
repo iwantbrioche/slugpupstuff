@@ -77,14 +77,14 @@ namespace SlugpupStuff
             {
                 return null;
             }
-                if (SlugpupCWTs.pupAbstractCWT.TryGetValue(player.abstractCreature, out var pupAbstract))
-                {
-                    if (pupAbstract.aquatic) return VariantName.Aquaticpup;
-                    if (pupAbstract.tundra) return VariantName.Tundrapup;
-                    if (pupAbstract.hunter) return VariantName.Hunterpup;
-                    if (pupAbstract.rotund) return VariantName.Rotundpup;
+            if (SlugpupCWTs.pupAbstractCWT.TryGetValue(player.abstractCreature, out var pupAbstract))
+            {
+                if (pupAbstract.aquatic) return VariantName.Aquaticpup;
+                if (pupAbstract.tundra) return VariantName.Tundrapup;
+                if (pupAbstract.hunter) return VariantName.Hunterpup;
+                if (pupAbstract.rotund) return VariantName.Rotundpup;
                 if (pupAbstract.regular) return null;
-                }
+            }
             Random.State state = Random.state;
             if (player.abstractCreature.ID != null && !ID_PupIDExclude().Contains(player.abstractCreature.ID.RandomSeed))
             {
@@ -355,7 +355,7 @@ namespace SlugpupStuff
             {
                 if (SlugpupCWTs.pupStateCWT.TryGetValue(player.playerState as PlayerNPCState, out var pupNPCState))
                 {
-                if (player.isSlugpup && player.abstractCreature.creatureTemplate.type == MoreSlugcatsEnums.CreatureTemplateType.SlugNPC)
+                    if (player.isSlugpup && player.abstractCreature.creatureTemplate.type == MoreSlugcatsEnums.CreatureTemplateType.SlugNPC)
                     {
                         pupNPCState.Variant ??= GetSlugpupVariant(player);
                     }
@@ -1670,17 +1670,23 @@ namespace SlugpupStuff
                             };
                             break;
                         case "PupsPlusStomach":
-                            string text = array[1];
-                            if (text != "NULL")
+                            if (array[1] != "NULL")
                             {
-                                if (text.Contains("<oA>"))
+                                if (array[1].Contains("<oA>"))
                                 {
-                                    pupNPCState.PupsPlusStomachObject = SaveState.AbstractPhysicalObjectFromString(self.player.Room.world, text); ;
+                                    pupNPCState.PupsPlusStomachObject = SaveState.AbstractPhysicalObjectFromString(self.player.Room.world, array[1]); ;
                                 }
-                                else if (text.Contains("<cA>"))
+                                else if (array[1].Contains("<cA>"))
                                 {
-                                    pupNPCState.PupsPlusStomachObject = SaveState.AbstractCreatureFromString(self.player.Room.world, text, onlyInCurrentRegion: false);
+                                    pupNPCState.PupsPlusStomachObject = SaveState.AbstractCreatureFromString(self.player.Room.world, array[1], onlyInCurrentRegion: false);
                                 }
+                            }
+                            break;
+                            // BeastMasterPupExtras Compat
+                        case "SlugcatCharacter":
+                            if (pupExtras && !array[1].Equals("Slugpup") && SlugpupCWTs.pupAbstractCWT.TryGetValue(self.player, out var pupAbstract))
+                            {
+                                pupAbstract.regular = true;
                             }
                             break;
                     }

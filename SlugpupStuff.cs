@@ -11,7 +11,7 @@ using Random = UnityEngine.Random;
 
 namespace SlugpupStuff
 {
-    [BepInPlugin(MOD_ID, "Slugpup Stuff", "1.2.4")]
+    [BepInPlugin(MOD_ID, "Slugpup Stuff", "1.2.5")]
     [BepInDependency("emeralds_features", BepInDependency.DependencyFlags.SoftDependency)]
     public partial class SlugpupStuff : BaseUnityPlugin
     {
@@ -149,7 +149,7 @@ namespace SlugpupStuff
                 }
                 if (ModManager.ActiveMods.Any(mod => mod.id == "NoirCatto.BeastMasterPupExtras"))
                 {
-                    Debug.LogError("BeastMasterPupExtras is incompatible with Pups+!");
+                    pupExtras = true;
                 }
                 if (ModManager.ActiveMods.Any(mod => mod.id == "fyre.BeastMaster"))
                 {
@@ -168,11 +168,6 @@ namespace SlugpupStuff
                 Logger.LogError(ex);
                 throw;
             }
-        }
-
-        private void AbstractCreature_MSCRealizeCustom(On.AbstractCreature.orig_MSCRealizeCustom orig, AbstractCreature self)
-        {
-            throw new NotImplementedException();
         }
 
         public void SlugNPCAI_ctor(On.MoreSlugcats.SlugNPCAI.orig_ctor orig, SlugNPCAI self, AbstractCreature abstractCreature, World world)
@@ -238,18 +233,21 @@ namespace SlugpupStuff
             orig(self);
             if (self.nap)
             {
-                self.cat.emoteSleepCounter += Mathf.Clamp(0.0008f / self.cat.abstractCreature.personality.energy, 0.0008f, 0.05f);
-                if (self.cat.emoteSleepCounter > 1.4f)
+                if (Mathf.Clamp(0.06f / self.cat.abstractCreature.personality.energy, 0f, 1f) >= Random.Range(0.35f, 1f) || self.cat.emoteSleepCounter > 1.4f)
                 {
-                    if (self.cat.graphicsModule != null)
+                    self.cat.emoteSleepCounter += Mathf.Clamp(0.0008f / self.cat.abstractCreature.personality.energy, 0.0008f, 0.05f);
+                    if (self.cat.emoteSleepCounter > 1.4f)
                     {
-                        (self.cat.graphicsModule as PlayerGraphics).blink = 5;
+                        if (self.cat.graphicsModule != null)
+                        {
+                            (self.cat.graphicsModule as PlayerGraphics).blink = 5;
+                        }
+                        self.cat.sleepCurlUp = Mathf.SmoothStep(self.cat.sleepCurlUp, 1f, self.cat.emoteSleepCounter - 1.4f);
                     }
-                    self.cat.sleepCurlUp = Mathf.SmoothStep(self.cat.sleepCurlUp, 1f, self.cat.emoteSleepCounter - 1.4f);
-                }
-                else
-                {
-                    self.cat.sleepCurlUp = Mathf.Max(0f, self.cat.sleepCurlUp - 0.1f);
+                    else
+                    {
+                        self.cat.sleepCurlUp = Mathf.Max(0f, self.cat.sleepCurlUp - 0.1f);
+                    }
                 }
             }
             else
@@ -662,6 +660,7 @@ namespace SlugpupStuff
         public static bool pearlCat = false;
         public static bool simpMovesetGourmand = false;
         public static bool emeralds = false;
+        public static bool pupExtras = false;
 
 
     }
