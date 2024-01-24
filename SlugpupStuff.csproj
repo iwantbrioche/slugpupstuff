@@ -15,14 +15,8 @@
     <Reference Include="Assembly-CSharp">
       <HintPath>lib\Assembly-CSharp-nstrip.dll</HintPath>
     </Reference>
-    <Reference Include="BeastMaster">
-      <HintPath>..\..\..\Steam Games\steamapps\workshop\content\312520\2920903670\plugins\BeastMaster.dll</HintPath>
-    </Reference>
-    <Reference Include="BeastMasterPupExtras">
-      <HintPath>..\..\..\Steam Games\steamapps\workshop\content\312520\2943737047\plugins\BeastMasterPupExtras.dll</HintPath>
-    </Reference>
     <Reference Include="BepInEx">
-      <HintPath>..\rain world references\BepInEx.dll</HintPath>
+      <HintPath>lib\BepInEx.dll</HintPath>
     </Reference>
     <Reference Include="DevConsole">
       <HintPath>..\..\..\Steam Games\steamapps\workshop\content\312520\2920528044\plugins\DevConsole.dll</HintPath>
@@ -31,25 +25,25 @@
       <HintPath>..\..\..\Steam Games\steamapps\workshop\content\312520\2948971756\plugins\DressMySlugcat.dll</HintPath>
     </Reference>
     <Reference Include="HOOKS-Assembly-CSharp">
-      <HintPath>..\rain world references\HOOKS-Assembly-CSharp.dll</HintPath>
+      <HintPath>lib\HOOKS-Assembly-CSharp.dll</HintPath>
     </Reference>
     <Reference Include="Mono.Cecil">
-      <HintPath>..\rain world references\Mono.Cecil.dll</HintPath>
+      <HintPath>lib\Mono.Cecil.dll</HintPath>
     </Reference>
     <Reference Include="Mono.Cecil.Pdb">
-      <HintPath>..\rain world references\Mono.Cecil.Pdb.dll</HintPath>
+      <HintPath>lib\Mono.Cecil.Pdb.dll</HintPath>
     </Reference>
     <Reference Include="MonoMod">
-      <HintPath>..\rain world references\MonoMod.dll</HintPath>
+      <HintPath>lib\MonoMod.dll</HintPath>
     </Reference>
     <Reference Include="MonoMod.Common">
-      <HintPath>..\rain world references\MonoMod.Common.dll</HintPath>
+      <HintPath>lib\MonoMod.Common.dll</HintPath>
     </Reference>
     <Reference Include="MonoMod.RuntimeDetour">
-      <HintPath>..\rain world references\MonoMod.RuntimeDetour.dll</HintPath>
+      <HintPath>lib\MonoMod.RuntimeDetour.dll</HintPath>
     </Reference>
     <Reference Include="MonoMod.Utils">
-      <HintPath>..\rain world references\MonoMod.Utils.dll</HintPath>
+      <HintPath>lib\MonoMod.Utils.dll</HintPath>
     </Reference>
     <Reference Include="Pearlcat">
       <HintPath>..\..\..\Steam Games\steamapps\workshop\content\312520\3013739512\plugins\Pearlcat.dll</HintPath>
@@ -58,13 +52,13 @@
       <HintPath>..\..\..\Steam Games\steamapps\workshop\content\312520\2931679448\plugins\SimplifiedMoveset.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine">
-      <HintPath>..\rain world references\UnityEngine.dll</HintPath>
+      <HintPath>lib\UnityEngine.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.CoreModule">
-      <HintPath>..\rain world references\UnityEngine.CoreModule.dll</HintPath>
+      <HintPath>lib\UnityEngine.CoreModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.InputLegacyModule">
-      <HintPath>..\rain world references\UnityEngine.InputLegacyModule.dll</HintPath>
+      <HintPath>lib\UnityEngine.InputLegacyModule.dll</HintPath>
     </Reference>
   </ItemGroup>
 

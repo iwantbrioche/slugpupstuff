@@ -355,10 +355,15 @@ namespace SlugpupStuff
             {
                 if (SlugpupCWTs.pupStateCWT.TryGetValue(player.playerState as PlayerNPCState, out var pupNPCState))
                 {
-                    if (player.isSlugpup && player.abstractCreature.creatureTemplate.type == MoreSlugcatsEnums.CreatureTemplateType.SlugNPC)
+                    if (player.abstractCreature.superSizeMe)
                     {
-                        pupNPCState.Variant ??= GetSlugpupVariant(player);
+                        player.playerState.forceFullGrown = true;
+                        (player.playerState as PlayerNPCState).isPup = false;
                     }
+
+
+                    if (player.isSlugpup && player.abstractCreature.creatureTemplate.type == MoreSlugcatsEnums.CreatureTemplateType.SlugNPC)
+                        pupNPCState.Variant ??= GetSlugpupVariant(player);
                 }
             });
 
@@ -370,13 +375,13 @@ namespace SlugpupStuff
             statsCurs.Emit(OpCodes.Ldarg_1);
             statsCurs.EmitDelegate((Player.NPCStats self, Player player) =>
             {
-                if (player.playerState is PlayerNPCState && SlugpupCWTs.pupStateCWT.TryGetValue(player.playerState as PlayerNPCState, out var pupNPCState))
+                if (player.playerState is PlayerNPCState playerNPCState && SlugpupCWTs.pupStateCWT.TryGetValue(player.playerState as PlayerNPCState, out var pupNPCState))
                 {
                     if (player.isSlugpup && player.abstractCreature.creatureTemplate.type == MoreSlugcatsEnums.CreatureTemplateType.SlugNPC)
                     {
                         Random.State state = Random.state;
                         Random.InitState(player.abstractCreature.ID.RandomSeed);
-                        if (pupNPCState.Variant == VariantName.Hunterpup)
+                        if (pupNPCState.Variant == VariantName.Hunterpup && playerNPCState.isPup)
                         {
                             self.Size = Mathf.Pow(Random.Range(0.75f, 1.75f), 1.5f);
                             self.Wideness = Mathf.Pow(Random.Range(0.5f, 1.25f), 1.5f);
@@ -401,7 +406,6 @@ namespace SlugpupStuff
                     {
                         if (pupNPCState.Variant != null)
                         {
-                            SetSlugpupPersonality(player);
                             slugcatStats = new SlugcatStats(pupNPCState.Variant, malnourished);
                         }
                     }

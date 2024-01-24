@@ -158,6 +158,7 @@ namespace SlugpupStuff
                 if (ModManager.ActiveMods.Any(mod => mod.id == "slime-cubed.devconsole"))
                 {
                     PupsPlusModCompat.RegisterSpawnPupCommand();
+                    Logger.LogMessage("spawn_pup command registered");
                 }
 
                 PostIsInit = true;
@@ -191,9 +192,13 @@ namespace SlugpupStuff
         {
             orig(self, abstractCreature, world);
             if (self.npcStats != null) self.npcStats = new Player.NPCStats(self);
-            if (RainWorld.ShowLogs && self.isNPC)
+            if (self.isNPC && self.isSlugpup && self.slugcatStats.name != MoreSlugcatsEnums.SlugcatStatsName.Slugpup)
             {
-                Debug.Log($"slugpup variant set to: {self.slugcatStats.name}");
+                SetSlugpupPersonality(self);
+                if (RainWorld.ShowLogs)
+                {
+                    Debug.Log($"slugpup variant set to: {self.slugcatStats.name}");
+                }
             }
             if (self.slugcatStats.name == VariantName.Tundrapup)
             {

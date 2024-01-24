@@ -94,9 +94,10 @@ namespace SlugpupStuff
                             else
                             {
                                 self.mode = Limb.Mode.HuntAbsolutePosition;
-                                (pupGrabbed.graphicsModule as PlayerGraphics).blink = 5;
                                 self.absoluteHuntPos = (pupGrabbed.graphicsModule as PlayerGraphics).head.pos;
                                 self.absoluteHuntPos += new Vector2(0f, -4f) + Custom.RNV() * 2f * Random.value * Mathf.InverseLerp(0.5f, 1f, num5);
+
+                                (pupGrabbed.graphicsModule as PlayerGraphics).blink = 5;
                                 (pupGrabbed.graphicsModule as PlayerGraphics).head.vel += Custom.RNV() * 2f * Random.value * Mathf.InverseLerp(0.5f, 1f, num5);
                                 pupGrabbed.bodyChunks[0].vel += Custom.RNV() * 0.2f * Random.value * Mathf.InverseLerp(0.5f, 1f, num5);
                             }
@@ -305,7 +306,7 @@ namespace SlugpupStuff
                 float b2 = 0.9f;
                 for (int j = 0; j < (sLeaser.sprites[pupGraphics.TongueSpriteIndex] as TriangleMesh).verticeColors.Length; j++)
                 {
-                    float num2 = Mathf.Clamp(Mathf.Sin((float)j / (float)((sLeaser.sprites[pupGraphics.TongueSpriteIndex] as TriangleMesh).verticeColors.Length - 1) * (float)Math.PI), 0f, 1f);
+                    float num2 = Mathf.Clamp(Mathf.Sin(j / ((sLeaser.sprites[pupGraphics.TongueSpriteIndex] as TriangleMesh).verticeColors.Length - 1) * (float)Math.PI), 0f, 1f);
                     (sLeaser.sprites[pupGraphics.TongueSpriteIndex] as TriangleMesh).verticeColors[j] = Color.Lerp(palette.fogColor, Custom.HSL2RGB(Mathf.Lerp(a, b, num2), sl, Mathf.Lerp(a2, b2, Mathf.Pow(num2, 0.15f))), 0.7f);
 
                     if (self.player.room != null && self.player.room.world.game.rainWorld.progression.miscProgressionData.currentlySelectedSinglePlayerSlugcat == MoreSlugcatsEnums.SlugcatStatsName.Sofanthiel)
@@ -429,22 +430,6 @@ namespace SlugpupStuff
                 RequiredSprites = ["LizardScaleA3", "LizardScaleB3"],
                 Slugcats = ["Aquaticpup"]
             });
-            for (int s = 0; s < DressMySlugcat.SpriteDefinitions.AvailableSprites.Count; s++)
-            {
-                if (DressMySlugcat.SpriteDefinitions.AvailableSprites[s].Name == "HEAD")
-                {
-                    for (int i = 0; i <= 17; i++)
-                    {
-                        DressMySlugcat.SpriteDefinitions.AvailableSprites[s].SlugcatSpecificReplacements.Add(new DressMySlugcat.SpriteDefinitions.AvailableSprite.SlugcatSpecificReplacement
-                        {
-                            Slugcat = "Tundrapup",
-                            GenericName = "HeadC" + i,
-                            SpecificName = "HeadB" + i
-                        });
-                    }
-                    break;
-                }
-            }
         }
         public static List<string> ValidPupNames(Func<List<string>> orig)
         {

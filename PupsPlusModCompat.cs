@@ -67,7 +67,6 @@ namespace SlugpupStuff
                     else return null;
                 })
                 .Register();
-
         }
 
         public static void SimpMovesetGourmandOn()
