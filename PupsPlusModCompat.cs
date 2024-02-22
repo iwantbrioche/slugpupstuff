@@ -4,6 +4,7 @@ using DevConsole.Commands;
 using MoreSlugcats;
 using DevConsole;
 using System.Linq;
+using System.Collections.Generic;
 
 namespace SlugpupStuff
 {
@@ -67,8 +68,8 @@ namespace SlugpupStuff
                     else return null;
                 })
                 .Register();
-        }
 
+        }
         public static void SimpMovesetGourmandOn()
         {
             if (SimplifiedMoveset.MainModOptions.gourmand.Value)
@@ -76,6 +77,35 @@ namespace SlugpupStuff
                 SlugpupStuff.simpMovesetGourmand = true;
             }
         }
+        public static void SetupDMSSprites()
+        {
+            new MonoMod.RuntimeDetour.Hook(
+                typeof(DressMySlugcat.Utils).GetProperty(nameof(DressMySlugcat.Utils.ValidSlugcatNames),
+                    System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static).GetGetMethod(),
+                PupsPlusModCompat.ValidPupNames);
 
+            DressMySlugcat.SpriteDefinitions.AvailableSprites.Add(new DressMySlugcat.SpriteDefinitions.AvailableSprite
+            {
+                Name = "GILLS",
+                Description = "Gills",
+                GallerySprite = "LizardScaleA3",
+                RequiredSprites = ["LizardScaleA3", "LizardScaleB3"],
+                Slugcats = ["Aquaticpup"]
+            });
+        }
+        public static List<string> ValidPupNames(Func<List<string>> orig)
+        {
+            var list = orig();
+            list.AddRange(new List<string>
+            {
+                "Aquaticpup",
+                "Tundrapup",
+                "Hunterpup",
+                "Rotundpup"
+            });
+            return list;
+        }
+        public static bool IsPearlpup(Player player) => Pearlcat.Hooks.IsPearlpup(player);
+        public static float EmeraldsLegendaryChance => EmeraldsTweaksRemix.ModConfig.shinyLegendaryChance.Value;
     }
 }

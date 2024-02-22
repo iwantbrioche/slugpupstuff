@@ -1,14 +1,16 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net48</TargetFramework>
+    <TargetFramework>net481</TargetFramework>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>disable</Nullable>
 	  <LangVersion>latest</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="SlugpupVariants.cs~RF100aa9a.TMP" />
+    <None Remove=".gitattributes" />
+    <None Remove=".gitignore" />
+    <None Remove="README.md" />
   </ItemGroup>
 
   <ItemGroup>
@@ -23,6 +25,9 @@
     </Reference>
     <Reference Include="DressMySlugcat">
       <HintPath>..\..\..\Steam Games\steamapps\workshop\content\312520\2948971756\plugins\DressMySlugcat.dll</HintPath>
+    </Reference>
+    <Reference Include="EmeraldsTweaksRemix">
+      <HintPath>..\..\..\Steam Games\steamapps\workshop\content\312520\2933890889\plugins\EmeraldsTweaksRemix.dll</HintPath>
     </Reference>
     <Reference Include="HOOKS-Assembly-CSharp">
       <HintPath>lib\HOOKS-Assembly-CSharp.dll</HintPath>
