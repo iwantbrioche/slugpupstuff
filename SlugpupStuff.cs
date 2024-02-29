@@ -12,7 +12,7 @@ using Random = UnityEngine.Random;
 
 namespace SlugpupStuff
 {
-    [BepInPlugin(MOD_ID, "Slugpup Stuff", "1.2.7a")]
+    [BepInPlugin(MOD_ID, "Slugpup Stuff", "1.2.8")]
     public partial class SlugpupStuff : BaseUnityPlugin
     {
         public const string MOD_ID = "iwantbread.slugpupstuff";
