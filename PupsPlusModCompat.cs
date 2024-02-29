@@ -69,13 +69,7 @@ namespace SlugpupStuff
                 })
                 .Register();
 
-        }
-        public static void SimpMovesetGourmandOn()
-        {
-            if (SimplifiedMoveset.MainModOptions.gourmand.Value)
-            {
-                SlugpupStuff.simpMovesetGourmand = true;
-            }
+
         }
         public static void SetupDMSSprites()
         {
@@ -105,6 +99,7 @@ namespace SlugpupStuff
             });
             return list;
         }
+        public static bool SimplifiedMovesetGourmand() => SimplifiedMoveset.MainModOptions.gourmand.Value;
         public static bool IsPearlpup(Player player) => Pearlcat.Hooks.IsPearlpup(player);
         public static float EmeraldsLegendaryChance => EmeraldsTweaksRemix.ModConfig.shinyLegendaryChance.Value;
     }

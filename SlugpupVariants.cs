@@ -74,11 +74,11 @@ namespace SlugpupStuff
         }
         public SlugcatStats.Name GetSlugpupVariant(Player player)
         {
-            if (pearlCat && PupsPlusModCompat.IsPearlpup(player))
+            if (Pearlcat && PupsPlusModCompat.IsPearlpup(player))
             {
                 return null;
             }
-            if (SlugpupCWTs.pupAbstractCWT.TryGetValue(player.abstractCreature, out var pupAbstract))
+            if (player.abstractCreature.TryGetPupAbstract(out var pupAbstract))
             {
                 if (pupAbstract.aquatic) return VariantName.Aquaticpup;
                 if (pupAbstract.tundra) return VariantName.Tundrapup;
@@ -121,69 +121,66 @@ namespace SlugpupStuff
         }
         public void SetSlugpupPersonality(Player self)
         {
-            if (self.playerState is PlayerNPCState && SlugpupCWTs.pupStateCWT.TryGetValue(self.playerState as PlayerNPCState, out var pupNPCState))
+            Random.State state = Random.state;
+            Random.InitState(self.abstractCreature.ID.RandomSeed);
+            if (self.isAquaticpup())
             {
-                Random.State state = Random.state;
-                Random.InitState(self.abstractCreature.ID.RandomSeed);
-                if (pupNPCState.Variant == VariantName.Aquaticpup)
-                {
-                    // Higher Energy Calculation
-                    self.abstractCreature.personality.energy = Random.value;
-                    self.abstractCreature.personality.energy = Mathf.Clamp(Custom.PushFromHalf(self.abstractCreature.personality.energy + 0.15f + 0.1f * (1.25f * self.abstractCreature.personality.energy), 0.4f), 0f, 1f);
-                    // Base Personality Calculations
-                    self.abstractCreature.personality.nervous = Mathf.Lerp(Random.value, Mathf.Lerp(self.abstractCreature.personality.energy, 1f - self.abstractCreature.personality.bravery, 0.5f), Mathf.Pow(Random.value, 0.25f));
-                    self.abstractCreature.personality.aggression = Mathf.Lerp(Random.value, (self.abstractCreature.personality.energy + self.abstractCreature.personality.bravery) / 2f * (1f - self.abstractCreature.personality.sympathy), Mathf.Pow(Random.value, 0.25f));
-                    self.abstractCreature.personality.dominance = Mathf.Lerp(Random.value, (self.abstractCreature.personality.energy + self.abstractCreature.personality.bravery + self.abstractCreature.personality.aggression) / 3f, Mathf.Pow(Random.value, 0.25f));
-                    self.abstractCreature.personality.nervous = Custom.PushFromHalf(self.abstractCreature.personality.nervous, 2.5f);
-                    self.abstractCreature.personality.aggression = Custom.PushFromHalf(self.abstractCreature.personality.aggression, 2.5f);
-                }
-                if (pupNPCState.Variant == VariantName.Tundrapup)
-                {
-                    // Higher Sympathy Calculation
-                    self.abstractCreature.personality.sympathy = Random.value;
-                    self.abstractCreature.personality.sympathy = Mathf.Clamp(Custom.PushFromHalf(self.abstractCreature.personality.sympathy + 0.15f + 0.5f * (0.4f * self.abstractCreature.personality.sympathy), 2f), 0f, 1f);
-                    // Base Nervousness Calculation
-                    self.abstractCreature.personality.nervous = Mathf.Lerp(Random.value, Mathf.Lerp(self.abstractCreature.personality.energy, 1f - self.abstractCreature.personality.bravery, 0.5f), Mathf.Pow(Random.value, 0.25f));
-                    // Base Aggression & Dominance Calculations
-                    self.abstractCreature.personality.aggression = Mathf.Lerp(Random.value, (self.abstractCreature.personality.energy + self.abstractCreature.personality.bravery) / 2f * (1f - self.abstractCreature.personality.sympathy), Mathf.Pow(Random.value, 0.25f));
-                    self.abstractCreature.personality.dominance = Mathf.Lerp(Random.value, (self.abstractCreature.personality.energy + self.abstractCreature.personality.bravery + self.abstractCreature.personality.aggression) / 3f, Mathf.Pow(Random.value, 0.25f));
-                    // Higher Nervousness & Less Aggression Calculations
-                    self.abstractCreature.personality.nervous = Mathf.Clamp(Custom.PushFromHalf(self.abstractCreature.personality.nervous + 0.2f * 0.15f * (1.25f * self.abstractCreature.personality.nervous), 3f), 0f, 1f);
-                    self.abstractCreature.personality.aggression = Mathf.Clamp(Custom.PushFromHalf(self.abstractCreature.personality.aggression / 1.75f, 0.485f), 0f, 1f);   
-                }
-                if (pupNPCState.Variant == VariantName.Hunterpup)
-                {
-                    // Higher Bravery & Less Sympathy Calculations
-                    self.abstractCreature.personality.sympathy = Random.value;
-                    self.abstractCreature.personality.bravery = Random.value;
-                    self.abstractCreature.personality.sympathy = Mathf.Clamp(Custom.PushFromHalf((self.abstractCreature.personality.sympathy / 1.2f) - 0.15f, 0.6f), 0f, 1f);
-                    self.abstractCreature.personality.bravery = Mathf.Clamp(Custom.PushFromHalf(self.abstractCreature.personality.bravery + 0.01f * (1.5f * self.abstractCreature.personality.bravery), 1.05f), 0f, 1f);
-                    // Base Nervousness Calculation
-                    self.abstractCreature.personality.nervous = Mathf.Lerp(Random.value, Mathf.Lerp(self.abstractCreature.personality.energy, 1f - self.abstractCreature.personality.bravery, 0.5f), Mathf.Pow(Random.value, 0.25f));
-                    // Base Aggression Calculation
-                    self.abstractCreature.personality.aggression = Mathf.Lerp(Random.value, (self.abstractCreature.personality.energy + self.abstractCreature.personality.bravery) / 2f * (1f - self.abstractCreature.personality.sympathy), Mathf.Pow(Random.value, 0.25f));
-                    // Base Dominance & Nervousness Calculations
-                    self.abstractCreature.personality.dominance = Mathf.Lerp(Random.value, (self.abstractCreature.personality.energy + self.abstractCreature.personality.bravery + self.abstractCreature.personality.aggression) / 3f, Mathf.Pow(Random.value, 0.25f));
-                    self.abstractCreature.personality.nervous = Custom.PushFromHalf(self.abstractCreature.personality.nervous, 2.5f);
-                    // Higher Aggression Calculation
-                    self.abstractCreature.personality.aggression = Mathf.Clamp(Custom.PushFromHalf(self.abstractCreature.personality.aggression + 0.1f + 0.05f * (0.25f * self.abstractCreature.personality.aggression), 1.35f), 0f, 1f);
-                }
-                if (pupNPCState.Variant == VariantName.Rotundpup)
-                {
-                    // Lower Energy Calculation
-                    self.abstractCreature.personality.energy = Random.value;
-                    self.abstractCreature.personality.energy = Mathf.Clamp(Custom.PushFromHalf(self.abstractCreature.personality.energy / 1.6f, 0.8f), 0f, 1f);
-                    // Base Nervousness & Aggression Calculations
-                    self.abstractCreature.personality.nervous = Mathf.Lerp(Random.value, Mathf.Lerp(self.abstractCreature.personality.energy, 1f - self.abstractCreature.personality.bravery, 0.5f), Mathf.Pow(Random.value, 0.25f));
-                    self.abstractCreature.personality.aggression = Mathf.Lerp(Random.value, (self.abstractCreature.personality.energy + self.abstractCreature.personality.bravery) / 2f * (1f - self.abstractCreature.personality.sympathy), Mathf.Pow(Random.value, 0.25f));
-                    // Higher Dominance Calculation
-                    self.abstractCreature.personality.dominance = Mathf.Clamp(Mathf.Lerp(Random.value, (self.abstractCreature.personality.energy + self.abstractCreature.personality.bravery + self.abstractCreature.personality.aggression) / 3f, Mathf.Pow(Random.value, .85f)) * 1.25f, 0f, 1f);
-                    // Base Nervousness & Aggression Calculations
-                    self.abstractCreature.personality.nervous = Custom.PushFromHalf(self.abstractCreature.personality.nervous, 2.5f);
-                    self.abstractCreature.personality.aggression = Custom.PushFromHalf(self.abstractCreature.personality.aggression, 2.5f);
-                }
-                Random.state = state;
+                // Higher Energy Calculation
+                self.abstractCreature.personality.energy = Random.value;
+                self.abstractCreature.personality.energy = Mathf.Clamp(Custom.PushFromHalf(self.abstractCreature.personality.energy + 0.15f + 0.1f * (1.25f * self.abstractCreature.personality.energy), 0.4f), 0f, 1f);
+                // Base Personality Calculations
+                self.abstractCreature.personality.nervous = Mathf.Lerp(Random.value, Mathf.Lerp(self.abstractCreature.personality.energy, 1f - self.abstractCreature.personality.bravery, 0.5f), Mathf.Pow(Random.value, 0.25f));
+                self.abstractCreature.personality.aggression = Mathf.Lerp(Random.value, (self.abstractCreature.personality.energy + self.abstractCreature.personality.bravery) / 2f * (1f - self.abstractCreature.personality.sympathy), Mathf.Pow(Random.value, 0.25f));
+                self.abstractCreature.personality.dominance = Mathf.Lerp(Random.value, (self.abstractCreature.personality.energy + self.abstractCreature.personality.bravery + self.abstractCreature.personality.aggression) / 3f, Mathf.Pow(Random.value, 0.25f));
+                self.abstractCreature.personality.nervous = Custom.PushFromHalf(self.abstractCreature.personality.nervous, 2.5f);
+                self.abstractCreature.personality.aggression = Custom.PushFromHalf(self.abstractCreature.personality.aggression, 2.5f);
             }
+            if (self.isTundrapup())
+            {
+                // Higher Sympathy Calculation
+                self.abstractCreature.personality.sympathy = Random.value;
+                self.abstractCreature.personality.sympathy = Mathf.Clamp(Custom.PushFromHalf(self.abstractCreature.personality.sympathy + 0.15f + 0.5f * (0.4f * self.abstractCreature.personality.sympathy), 2f), 0f, 1f);
+                // Base Nervousness Calculation
+                self.abstractCreature.personality.nervous = Mathf.Lerp(Random.value, Mathf.Lerp(self.abstractCreature.personality.energy, 1f - self.abstractCreature.personality.bravery, 0.5f), Mathf.Pow(Random.value, 0.25f));
+                // Base Aggression & Dominance Calculations
+                self.abstractCreature.personality.aggression = Mathf.Lerp(Random.value, (self.abstractCreature.personality.energy + self.abstractCreature.personality.bravery) / 2f * (1f - self.abstractCreature.personality.sympathy), Mathf.Pow(Random.value, 0.25f));
+                self.abstractCreature.personality.dominance = Mathf.Lerp(Random.value, (self.abstractCreature.personality.energy + self.abstractCreature.personality.bravery + self.abstractCreature.personality.aggression) / 3f, Mathf.Pow(Random.value, 0.25f));
+                // Higher Nervousness & Less Aggression Calculations
+                self.abstractCreature.personality.nervous = Mathf.Clamp(Custom.PushFromHalf(self.abstractCreature.personality.nervous + 0.2f * 0.15f * (1.25f * self.abstractCreature.personality.nervous), 3f), 0f, 1f);
+                self.abstractCreature.personality.aggression = Mathf.Clamp(Custom.PushFromHalf(self.abstractCreature.personality.aggression / 1.75f, 0.485f), 0f, 1f);
+            }
+            if (self.isHunterpup())
+            {
+                // Higher Bravery & Less Sympathy Calculations
+                self.abstractCreature.personality.sympathy = Random.value;
+                self.abstractCreature.personality.bravery = Random.value;
+                self.abstractCreature.personality.sympathy = Mathf.Clamp(Custom.PushFromHalf((self.abstractCreature.personality.sympathy / 1.2f) - 0.15f, 0.6f), 0f, 1f);
+                self.abstractCreature.personality.bravery = Mathf.Clamp(Custom.PushFromHalf(self.abstractCreature.personality.bravery + 0.01f * (1.5f * self.abstractCreature.personality.bravery), 1.05f), 0f, 1f);
+                // Base Nervousness Calculation
+                self.abstractCreature.personality.nervous = Mathf.Lerp(Random.value, Mathf.Lerp(self.abstractCreature.personality.energy, 1f - self.abstractCreature.personality.bravery, 0.5f), Mathf.Pow(Random.value, 0.25f));
+                // Base Aggression Calculation
+                self.abstractCreature.personality.aggression = Mathf.Lerp(Random.value, (self.abstractCreature.personality.energy + self.abstractCreature.personality.bravery) / 2f * (1f - self.abstractCreature.personality.sympathy), Mathf.Pow(Random.value, 0.25f));
+                // Base Dominance & Nervousness Calculations
+                self.abstractCreature.personality.dominance = Mathf.Lerp(Random.value, (self.abstractCreature.personality.energy + self.abstractCreature.personality.bravery + self.abstractCreature.personality.aggression) / 3f, Mathf.Pow(Random.value, 0.25f));
+                self.abstractCreature.personality.nervous = Custom.PushFromHalf(self.abstractCreature.personality.nervous, 2.5f);
+                // Higher Aggression Calculation
+                self.abstractCreature.personality.aggression = Mathf.Clamp(Custom.PushFromHalf(self.abstractCreature.personality.aggression + 0.1f + 0.05f * (0.25f * self.abstractCreature.personality.aggression), 1.35f), 0f, 1f);
+            }
+            if (self.isRotundpup())
+            {
+                // Lower Energy Calculation
+                self.abstractCreature.personality.energy = Random.value;
+                self.abstractCreature.personality.energy = Mathf.Clamp(Custom.PushFromHalf(self.abstractCreature.personality.energy / 1.6f, 0.8f), 0f, 1f);
+                // Base Nervousness & Aggression Calculations
+                self.abstractCreature.personality.nervous = Mathf.Lerp(Random.value, Mathf.Lerp(self.abstractCreature.personality.energy, 1f - self.abstractCreature.personality.bravery, 0.5f), Mathf.Pow(Random.value, 0.25f));
+                self.abstractCreature.personality.aggression = Mathf.Lerp(Random.value, (self.abstractCreature.personality.energy + self.abstractCreature.personality.bravery) / 2f * (1f - self.abstractCreature.personality.sympathy), Mathf.Pow(Random.value, 0.25f));
+                // Higher Dominance Calculation
+                self.abstractCreature.personality.dominance = Mathf.Clamp(Mathf.Lerp(Random.value, (self.abstractCreature.personality.energy + self.abstractCreature.personality.bravery + self.abstractCreature.personality.aggression) / 3f, Mathf.Pow(Random.value, .85f)) * 1.25f, 0f, 1f);
+                // Base Nervousness & Aggression Calculations
+                self.abstractCreature.personality.nervous = Custom.PushFromHalf(self.abstractCreature.personality.nervous, 2.5f);
+                self.abstractCreature.personality.aggression = Custom.PushFromHalf(self.abstractCreature.personality.aggression, 2.5f);
+            }
+            Random.state = state;
         }
 
         // Hooks
@@ -336,7 +333,7 @@ namespace SlugpupStuff
         }
         private void VariantMechanicsAquaticpup(Player self)
         {
-            if (self.slugcatStats.name == VariantName.Aquaticpup)
+            if (self.isAquaticpup())
             {
                 self.buoyancy = 0.9f;
                 if (self.grasps[0] != null && self.grasps[0].grabbed is WaterNut)
@@ -360,7 +357,7 @@ namespace SlugpupStuff
         }
         private void Player_VariantMechanicsTundrapup(On.Player.orig_ClassMechanicsSaint orig, Player self)
         {
-            if (self.slugcatStats.name == VariantName.Tundrapup || (self.SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Saint && self.isNPC))
+            if (self.isTundrapup() || (self.SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Saint && self.isNPC))
             {
                 Player parent = null;
                 if (self.grabbedBy.Count > 0 && self.grabbedBy[0].grabber is Player player)
@@ -409,12 +406,20 @@ namespace SlugpupStuff
                 orig(self);
             }
         }
+        private bool Player_SlugSlamConditions(On.Player.orig_SlugSlamConditions orig, Player self, PhysicalObject otherObject)
+        {
+            if (self.isNPC && otherObject is Player)
+            {
+                return false;
+            }
+            return orig(self, otherObject);
+        }
         private void Player_ThrownSpear(On.Player.orig_ThrownSpear orig, Player self, Spear spear)
         {
             orig(self, spear);
-            if (self.slugcatStats.name == VariantName.Rotundpup && !self.gourmandExhausted)
+            if (self.isRotundpup() && !self.gourmandExhausted)
             {
-                if (simpMovesetGourmand)
+                if (SimplifiedMovesetGourmand)
                 {
                     self.gourmandExhausted = true;
                 }
@@ -427,15 +432,22 @@ namespace SlugpupStuff
         }
         private bool Player_CanEatMeat(On.Player.orig_CanEatMeat orig, Player self, Creature crit)
         {
-            if ((self.slugcatStats.name == VariantName.Hunterpup || self.slugcatStats.name == VariantName.Rotundpup) && crit is not Player)
+            if (self.isHunterpup() || self.isRotundpup())
             {
-                return true;
+                if (crit is Player)
+                {
+                    return false;
+                }
+                if (crit is IPlayerEdible)
+                {
+                    return false;
+                }
             }
             return orig(self, crit);
         }
         private bool Player_AllowGrabbingBatflys(On.Player.orig_AllowGrabbingBatflys orig, Player self)
         {
-            if (self.isNPC && self.slugcatStats.name == VariantName.Tundrapup)
+            if (self.isNPC && self.isTundrapup())
             {
                 return false;
             }
@@ -443,7 +455,7 @@ namespace SlugpupStuff
         }
         private bool Player_SaintTongueCheck(On.Player.orig_SaintTongueCheck orig, Player self)
         {
-            if (self.Consious && self.slugcatStats.name == VariantName.Tundrapup && self.tongue.mode == Player.Tongue.Mode.Retracted && self.bodyMode != Player.BodyModeIndex.CorridorClimb && !self.corridorDrop && self.bodyMode != Player.BodyModeIndex.ClimbIntoShortCut && self.bodyMode != Player.BodyModeIndex.WallClimb && self.bodyMode != Player.BodyModeIndex.Swimming && self.animation != Player.AnimationIndex.VineGrab && self.animation != Player.AnimationIndex.ZeroGPoleGrab)
+            if (self.Consious && self.isTundrapup() && self.tongue.mode == Player.Tongue.Mode.Retracted && self.bodyMode != Player.BodyModeIndex.CorridorClimb && !self.corridorDrop && self.bodyMode != Player.BodyModeIndex.ClimbIntoShortCut && self.bodyMode != Player.BodyModeIndex.WallClimb && self.bodyMode != Player.BodyModeIndex.Swimming && self.animation != Player.AnimationIndex.VineGrab && self.animation != Player.AnimationIndex.ZeroGPoleGrab)
             {
                 return true;
             }
@@ -615,14 +627,6 @@ namespace SlugpupStuff
                 orig(self, dir);
             }
         }
-        private bool Player_SlugSlamConditions(On.Player.orig_SlugSlamConditions orig, Player self, PhysicalObject otherObject)
-        {
-            if (self.slugcatStats.name == VariantName.Rotundpup && otherObject is Player)
-            {
-                return false;
-            }
-            return orig(self, otherObject);
-        }
         private void Tongue_decreaseRopeLength(On.Player.Tongue.orig_decreaseRopeLength orig, Player.Tongue self, float amount)
         {
             if (self.player.isNPC && self.player.Malnourished)
@@ -641,7 +645,7 @@ namespace SlugpupStuff
         }
         private float SlugNPCAI_LethalWeaponScore(On.MoreSlugcats.SlugNPCAI.orig_LethalWeaponScore orig, SlugNPCAI self, PhysicalObject obj, Creature target)
         {
-            if (self.cat.slugcatStats.name == VariantName.Tundrapup)
+            if (self.isTundrapup())
             {
                 if (obj is Spear)
                 {
@@ -652,69 +656,59 @@ namespace SlugpupStuff
         }
         private bool SlugNPCAI_TheoreticallyEatMeat(On.MoreSlugcats.SlugNPCAI.orig_TheoreticallyEatMeat orig, SlugNPCAI self, Creature crit, bool excludeCentipedes)
         {
-            if (self.cat.slugcatStats.name == VariantName.Tundrapup)
+            if (self.isTundrapup())
             {
-                if (crit.dead && crit.State.meatLeft > 0)
-                {
-                    if (self.friendTracker.giftOfferedToMe?.item != null && crit == self.friendTracker.giftOfferedToMe.item)
-                    {
-                        if ((crit.Template.type == CreatureTemplate.Type.SmallCentipede || crit.Template.type == CreatureTemplate.Type.VultureGrub || crit.Template.type == CreatureTemplate.Type.SmallNeedleWorm || crit.Template.type == CreatureTemplate.Type.Hazer || !excludeCentipedes) && crit is IPlayerEdible)
-                        {
-                            return true;
-                        }
-                    }
-                }
                 return false;
             }
-            if (self.cat.slugcatStats.name == VariantName.Hunterpup || self.cat.slugcatStats.name == VariantName.Rotundpup)
+            if (self.isHunterpup() || self.isRotundpup())
             {
-                if (crit is IPlayerEdible || (crit.dead && crit.State.meatLeft > 0 && crit is not Player))
+                if (crit.dead && crit.State.meatLeft > 0 && crit is not Player)
                 {
                     return true;
                 }
-                return false;
             }
             return orig(self, crit, excludeCentipedes);
         }
         private bool SlugNPCAI_WantsToEatThis(On.MoreSlugcats.SlugNPCAI.orig_WantsToEatThis orig, SlugNPCAI self, PhysicalObject obj)
         {
-            if (self.cat.slugcatStats.name == VariantName.Tundrapup)
+            if (self.isTundrapup())
             {
-                if ((obj is IPlayerEdible && (obj as IPlayerEdible).Edible && obj is not Creature) || (obj is Creature && (self.TheoreticallyEatMeat(obj as Creature, excludeCentipedes: false) || self.friendTracker.giftOfferedToMe?.item != null && self.friendTracker.giftOfferedToMe.item == obj && (obj as Creature).dead)))
+                if (obj is JellyFish)
                 {
-                    return !self.IsFull;
+                    return false;
                 }
-                return false;
+                if (self.friendTracker.giftOfferedToMe?.item != null && self.friendTracker.giftOfferedToMe.item == obj)
+                {
+                    if ((obj is Creature crit && self.TheoreticallyEatMeat(crit, false) && crit.dead))
+                    {
+                        return !self.IsFull;
+                    }
+                }
             }
-            if (self.cat.slugcatStats.name == VariantName.Aquaticpup)
+            if (self.isAquaticpup())
             {
-                if ((obj is IPlayerEdible && (obj as IPlayerEdible).Edible) || obj is WaterNut || (obj is Creature && self.TheoreticallyEatMeat(obj as Creature, excludeCentipedes: false) && (obj as Creature).dead))
+                if (obj is WaterNut)
                 {
                     return !self.IsFull;
                 }
-                return false;
             }
             return orig(self, obj);
 
         }
         private bool SlugNPCAI_HasEdible(On.MoreSlugcats.SlugNPCAI.orig_HasEdible orig, SlugNPCAI self)
         {
-            if (self.cat.slugcatStats.name == VariantName.Aquaticpup)
+            if (self.isAquaticpup())
             {
-                if (self.cat.grasps[0] != null && self.WantsToEatThis(self.cat.grasps[0].grabbed) && (self.cat.grasps[0].grabbed is not Creature || (self.cat.grasps[0].grabbed as Creature).dead || Random.value < Math.Pow(Mathf.Lerp(0f, 1f, Mathf.InverseLerp(0.9f, 0.7f, self.creature.personality.sympathy)), 0.1)))
+                if (orig(self) && self.cat.grasps[0].grabbed is WaterNut)
                 {
-                    if (self.cat.grasps[0].grabbed is WaterNut && (self.cat.grasps[0].grabbed as WaterNut) != null)
-                    {
-                        return false;
-                    }
-                    return true;
+                    return false;
                 }
             }
             return orig(self);
         }
         private SlugNPCAI.Food SlugNPCAI_GetFoodType(On.MoreSlugcats.SlugNPCAI.orig_GetFoodType orig, SlugNPCAI self, PhysicalObject food)
         {
-            if (self.cat.slugcatStats.name == VariantName.Aquaticpup)
+            if (self.isAquaticpup())
             {
                 if (food is WaterNut)
                 {
@@ -727,756 +721,804 @@ namespace SlugpupStuff
         {
             ILCursor aquaCurs = new(il);
 
-            aquaCurs.GotoNext(x => x.MatchCall<Player>("get_isSlugpup"));
-            aquaCurs.GotoNext(MoveType.After, x => x.MatchStfld<Player>(nameof(Player.jumpBoost)));
-            /* GOTO
-            else if (isSlugpup)
+            aquaCurs.GotoNext(MoveType.After, x => x.MatchCall<Player>("get_isSlugpup"));
+            /* GOTO AFTER IL_01ad
+             * 	IL_01ac: ldarg.0
+	         *  IL_01ad: call instance bool Player::get_isSlugpup()
+	         *  IL_01b2: brfalse.s IL_01c0
+             */
+            aquaCurs.Emit(OpCodes.Ldarg_0); // self
+            aquaCurs.EmitDelegate((Player self) =>   // If self is aquaticpup, return false
             {
-                jumpBoost = 4f;
-                >HERE<
-            }
-            */
-            aquaCurs.Emit(OpCodes.Ldarg_0);
-            aquaCurs.EmitDelegate((Player self) =>   // If slugcatStats.name is Aquaticpup, set jumpBoost to 10f
-            {
-                if (self.slugcatStats.name == VariantName.Aquaticpup)
-                {
-                    self.jumpBoost = 8f;
-                }
+                return !self.isAquaticpup();
             });
+            aquaCurs.Emit(OpCodes.And);
 
-            aquaCurs.GotoNext(x => x.MatchCall<Player>("get_isSlugpup"));
             aquaCurs.GotoNext(MoveType.After, x => x.MatchLdcR4(2.25f));
-            /* GOTO
-            for (int i = 0; i < 2; i++)
+            /* GOTO AFTER IL_02a0
+             * 	IL_029e: br.s IL_02a5
+		     *  IL_02a0: ldc.r4 2.25
+		     *  IL_02a5: add
+             */
+            // ldc.r4 2.25 => f
+            aquaCurs.Emit(OpCodes.Ldarg_0); // self
+            aquaCurs.EmitDelegate((float f, Player self) =>   // If self is aquaticpup, return 3.25f, else return f
             {
-                base.bodyChunks[i].pos.y += (isSlugpup ? 2.25f >HERE< : 4.5f);
-                base.bodyChunks[i].vel.y += (isSlugpup ? 1f : 2f);
-            }
-            */
-            aquaCurs.Emit(OpCodes.Ldarg_0);
-            aquaCurs.EmitDelegate((float f, Player self) =>   // If slugcatStats.name is Aquaticpup, return 3.5f, else return 2.25f
-            {
-                if (self.slugcatStats.name == VariantName.Aquaticpup)
+                if (self.isAquaticpup())
                 {
                     return 3.25f;
                 }
                 return f;
             });
 
-            aquaCurs.GotoNext(x => x.MatchCall<Player>("get_isSlugpup"));
             aquaCurs.GotoNext(MoveType.After, x => x.MatchLdcR4(1f));
-            /* GOTO
-            for (int i = 0; i < 2; i++)
+            /* GOTO AFTER IL_02ca
+             * 	IL_02c8: br.s IL_02cf
+		     *  IL_02ca: ldc.r4 1
+		     *  IL_02cf: add
+             */
+            // ldc.r4 1 => f
+            aquaCurs.Emit(OpCodes.Ldarg_0); // self
+            aquaCurs.EmitDelegate((float f, Player self) =>   // If self is aquaticpup, return 1.5f, else return f
             {
-                base.bodyChunks[i].pos.y += (isSlugpup ? 2.25f : 4.5f);
-                base.bodyChunks[i].vel.y += (isSlugpup ? 1f >HERE< : 2f);
-            }
-            */
-            aquaCurs.Emit(OpCodes.Ldarg_0);
-            aquaCurs.EmitDelegate((float f, Player self) =>   // If slugcatStats.Name is Aquaticpup, return 1.75f, else return 1f
-            {
-                if (self.slugcatStats.name == VariantName.Aquaticpup)
+                if (self.isAquaticpup())
                 {
                     return 1.5f;
                 }
                 return f;
             });
 
-            aquaCurs.GotoNext(x => x.MatchCall<Player>("get_isSlugpup"));
-            aquaCurs.GotoNext(x => x.MatchLdcR4(4.5f));
-            aquaCurs.GotoNext(MoveType.After, x => x.MatchStfld<Vector2>(nameof(Vector2.x)));
-            /* GOTO
-            else if (isSlugpup)
+            aquaCurs.GotoNext(MoveType.After, x => x.MatchCall<Player>("get_isSlugpup"));
+            /* GOTO AFTER IL_048e
+             *	IL_048d: ldarg.0
+	         *  IL_048e: call instance bool Player::get_isSlugpup()
+	         *  IL_0493: brfalse.s IL_050b
+             */
+            aquaCurs.Emit(OpCodes.Ldarg_0); // self
+            aquaCurs.EmitDelegate((Player self) =>   // If self is aquaticpup, return false
             {
-                base.bodyChunks[0].vel.y = 7f * num;
-                base.bodyChunks[1].vel.y = 6f * num;
-                base.bodyChunks[0].vel.x = 5f * (float)flipDirection * num;
-                base.bodyChunks[1].vel.x = 4.5f * (float)flipDirection * num;
-                >HERE<
-            }
-            */
-            aquaCurs.Emit(OpCodes.Ldarg_0);
-            aquaCurs.Emit(OpCodes.Ldloc_0); // num
-            aquaCurs.EmitDelegate((Player self, float num) =>   // If slugcatStats.name is Aquaticpup, set bodyChunks velocity
-            {
-                if (self.slugcatStats.name == VariantName.Aquaticpup)
-                {
-                    self.bodyChunks[0].vel.y = 8f * num;
-                    self.bodyChunks[1].vel.y = 7f * num;
-                    self.bodyChunks[0].vel.x = 6f * (float)self.flipDirection * num;
-                    self.bodyChunks[1].vel.x = 5.5f * (float)self.flipDirection * num;
-                }
+                return !self.isAquaticpup();
             });
+            aquaCurs.Emit(OpCodes.And);
 
-            aquaCurs.GotoNext(x => x.MatchCall<Player>("get_isSlugpup"));
             aquaCurs.GotoNext(MoveType.After, x => x.MatchLdcR4(0.65f));
-            /* GOTO
-            base.bodyChunks[0].vel = Custom.DegToVec((float)rollDirection * Mathf.Lerp(60f, 35f, t)) * Mathf.Lerp(9.5f, 13.1f, t) * num * (isSlugpup ? 0.65f >HERE<: 1f);
-            base.bodyChunks[1].vel = Custom.DegToVec((float)rollDirection * Mathf.Lerp(60f, 35f, t)) * Mathf.Lerp(9.5f, 13.1f, t) * num * (isSlugpup ? 0.65f : 1f);
-            */
-            aquaCurs.Emit(OpCodes.Ldarg_0);
-            aquaCurs.EmitDelegate((float f, Player self) =>   // If slugcatStats.Name is Aquaticpup, return 0.8f, else return 0.65f
+            /* GOTO AFTER IL_06fd
+             *	IL_06f6: ldc.r4 1
+	         *  IL_06fb: br.s IL_0702
+	         *  IL_06fd: ldc.r4 0.65
+             */
+            // ldc.r4 0.65 => f
+            aquaCurs.Emit(OpCodes.Ldarg_0); // self
+            aquaCurs.EmitDelegate((float f, Player self) =>   // If self is aquaticpup, return 0.8f, else return f
             {
-                if (self.slugcatStats.name == VariantName.Aquaticpup)
+                if (self.isAquaticpup())
                 {
                     return 0.8f;
                 }
                 return f;
             });
 
-            aquaCurs.GotoNext(x => x.MatchCall<Player>("get_isSlugpup"));
             aquaCurs.GotoNext(MoveType.After, x => x.MatchLdcR4(0.65f));
-            /* GOTO
-            base.bodyChunks[0].vel = Custom.DegToVec((float)rollDirection * Mathf.Lerp(60f, 35f, t)) * Mathf.Lerp(9.5f, 13.1f, t) * num * (isSlugpup ? 0.65f : 1f);
-            base.bodyChunks[1].vel = Custom.DegToVec((float)rollDirection * Mathf.Lerp(60f, 35f, t)) * Mathf.Lerp(9.5f, 13.1f, t) * num * (isSlugpup ? 0.65f >HERE< : 1f);
-            */
-            aquaCurs.Emit(OpCodes.Ldarg_0);
-            aquaCurs.EmitDelegate((float f, Player self) =>   // If slugcatStats.Name is Aquaticpup, return 0.8f, else return 0.65f
+            /* GOTO AFTER IL_069f
+	         *  IL_0698: ldc.r4 1
+	         *  IL_069d: br.s IL_06a4
+	         *  IL_069f: ldc.r4 0.65
+             */
+            // ldc.r4 0.65 => f
+            aquaCurs.Emit(OpCodes.Ldarg_0); // self
+            aquaCurs.EmitDelegate((float f, Player self) =>   // If self is aquaticpup, return 0.8f, else return f
             {
-                if (self.slugcatStats.name == VariantName.Aquaticpup)
+                if (self.isAquaticpup())
                 {
                     return 0.8f;
                 }
                 return f;
             });
 
-            aquaCurs.GotoNext(x => x.MatchCall<Player>("get_isSlugpup"));
+            aquaCurs.GotoNext(MoveType.After, x => x.MatchLdcR4(1f));
+            /* GOTO AFTER IL_0728
+	         *	IL_0726: brtrue.s IL_072f
+	         *  IL_0728: ldc.r4 1
+	         *  IL_072d: br.s IL_0734
+             */
+            // ldc.r4 1 => f
+            aquaCurs.Emit(OpCodes.Ldarg_0); // self
+            aquaCurs.EmitDelegate((float f, Player self) =>   // If self is aquaticpup, return 1.2f, else return f
+            {
+                if (self.isAquaticpup())
+                {
+                    return 1.2f;
+                }
+                return f;
+            });
+
+            aquaCurs.GotoNext(MoveType.After, x => x.MatchLdcR4(1f));
+            /* GOTO AFTER IL_0752
+	         *	IL_0750: brtrue.s IL_0759
+	         *  IL_0752: ldc.r4 1
+	         *  IL_0757: br.s IL_075e
+             */
+            // ldc.r4 1 => f
+            aquaCurs.Emit(OpCodes.Ldarg_0); // self
+            aquaCurs.EmitDelegate((float f, Player self) =>   // If self is aquaticpup, return 1.2f, else return f
+            {
+                if (self.isAquaticpup())
+                {
+                    return 1.2f;
+                }
+                return f;
+            });
+
             aquaCurs.GotoNext(MoveType.After, x => x.MatchLdcR4(6f));
-            /* GOTO
-            if (isSlugpup)
+            /* GOTO AFTER IL_0816
+	         *	IL_0814: brfalse.s IL_081d
+	         *  IL_0816: ldc.r4 6
+	         *  IL_081b: stloc.s 4
+             */
+            // ldc.r4 6 => f
+            aquaCurs.Emit(OpCodes.Ldarg_0); // self
+            aquaCurs.EmitDelegate((float f, Player self) =>   // If self is aquaticpup, return 9f, else return f
             {
-                num2 = 6f >HERE< ;
-            }
-            */
-            aquaCurs.Emit(OpCodes.Ldarg_0);
-            aquaCurs.EmitDelegate((float f, Player self) =>   // If slugcatStats.Name is Aquaticpup, return 10f, else return 6f
-            {
-                if (self.slugcatStats.name == VariantName.Aquaticpup)
+                if (self.isAquaticpup())
                 {
                     return 9f;
                 }
                 return f;
             });
 
-            aquaCurs.GotoNext(x => x.MatchCall<Player>("get_isSlugpup"));
             aquaCurs.GotoNext(MoveType.After, x => x.MatchLdcR4(6f));
-            /* GOTO
-            if (isSlugpup)
+            /* GOTO AFTER IL_0bf5
+	         *	IL_0bf3: brfalse.s IL_0bfc
+	         *  IL_0bf5: ldc.r4 6
+	         *  IL_0bfa: stloc.s 9
+             */
+            // ldc.r4 6 => f
+            aquaCurs.Emit(OpCodes.Ldarg_0); // self
+            aquaCurs.EmitDelegate((float f, Player self) =>   // If self is aquaticpup, return 9f, else return f
             {
-                y = 6f >HERE< ;
-            }
-            */
-            aquaCurs.Emit(OpCodes.Ldarg_0);
-            aquaCurs.EmitDelegate((float f, Player self) =>   // If slugcatStats.Name is Aquaticpup, return 10f, else return 6f
+                if (self.isAquaticpup())
+                {
+                    return 9f;
+                }
+                return f;
+            });
+
+            aquaCurs.GotoNext(MoveType.After, x => x.MatchCall<Player>("get_isSlugpup"));
+            /* GOTO AFTER IL_0f2f
+             *	IL_0f2e: ldarg.0
+	         *  IL_0f2f: call instance bool Player::get_isSlugpup()
+	         *  IL_0f34: brtrue.s IL_0f39
+             */
+            aquaCurs.Emit(OpCodes.Ldarg_0); // self
+            aquaCurs.EmitDelegate((Player self) =>   // If self is aquaticpup, return false
             {
-                if (self.slugcatStats.name == VariantName.Aquaticpup)
+                return !self.isAquaticpup();
+            });
+            aquaCurs.Emit(OpCodes.And);
+
+            aquaCurs.GotoNext(x => x.MatchCall<Player>("get_isSlugpup"));
+            aquaCurs.GotoNext(MoveType.After, x => x.MatchLdcR4(3f));
+            /* GOTO AFTER IL_140e
+	         *	IL_140d: ldarg.0
+	         *  IL_140e: ldc.r4 3
+	         *  IL_1413: stfld float32 Player::jumpBoost
+             */
+            // ldc.r4 3 => f
+            aquaCurs.Emit(OpCodes.Ldarg_0); // self
+            aquaCurs.EmitDelegate((float f, Player self) =>   // If self is aquaticpup, return 6.5f, else return f
+            {
+                if (self.isAquaticpup())
+                {
+                    return 6.5f;
+                }
+                return f;
+            });
+
+            aquaCurs.GotoNext(MoveType.After, x => x.MatchCall<Player>("get_isSlugpup"));
+            /* GOTO AFTER IL_14df
+             *	IL_14de: ldarg.0
+	         *  IL_14df: call instance bool Player::get_isSlugpup()
+	         *  IL_14e4: brtrue.s IL_14e9
+             */
+            aquaCurs.Emit(OpCodes.Ldarg_0); // self
+            aquaCurs.EmitDelegate((Player self) =>   // If self is aquaticpup, return false
+            {
+                return !self.isAquaticpup();
+            });
+            aquaCurs.Emit(OpCodes.And);
+
+            aquaCurs.GotoNext(MoveType.After, x => x.MatchLdcR4(5.5f));
+            /* GOTO AFTER IL_15bf
+	         *	IL_15bd: brfalse.s IL_15c6
+	         *  IL_15bf: ldc.r4 5.5
+	         *  IL_15c4: stloc.s 13
+             */
+            // ldc.r4 5.5 => f
+            aquaCurs.Emit(OpCodes.Ldarg_0); // self
+            aquaCurs.EmitDelegate((float f, Player self) =>   // If self is aquaticpup, return 7.5f, else return f
+            {
+                if (self.isAquaticpup())
                 {
                     return 7.5f;
                 }
                 return f;
             });
 
-            aquaCurs.GotoNext(x => x.MatchCall<Player>("get_isSlugpup"));
-            aquaCurs.GotoNext(MoveType.After, x => x.MatchLdcI4(7));
-            /* GOTO
-            jumpBoost = (isSlugpup ? 7 >HERE< : 8);
-            */
-            aquaCurs.Emit(OpCodes.Ldarg_0);
-            aquaCurs.EmitDelegate((int i, Player self) =>   // If slugcatStats.Name is Aquaticpup, return 8, else return 7
-            {
-                if (self.slugcatStats.name == VariantName.Aquaticpup)
-                {
-                    return 8;
-                }
-                return i;
-            });
-
-            aquaCurs.GotoNext(x => x.MatchCall<Player>("get_isSlugpup"));
-            aquaCurs.GotoNext(MoveType.After, x => x.MatchStfld<Player>(nameof(Player.jumpBoost)));
-            /* GOTO
-            if (isSlugpup)
-            {
-                jumpBoost = 3f;
-            }
-            */
-            aquaCurs.Emit(OpCodes.Ldarg_0);
-            aquaCurs.EmitDelegate((Player self) =>   // If slugcatStats.name is Aquaticpup, set jumpBoost to 8f
-            {
-                if (self.slugcatStats.name == VariantName.Aquaticpup)
-                {
-                    self.jumpBoost = 6.5f;
-                }
-            });
-
-            aquaCurs.GotoNext(x => x.MatchCall<Player>("get_isSlugpup"));
-            aquaCurs.GotoNext(MoveType.After, x => x.MatchLdcI4(7));
-            /* GOTO
-            jumpBoost = (isSlugpup ? 7 >HERE< : 8);
-            */
-            aquaCurs.Emit(OpCodes.Ldarg_0);
-            aquaCurs.EmitDelegate((int i, Player self) =>   // If slugcatStats.Name is Aquaticpup, return 8, else return 7
-            {
-                if (self.slugcatStats.name == VariantName.Aquaticpup)
-                {
-                    return 8;
-                }
-                return i;
-            });
-
-            aquaCurs.GotoNext(x => x.MatchCall<Player>("get_isSlugpup"));
-            aquaCurs.GotoNext(MoveType.After, x => x.MatchLdcR4(6f));
-            /* GOTO
-            else if (isSlugpup)
-            {
-                num5 = 5.5f;
-            }
-            */
-            aquaCurs.Emit(OpCodes.Ldarg_0);
-            aquaCurs.EmitDelegate((float f, Player self) =>   // If slugcatStats.name is Aquaticpup, return 8f, else return 5.5f
-            {
-                if (self.slugcatStats.name == VariantName.Aquaticpup)
-                {
-                    return 7.5f;
-                }
-                return f;
-            });
-        } // fuck these two
+        }
         private void IL_Player_UpdateAnimation(ILContext il)
         {
-            ILCursor aquaCurs = new(il);
-            aquaCurs.GotoNext(x => x.MatchLdsfld<Player.AnimationIndex>(nameof(Player.AnimationIndex.DeepSwim)));
-            aquaCurs.GotoNext(x => x.MatchCallOrCallvirt<Player>("get_isRivulet"));
-            aquaCurs.GotoNext(x => x.MatchLdfld<Player>(nameof(Player.submerged)));
-            aquaCurs.GotoNext(MoveType.After, x => x.MatchLdarg(0));
+            ILCursor swimCurs = new(il);
 
-            aquaCurs.Emit(OpCodes.Ldloc, 8);
-            aquaCurs.EmitDelegate((Player self, bool flag3) =>
+            swimCurs.GotoNext(x => x.MatchLdsfld<Player.AnimationIndex>(nameof(Player.AnimationIndex.DeepSwim)));
+            swimCurs.GotoNext(MoveType.After, x => x.MatchCall<Player>("get_isRivulet"));
+            /* GOTO AFTER IL_24f4
+             * 	IL_24f3: ldarg.0
+	         *  IL_24f4: call instance bool Player::get_isRivulet()
+	         *  IL_24f9: brfalse.s IL_2503
+             */
+            swimCurs.Emit(OpCodes.Ldarg_0); // self
+            swimCurs.EmitDelegate((Player self) =>   // If self is aquaticpup or holding aquaticpup, return true
             {
-                if (self.slugcatStats.name == VariantName.Aquaticpup)
+                Player pupGrabbed = null;
+                foreach (var grasped in self.grasps)
                 {
-                    return self.submerged;
-                }
-                if (self.SlugCatClass != MoreSlugcatsEnums.SlugcatStatsName.Rivulet)
-                {
-                    foreach (var grasped in self.grasps)
+                    if (grasped?.grabbed is Player pup && pup.isNPC)
                     {
-                        if (grasped?.grabbed is Player && (grasped.grabbed as Player).slugcatStats.name == VariantName.Aquaticpup)
-                        {
-                            return self.submerged;
-                        }
+                        pupGrabbed = pup;
+                        break;
                     }
                 }
-                return flag3;
-            });
-            aquaCurs.Emit(OpCodes.Stloc, 8);
-            aquaCurs.Emit(OpCodes.Ldarg_0);
-
-            ILCursor aquaLblCurs = aquaCurs.Clone();
-            aquaLblCurs.GotoNext(x => x.MatchLdarg(0), x => x.MatchLdfld<UpdatableAndDeletable>(nameof(UpdatableAndDeletable.room)));
-            ILLabel isaquaSkiplabel = il.DefineLabel();
-            aquaLblCurs.MarkLabel(isaquaSkiplabel);
-
-
-            aquaCurs.GotoNext(x => x.MatchCallOrCallvirt<Player>("get_isRivulet"));
-            aquaCurs.GotoNext(x => x.MatchLdcR4(6f));
-            aquaCurs.GotoNext(MoveType.After, x => x.MatchLdarg(0));
-            aquaCurs.Emit(OpCodes.Ldloc, 11);
-            aquaCurs.Emit(OpCodes.Ldloc, 10);
-            aquaCurs.EmitDelegate((Player self, float num2, Vector2 vector2) =>
-            {
-                if (self.slugcatStats.name == VariantName.Aquaticpup)
+                if (self.isAquaticpup() || (pupGrabbed != null && pupGrabbed.isAquaticpup()))
                 {
-                    self.airInLungs -= 0.025f * num2;
-                    self.bodyChunks[0].vel += vector2 * ((vector2.y > 0.5f) ? 300f : 50f);
                     return true;
                 }
-                if (self.SlugCatClass != MoreSlugcatsEnums.SlugcatStatsName.Rivulet)
-                {
-                    foreach (var grasped in self.grasps)
-                    {
-                        if (grasped?.grabbed is Player pupGrabbed && pupGrabbed.slugcatStats.name == VariantName.Aquaticpup)
-                        {
-                            self.bodyChunks[0].vel += vector2 * ((vector2.y > 0.5f) ? 300f : 50f);
-                            self.airInLungs -= (ModManager.MMF ? 0.18f : 0.2f) * num2;
-                            return true;
-                        }
-                    }
-                }
-
                 return false;
             });
-            aquaCurs.Emit(OpCodes.Brtrue_S, isaquaSkiplabel);
-            aquaCurs.Emit(OpCodes.Ldarg_0);
+            swimCurs.Emit(OpCodes.Or);
 
-            aquaCurs.GotoNext(x => x.MatchCallOrCallvirt<Player>("get_isRivulet"));
-            aquaCurs.GotoNext(MoveType.After, x => x.MatchLdcI4(20));
-            aquaCurs.Emit(OpCodes.Ldarg_0);
-            aquaCurs.EmitDelegate((int i, Player self) =>
+            swimCurs.GotoNext(MoveType.After, x => x.MatchCall<Player>("get_isRivulet"));
+            /* GOTO AFTER IL_258e
+             * 	IL_258d: ldarg.0
+	         *  IL_258e: call instance bool Player::get_isRivulet()
+	         *  IL_2593: brfalse.s IL_25e8
+             */
+            swimCurs.Emit(OpCodes.Ldarg_0); // self
+            swimCurs.EmitDelegate((Player self) =>   // If self is aquaticpup, return true
             {
-                if (self.slugcatStats.name == VariantName.Aquaticpup)
+                if (self.isAquaticpup())
                 {
-                    return 12;
+                    return true;
                 }
-                if (self.SlugCatClass != MoreSlugcatsEnums.SlugcatStatsName.Rivulet)
-                {
-                    foreach (var grasped in self.grasps)
-                    {
-                        if (grasped?.grabbed is Player pupGrabbed && pupGrabbed.slugcatStats.name == VariantName.Aquaticpup)
-                        {
-                            return 12;
-                        }
-                    }
-                }
-                return i;
+                return false;
             });
+            swimCurs.Emit(OpCodes.Or);
 
-            aquaLblCurs.GotoNext(x => x.MatchCallOrCallvirt<Player>("get_isRivulet"));
-            aquaLblCurs.GotoNext(x => x.MatchLdsfld<ModManager>(nameof(ModManager.MSC)));
-            ILLabel isaquaSkiplabel2 = il.DefineLabel();
-            aquaLblCurs.MarkLabel(isaquaSkiplabel2);
-
-            aquaCurs.GotoNext(x => x.MatchCallOrCallvirt<Player>("get_isRivulet"));
-            aquaCurs.GotoNext(x => x.MatchLdsfld<MoreSlugcatsEnums.SlugcatStatsName>(nameof(MoreSlugcatsEnums.SlugcatStatsName.Artificer)));
-            aquaCurs.GotoNext(MoveType.After, x => x.MatchStloc(15));
-            aquaCurs.Emit(OpCodes.Ldarg_0);
-            aquaCurs.Emit(OpCodes.Ldloc, 15);
-            aquaCurs.EmitDelegate((Player self, float num4) =>
+            ILLabel burstLabel = il.DefineLabel();
+            swimCurs.GotoNext(x => x.Match(OpCodes.Br));
+            swimCurs.GotoNext(MoveType.After, x => x.MatchBr(out burstLabel), x => x.MatchLdarg(0)); // Get out IL_2683 as burstLabel
+            /* GOTO AFTER IL_263c
+             * 	IL_2635: stfld valuetype [UnityEngine.CoreModule]UnityEngine.Vector2 BodyChunk::vel
+	         *  IL_263a: br.s IL_2683
+	         *  IL_263c: ldarg.0
+             */
+            // ldarg.0 => self
+            swimCurs.Emit(OpCodes.Ldloc, 10); // vector
+            swimCurs.Emit(OpCodes.Ldloc, 11); // num3
+            swimCurs.EmitDelegate((Player self, Vector2 vector, float num3) =>   // If self is not Rivulet and holding aquaticpup, add burst velocity and branch to burstLabel
             {
-                if (self.slugcatStats.name == VariantName.Aquaticpup)
+                Player pupGrabbed = null;
+                foreach (var grasped in self.grasps)
                 {
-                    return 1f + Mathf.Log10(self.airInLungs + 0.2f);
+                    if (grasped?.grabbed is Player pup && pup.isNPC)
+                    {
+                        pupGrabbed = pup;
+                        break;
+                    }
                 }
-                return num4;
+                if (!self.isRivulet && pupGrabbed != null && pupGrabbed.isAquaticpup())
+                {
+                    self.bodyChunks[0].vel += vector * ((vector.y > 0.5f) ? 300f : 50f);
+                    self.airInLungs -= 0.08f * num3;
+                    return true;
+                }
+                return false;
             });
-            aquaCurs.Emit(OpCodes.Stloc, 15);
+            swimCurs.Emit(OpCodes.Brtrue_S, burstLabel);
+            swimCurs.Emit(OpCodes.Ldarg_0);
 
-            aquaCurs.GotoNext(x => x.MatchCallOrCallvirt<Player>("get_isRivulet"));
-            aquaCurs.GotoNext(
-                MoveType.After,
-                x => x.MatchLdloc(7),
-                x => x.Match(OpCodes.Call),
-                x => x.Match(OpCodes.Call)
-                );
-            aquaCurs.Emit(OpCodes.Ldarg_0);
-            aquaCurs.EmitDelegate((Player self) =>
+            swimCurs.GotoNext(MoveType.After, x => x.MatchStfld<Player>(nameof(Player.waterJumpDelay)));
+            /* GOTO AFTER IL_26d4
+             * 	IL_26d0: br.s IL_26d4
+	         *  IL_26d2: ldc.i4.s 10
+	         *  IL_26d4: stfld int32 Player::waterJumpDelay
+             */
+            swimCurs.Emit(OpCodes.Ldarg_0); // self
+            swimCurs.EmitDelegate((Player self) =>
             {
-                if (self.waterJumpDelay >= 5)
+                Player pupGrabbed = null;
+                foreach (var grasped in self.grasps)
                 {
-                    if (self.slugcatStats.name == VariantName.Aquaticpup)
+                    if (grasped?.grabbed is Player pup && pup.isNPC)
                     {
-                        self.waterFriction = 0.99f;
-                    }
-                    if (self.SlugCatClass != MoreSlugcatsEnums.SlugcatStatsName.Rivulet)
-                    {
-                        foreach (var grasped in self.grasps)
-                        {
-                            if (grasped?.grabbed is Player pupGrabbed && pupGrabbed.slugcatStats.name == VariantName.Aquaticpup)
-                            {
-                                self.waterFriction = 0.99f;
-                            }
-                        }
+                        pupGrabbed = pup;
+                        break;
                     }
                 }
-            });
-
-            aquaCurs.GotoNext(x => x.MatchLdsfld<Player.AnimationIndex>(nameof(Player.AnimationIndex.SurfaceSwim)));
-            aquaCurs.GotoNext(x => x.MatchCallOrCallvirt<Player>("get_isRivulet"));
-            aquaCurs.GotoNext(
-                MoveType.After,
-                x => x.MatchLdcR4(0.96f),
-                x => x.Match(OpCodes.Call)
-                );
-            aquaCurs.Emit(OpCodes.Ldarg_0);
-            aquaCurs.EmitDelegate((Player self) =>
-            {
-                if (self.slugcatStats.name == VariantName.Aquaticpup)
+                if (self.isAquaticpup() || !self.isRivulet && pupGrabbed != null && pupGrabbed.isAquaticpup())
                 {
-                    self.waterFriction = 0.999f;
-                }
-                if (self.SlugCatClass != MoreSlugcatsEnums.SlugcatStatsName.Rivulet)
-                {
-                    foreach (var grasped in self.grasps)
-                    {
-                        if (grasped?.grabbed is Player pupGrabbed && pupGrabbed.slugcatStats.name == VariantName.Aquaticpup)
-                        {
-                            self.waterFriction = 0.999f;
-                        }
-                    }
+                    self.waterJumpDelay = 12;
                 }
             });
 
-            aquaCurs.GotoNext(x => x.MatchCallOrCallvirt<Player>("get_isRivulet"));
-            aquaCurs.GotoNext(MoveType.After, x => x.MatchLdcR4(2.7f));
-            aquaCurs.Emit(OpCodes.Ldarg_0);
-            aquaCurs.EmitDelegate((float f, Player self) =>
+            swimCurs.GotoNext(MoveType.After, x => x.MatchCall<Player>("get_isRivulet"));
+            /* GOTO AFTER IL_294b
+	         *  IL_294a: ldarg.0
+	         *  IL_294b: call instance bool Player::get_isRivulet()
+	         *  IL_2950: brfalse.s IL_296d
+             */
+            swimCurs.Emit(OpCodes.Ldarg_0); // self
+            swimCurs.EmitDelegate((Player self) =>   // If self is aquaticpup or holding aquaticpup, return true
             {
-                if (self.slugcatStats.name == VariantName.Aquaticpup)
+                Player pupGrabbed = null;
+                foreach (var grasped in self.grasps)
                 {
-                    return 5f;
-                }
-                if (self.SlugCatClass != MoreSlugcatsEnums.SlugcatStatsName.Rivulet)
-                {
-                    foreach (var grasped in self.grasps)
+                    if (grasped?.grabbed is Player pup && pup.isNPC)
                     {
-                        if (grasped?.grabbed is Player pupGrabbed && pupGrabbed.slugcatStats.name == VariantName.Aquaticpup)
-                        {
-                            return 5f;
-                        }
+                        pupGrabbed = pup;
+                        break;
                     }
                 }
-                return f;
-            });
-
-            aquaCurs.GotoNext(x => x.MatchCallOrCallvirt<Player>("get_isRivulet"));
-            aquaCurs.GotoNext(MoveType.After, x => x.MatchLdcR4(1f));
-            aquaCurs.Emit(OpCodes.Ldarg_0);
-            aquaCurs.EmitDelegate((float f, Player self) =>
-            {
-                if (self.slugcatStats.name == VariantName.Aquaticpup)
+                if (self.isAquaticpup() || (pupGrabbed != null && pupGrabbed.isAquaticpup()))
                 {
-                    return 1.5f;
+                    return true;
                 }
-                if (self.SlugCatClass != MoreSlugcatsEnums.SlugcatStatsName.Rivulet)
+                return false;
+            });
+            swimCurs.Emit(OpCodes.Or);
+
+            swimCurs.GotoNext(MoveType.After, x => x.MatchCall<Player>("get_isRivulet"));
+            /* GOTO AFTER IL_2d46
+	         *  IL_2d45: ldarg.0
+	         *  IL_2d46: call instance bool Player::get_isRivulet()
+	         *  IL_2d4b: brfalse.s IL_2d63
+             */
+            swimCurs.Emit(OpCodes.Ldarg_0); // self
+            swimCurs.EmitDelegate((Player self) =>   // If self is aquaticpup or holding aquaticpup, return true
+            {
+                Player pupGrabbed = null;
+                foreach (var grasped in self.grasps)
                 {
-                    foreach (var grasped in self.grasps)
+                    if (grasped?.grabbed is Player pup && pup.isNPC)
                     {
-                        if (grasped?.grabbed is Player pupGrabbed && pupGrabbed.slugcatStats.name == VariantName.Aquaticpup)
-                        {
-                            return 1.5f;
-                        }
+                        pupGrabbed = pup;
+                        break;
                     }
                 }
-                return f;
+                if (self.isAquaticpup() || !self.isRivulet && (pupGrabbed != null && pupGrabbed.isAquaticpup()))
+                {
+                    return true;
+                }
+                return false;
             });
+            swimCurs.Emit(OpCodes.Or);
 
-            aquaCurs.GotoNext(x => x.MatchCallOrCallvirt<Player>("get_isRivulet"));
-            aquaCurs.GotoNext(MoveType.After, x => x.MatchLdcR4(6f));
-            aquaCurs.Emit(OpCodes.Ldarg_0);
-            aquaCurs.EmitDelegate((float f, Player self) =>
+            swimCurs.GotoNext(MoveType.After, x => x.MatchCall<Player>("get_isRivulet"));
+            /* GOTO AFTER IL_2e27
+	         *  IL_2e26: ldarg.0
+	         *  IL_2e27: call instance bool Player::get_isRivulet()
+	         *  IL_2e2c: brfalse.s IL_2e44
+             */
+            swimCurs.Emit(OpCodes.Ldarg_0); // self
+            swimCurs.EmitDelegate((Player self) =>   // If self is aquaticpup or holding aquaticpup, return true
             {
-                if (self.slugcatStats.name == VariantName.Aquaticpup)
+                Player pupGrabbed = null;
+                foreach (var grasped in self.grasps)
+                {
+                    if (grasped?.grabbed is Player pup && pup.isNPC)
+                    {
+                        pupGrabbed = pup;
+                        break;
+                    }
+                }
+                if (self.isAquaticpup() || !self.isRivulet && pupGrabbed != null && pupGrabbed.isAquaticpup())
+                {
+                    return true;
+                }
+                return false;
+            });
+            swimCurs.Emit(OpCodes.Or);
+
+            swimCurs.GotoNext(MoveType.After, x => x.MatchCall<Player>("get_isRivulet"));
+            /* GOTO AFTER IL_2e27
+	         *  IL_3007: ldarg.0
+	         *  IL_3008: call instance bool Player::get_isRivulet()
+	         *  IL_300d: brtrue.s IL_3016
+             */
+            swimCurs.Emit(OpCodes.Ldarg_0); // self
+            swimCurs.EmitDelegate((Player self) =>   // If self is aquaticpup or holding aquaticpup, return true
+            {
+                Player pupGrabbed = null;
+                foreach (var grasped in self.grasps)
+                {
+                    if (grasped?.grabbed is Player pup && pup.isNPC)
+                    {
+                        pupGrabbed = pup;
+                        break;
+                    }
+                }
+                if (self.isAquaticpup() || !self.isRivulet && pupGrabbed != null && pupGrabbed.isAquaticpup())
+                {
+                    return true;
+                }
+                return false;
+            });
+            swimCurs.Emit(OpCodes.Or);
+
+            swimCurs.GotoNext(MoveType.After, x => x.MatchCall<Player>("get_isRivulet"));
+            /* GOTO AFTER IL_303d
+	         *  IL_303c: ldarg.0
+	         *  IL_303d: call instance bool Player::get_isRivulet()
+	         *  IL_3042: brtrue.s IL_304b
+             */
+            swimCurs.Emit(OpCodes.Ldarg_0); // self
+            swimCurs.EmitDelegate((Player self) =>   // If self is aquaticpup or holding aquaticpup, return true
+            {
+                Player pupGrabbed = null;
+                foreach (var grasped in self.grasps)
+                {
+                    if (grasped?.grabbed is Player pup && pup.isNPC)
+                    {
+                        pupGrabbed = pup;
+                        break;
+                    }
+                }
+                if (self.isAquaticpup() || !self.isRivulet && pupGrabbed != null && pupGrabbed.isAquaticpup())
+                {
+                    return true;
+                }
+                return false;
+            });
+            swimCurs.Emit(OpCodes.Or);
+
+            swimCurs.GotoNext(MoveType.After, x => x.MatchLdcR4(18f));
+            /* GOTO AFTER IL_3134
+             * 	IL_3132: br.s IL_3139
+	         *  IL_3134: ldc.r4 18
+	         *  IL_3139: add
+             */
+            //ldc.r4 => f
+            swimCurs.Emit(OpCodes.Ldarg_0);
+            swimCurs.EmitDelegate((float f, Player self) =>
+            {
+                Player pupGrabbed = null;
+                foreach (var grasped in self.grasps)
+                {
+                    if (grasped?.grabbed is Player pup && pup.isNPC)
+                    {
+                        pupGrabbed = pup;
+                        break;
+                    }
+                }
+                if (self.isAquaticpup() || !self.isRivulet && pupGrabbed != null && pupGrabbed.isAquaticpup())
                 {
                     return 16f;
                 }
-                if (self.SlugCatClass != MoreSlugcatsEnums.SlugcatStatsName.Rivulet)
-                {
-                    foreach (var grasped in self.grasps)
-                    {
-                        if (grasped?.grabbed is Player pupGrabbed && pupGrabbed.slugcatStats.name == VariantName.Aquaticpup)
-                        {
-                            return 16f;
-                        }
-                    }
-                }
                 return f;
             });
 
-            aquaCurs.GotoNext(x => x.MatchCallOrCallvirt<Player>("get_isRivulet"));
-            aquaCurs.GotoNext(MoveType.After, x => x.MatchLdcR4(6f));
-            aquaCurs.Emit(OpCodes.Ldarg_0);
-            aquaCurs.EmitDelegate((float f, Player self) =>
+            swimCurs.GotoNext(MoveType.After, x => x.MatchLdcR4(18f));
+            /* GOTO AFTER IL_315e
+	         *  IL_315c: br.s IL_3163
+	         *  IL_315e: ldc.r4 18
+	         *  IL_3163: add
+             */
+            //ldc.r4 => f
+            swimCurs.Emit(OpCodes.Ldarg_0);
+            swimCurs.EmitDelegate((float f, Player self) =>
             {
-                if (self.slugcatStats.name == VariantName.Aquaticpup)
+                Player pupGrabbed = null;
+                foreach (var grasped in self.grasps)
+                {
+                    if (grasped?.grabbed is Player pup && pup.isNPC)
+                    {
+                        pupGrabbed = pup;
+                        break;
+                    }
+                }
+                if (self.isAquaticpup() || !self.isRivulet && pupGrabbed != null && pupGrabbed.isAquaticpup())
                 {
                     return 16f;
                 }
-                if (self.SlugCatClass != MoreSlugcatsEnums.SlugcatStatsName.Rivulet)
-                {
-                    foreach (var grasped in self.grasps)
-                    {
-                        if (grasped?.grabbed is Player pupGrabbed && pupGrabbed.slugcatStats.name == VariantName.Aquaticpup)
-                        {
-                            return 16f;
-                        }
-                    }
-                }
                 return f;
             });
 
-            aquaCurs.GotoNext(x => x.MatchCallOrCallvirt<Player>("get_isRivulet"));
-            aquaCurs.GotoNext(MoveType.After, x => x.MatchLdcR4(1f));
-            aquaCurs.Emit(OpCodes.Ldarg_0);
-            aquaCurs.EmitDelegate((float f, Player self) =>
+            swimCurs.GotoNext(MoveType.After, x => x.MatchCall<Player>("get_isRivulet"));
+            /* GOTO AFTER IL_303d
+	         *  IL_316a: ldarg.0
+	         *  IL_316b: call instance bool Player::get_isRivulet()
+	         *  IL_3170: brtrue.s IL_3179
+             */
+            swimCurs.Emit(OpCodes.Ldarg_0); // self
+            swimCurs.EmitDelegate((Player self) =>   // If self is aquaticpup or holding aquaticpup, return true
             {
-                if (self.slugcatStats.name == VariantName.Aquaticpup)
+                Player pupGrabbed = null;
+                foreach (var grasped in self.grasps)
                 {
-                    return 3f;
-                }
-                if (self.SlugCatClass != MoreSlugcatsEnums.SlugcatStatsName.Rivulet)
-                {
-                    foreach (var grasped in self.grasps)
+                    if (grasped?.grabbed is Player pup && pup.isNPC)
                     {
-                        if (grasped?.grabbed is Player pupGrabbed && pupGrabbed.slugcatStats.name == VariantName.Aquaticpup)
-                        {
-                            return 3f;
-                        }
+                        pupGrabbed = pup;
+                        break;
                     }
                 }
-                return f;
+                if (self.isAquaticpup() || !self.isRivulet && pupGrabbed != null && pupGrabbed.isAquaticpup())
+                {
+                    return true;
+                }
+                return false;
             });
+            swimCurs.Emit(OpCodes.Or);
 
-            aquaCurs.GotoNext(x => x.MatchCallOrCallvirt<Player>("get_isRivulet"));
-            aquaCurs.GotoNext(MoveType.After, x => x.MatchLdcI4(17));
-            aquaCurs.Emit(OpCodes.Ldarg_0);
-            aquaCurs.EmitDelegate((int i, Player self) =>
+            swimCurs.GotoNext(MoveType.After, x => x.MatchLdcI4(6));
+            /* GOTO AFTER IL_3213
+	         *  IL_3211: br.s IL_3214
+	         *  IL_3213: ldc.i4.6
+	         *  IL_3214: stfld int32 Player::waterJumpDelay
+             */
+            //ldc.i4 => i
+            swimCurs.Emit(OpCodes.Ldarg_0);
+            swimCurs.EmitDelegate((int i, Player self) =>
             {
-                if (self.slugcatStats.name == VariantName.Aquaticpup)
+                Player pupGrabbed = null;
+                foreach (var grasped in self.grasps)
+                {
+                    if (grasped?.grabbed is Player pup && pup.isNPC)
+                    {
+                        pupGrabbed = pup;
+                        break;
+                    }
+                }
+                if (self.isAquaticpup() || !self.isRivulet && pupGrabbed != null && pupGrabbed.isAquaticpup())
                 {
                     return 9;
                 }
-                if (self.SlugCatClass != MoreSlugcatsEnums.SlugcatStatsName.Rivulet)
-                {
-                    foreach (var grasped in self.grasps)
-                    {
-                        if (grasped?.grabbed is Player pupGrabbed && pupGrabbed.slugcatStats.name == VariantName.Aquaticpup)
-                        {
-                            return 9;
-                        }
-                    }
-                }
                 return i;
             });
 
-            aquaCurs.GotoNext(x => x.MatchCallOrCallvirt<Player>("get_isRivulet"));
-            aquaCurs.GotoNext(x => x.MatchLdarg(0));
-
-            aquaLblCurs.Goto(aquaCurs.Next);
-            aquaLblCurs.GotoNext(MoveType.After, x => x.MatchStfld<Player>(nameof(Player.waterJumpDelay)));
-            ILLabel isaquaSkipLabel3 = il.DefineLabel();
-            aquaLblCurs.MarkLabel(isaquaSkipLabel3);
-
-            aquaCurs.Emit(OpCodes.Ldarg_0);
-            aquaCurs.EmitDelegate((Player self) =>
+            swimCurs.GotoNext(MoveType.After, x => x.MatchCall<Player>("get_isRivulet"));
+            /* GOTO AFTER IL_3226
+	         *  IL_3225: ldarg.0
+	         *  IL_3226: call instance bool Player::get_isRivulet()
+	         *  IL_322b: brtrue.s IL_3235
+             */
+            swimCurs.Emit(OpCodes.Ldarg_0); // self
+            swimCurs.EmitDelegate((Player self) =>   // If self is aquaticpup or holding aquaticpup, return true
             {
-                if (self.slugcatStats.name == VariantName.Aquaticpup)
+                Player pupGrabbed = null;
+                foreach (var grasped in self.grasps)
+                {
+                    if (grasped?.grabbed is Player pup && pup.isNPC)
+                    {
+                        pupGrabbed = pup;
+                        break;
+                    }
+                }
+                if (self.isAquaticpup() || !self.isRivulet && pupGrabbed != null && pupGrabbed.isAquaticpup())
                 {
                     return true;
                 }
-                if (self.SlugCatClass != MoreSlugcatsEnums.SlugcatStatsName.Rivulet)
-                {
-                    foreach (var grasped in self.grasps)
-                    {
-                        if (grasped?.grabbed is Player pupGrabbed && pupGrabbed.slugcatStats.name == VariantName.Aquaticpup)
-                        {
-                            return true;
-                        }
-                    }
-                }
                 return false;
             });
-            aquaCurs.Emit(OpCodes.Brtrue_S, isaquaSkipLabel3);
+            swimCurs.Emit(OpCodes.Or);
 
-            aquaCurs.GotoNext(x => x.MatchCallOrCallvirt<Player>("get_isRivulet"));
-            aquaCurs.GotoNext(MoveType.After, x => x.MatchLdcR4(4f));
-            aquaCurs.Emit(OpCodes.Ldarg_0);
-            aquaCurs.EmitDelegate((float f, Player self) =>
+            swimCurs.GotoNext(MoveType.After, x => x.MatchLdcR4(12f));
+            /* GOTO AFTER IL_315e
+	         *  IL_3255: br.s IL_325c
+	         *  IL_3257: ldc.r4 12
+	         *  IL_325c: newobj instance void [UnityEngine.CoreModule]UnityEngine.Vector2::.ctor(float32, float32)
+             */
+            //ldc.r4 => f
+            swimCurs.Emit(OpCodes.Ldarg_0);
+            swimCurs.EmitDelegate((float f, Player self) =>
             {
-                if (self.slugcatStats.name == VariantName.Aquaticpup)
+                Player pupGrabbed = null;
+                foreach (var grasped in self.grasps)
+                {
+                    if (grasped?.grabbed is Player pup && pup.isNPC)
+                    {
+                        pupGrabbed = pup;
+                        break;
+                    }
+                }
+                if (self.isAquaticpup() || !self.isRivulet && pupGrabbed != null && pupGrabbed.isAquaticpup())
                 {
                     return 10f;
                 }
-                if (self.SlugCatClass != MoreSlugcatsEnums.SlugcatStatsName.Rivulet)
-                {
-                    foreach (var grasped in self.grasps)
-                    {
-                        if (grasped?.grabbed is Player pupGrabbed && pupGrabbed.slugcatStats.name == VariantName.Aquaticpup)
-                        {
-                            return 10f;
-                        }
-                    }
-                }
                 return f;
             });
-        } // find a better way
+        }
+        private void IL_Player_LungUpdate(ILContext il)
+        {
+            ILCursor aquaCurs = new(il);
+
+            aquaCurs.GotoNext(MoveType.After, x => x.MatchCall<Player>("get_isRivulet"));
+            /* GOTO AFTER IL_0465
+	         *  IL_0464: ldarg.0
+	         *  IL_0465: call instance bool Player::get_isRivulet()
+	         *  IL_046a: brfalse.s IL_046e
+             */
+            aquaCurs.Emit(OpCodes.Ldarg_0); // self
+            aquaCurs.EmitDelegate((Player self) =>   // If self is aquaticpup or holding aquaticpup, return true
+            {
+                Player pupGrabbed = null;
+                foreach (var grasped in self.grasps)
+                {
+                    if (grasped?.grabbed is Player pup && pup.isNPC)
+                    {
+                        pupGrabbed = pup;
+                        break;
+                    }
+                }
+                if (self.isAquaticpup() || !self.isRivulet && pupGrabbed != null && pupGrabbed.isAquaticpup())
+                {
+                    return true;
+                }
+                return false;
+            });
+            aquaCurs.Emit(OpCodes.Or);
+        }
         private void IL_Player_Collide(ILContext il)
-        {
-            ILCursor rotundCurs = new(il);
-            ILCursor rotundLabelCurs = new(il);
-
-            ILLabel branchLabel = il.DefineLabel();
-
-            rotundCurs.GotoNext(x => x.MatchLdsfld<ModManager>(nameof(ModManager.MSC)));
-            rotundCurs.GotoNext(MoveType.After, x => x.MatchLdsfld<ModManager>(nameof(ModManager.MSC)), x => x.Match(OpCodes.Brfalse));
-            /* GOTO BEFORE
-             * if (SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Gourmand && animation == AnimationIndex.Roll && gourmandAttackNegateTime <= 0)
-             */
-            rotundLabelCurs = rotundCurs.Clone();
-
-            rotundLabelCurs.GotoNext(MoveType.After, x => x.Match(OpCodes.Brfalse));
-            /* GOTO 
-             * if (SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Gourmand >HERE< && animation == AnimationIndex.Roll && gourmandAttackNegateTime <= 0)
-             */
-            rotundLabelCurs.MarkLabel(branchLabel); // Mark branchLabel after 'SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Gourmand'
-
-            rotundCurs.Emit(OpCodes.Ldarg_0);
-            rotundCurs.EmitDelegate((Player self) =>    // If self is Rotundpup or Rotundpup on back, branch to branchLabel
-            {
-                Player pupOnBack = null;
-                if (self.slugOnBack?.slugcat != null)
-                {
-                    pupOnBack = self.slugOnBack.slugcat;
-                    while (pupOnBack.slugOnBack?.slugcat != null)
-                    {
-                        pupOnBack = pupOnBack.slugOnBack.slugcat;
-                    }
-                }
-                if (self.slugcatStats.name == VariantName.Rotundpup || (pupOnBack != null && pupOnBack.slugcatStats.name == VariantName.Rotundpup))
-                {
-                    return true;
-                }
-                return false;
-            });
-            rotundCurs.Emit(OpCodes.Brtrue_S, branchLabel);
-
-            rotundCurs.GotoNext(MoveType.After, x => x.MatchLdcR4(4f));
-            /* GOTO
-             * float num = 4f;
-             */
-            rotundCurs.Emit(OpCodes.Ldarg_0);
-            rotundCurs.EmitDelegate((float f, Player self) =>   // If extra Rotundpups on back or self is Gourmand and Rotundpup on back, increase f
-            {
-                Player pupOnBack = null;
-                if (self.slugOnBack?.slugcat != null)
-                {
-                    pupOnBack = self.slugOnBack.slugcat;
-                    while (pupOnBack.slugOnBack?.slugcat != null)
-                    {
-                        if (pupOnBack.slugcatStats.name == VariantName.Rotundpup)
-                        {
-                            f *= 1.25f;
-                        }
-                        pupOnBack = pupOnBack.slugOnBack.slugcat;
-                    }
-                }
-                if (pupOnBack != null && pupOnBack.slugcatStats.name == VariantName.Rotundpup && self.SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Gourmand)
-                {
-                    f *= 1.35f;
-                }
-                return f;
-            });
-        } // refactor
-        private void IL_Player_SlugSlamConditions(ILContext il)
-        {
-            ILCursor rotundLabelCurs = new(il);
-            rotundLabelCurs.GotoNext(x => x.MatchLdarg(1));
-            ILLabel skipLable = il.DefineLabel();
-            rotundLabelCurs.MarkLabel(skipLable);
-
-            ILCursor rotundCurs = new(il);
-            rotundCurs.GotoNext(MoveType.After, x => x.Match(OpCodes.Brfalse_S));
-            rotundCurs.Emit(OpCodes.Ldarg_0);
-            rotundCurs.EmitDelegate((Player self) =>
-            {
-                Player pupOnBack = null;
-                if (self.slugOnBack?.slugcat != null)
-                {
-                    pupOnBack = self.slugOnBack.slugcat;
-                    while (pupOnBack.slugOnBack?.slugcat != null)
-                    {
-                        pupOnBack = pupOnBack.slugOnBack.slugcat;
-                    }
-                }
-                if (self.slugcatStats.name == VariantName.Rotundpup || (pupOnBack != null && pupOnBack.slugcatStats.name == VariantName.Rotundpup))
-                {
-                    return true;
-                }
-                return false;
-            });
-            rotundCurs.Emit(OpCodes.Brtrue_S, skipLable);
-        } // refactor
-        private void IL_Player_ClassMechanicsGourmand(ILContext il)
         {
             ILCursor rotundCurs = new(il);
 
             rotundCurs.GotoNext(MoveType.After, x => x.MatchLdsfld<MoreSlugcatsEnums.SlugcatStatsName>(nameof(MoreSlugcatsEnums.SlugcatStatsName.Gourmand)), x => x.Match(OpCodes.Call));
-            /* GOTO AFTER IL_000b
-             * 	IL_0001: ldfld class SlugcatStats/Name Player::SlugCatClass
-	         *  IL_0006: ldsfld class SlugcatStats/Name MoreSlugcats.MoreSlugcatsEnums/SlugcatStatsName::Gourmand
-	         *  IL_000b: call bool class ExtEnum`1<class SlugcatStats/Name>::op_Equality(class ExtEnum`1<!0>, class ExtEnum`1<!0>)
+            /* GOTO AFTER IL_021b
+             * 	IL_0216: ldsfld class SlugcatStats/Name MoreSlugcats.MoreSlugcatsEnums/SlugcatStatsName::Gourmand
+	         *  IL_021b: call bool class ExtEnum`1<class SlugcatStats/Name>::op_Equality(class ExtEnum`1<!0>, class ExtEnum`1<!0>)
+	         *  IL_0220: brfalse IL_0497
              */
+
             rotundCurs.Emit(OpCodes.Ldarg_0);
-            rotundCurs.EmitDelegate((Player self) =>   // If self is Rotundpup, return true
+            rotundCurs.EmitDelegate((Player self) =>    // If self is Rotundpup or Rotundpup on back, return true
             {
-                return self.slugcatStats.name == VariantName.Rotundpup;
+                Player pupOnBack = null;
+                if (self.slugOnBack?.slugcat != null)
+                {
+                    pupOnBack = self.slugOnBack.slugcat;
+                    while (pupOnBack.slugOnBack?.slugcat != null)
+                    {
+                        if (pupOnBack.isRotundpup()) break;
+                        pupOnBack = pupOnBack.slugOnBack.slugcat;
+                    }
+                }
+                if (self.isRotundpup() || (pupOnBack != null && pupOnBack.isRotundpup()))
+                {
+                    return true;
+                }
+                return false;
             });
             rotundCurs.Emit(OpCodes.Or);
+
+            rotundCurs.GotoNext(MoveType.After, x => x.MatchLdcR4(4f));
+            /* GOTO AFTER IL_04a3
+             * 	IL_049e: brfalse IL_0909
+	         *  IL_04a3: ldc.r4 4
+	         *  IL_04a8: stloc.s 7
+             */
+            rotundCurs.Emit(OpCodes.Ldarg_0);
+            rotundCurs.EmitDelegate((float f, Player self) =>   // If extra Rotundpups on back, increase f
+            {
+                Player pupOnBack = null;
+                if (self.slugOnBack?.slugcat != null)
+                {
+                    pupOnBack = self.slugOnBack.slugcat;
+                    while (pupOnBack.slugOnBack?.slugcat != null)
+                    {
+                        if (pupOnBack.isRotundpup())
+                        {
+                            f *= 0.8f + pupOnBack.mainBodyChunk.mass;
+                        }
+                        pupOnBack = pupOnBack.slugOnBack.slugcat;
+                    }
+                }
+                return f;
+            });
         }
-        private void IL_Tundra_ThrowObject(ILContext il)
+        private void IL_Player_SlugSlamConditions(ILContext il)
         {
-            ILCursor pupthrowCurs = new(il);
+            ILCursor rotundCurs = new(il);
 
-            ILLabel spearLabel = il.DefineLabel();
-            ILLabel rockLabel = il.DefineLabel();
-
-            pupthrowCurs.GotoNext(x => x.MatchLdsfld<MoreSlugcatsEnums.SlugcatStatsName>(nameof(MoreSlugcatsEnums.SlugcatStatsName.Saint)));
-            pupthrowCurs.GotoNext(x => x.MatchLdarg(0));
-            /* GOTO AFTER
-             * if (ModManager.MSC && base.grasps[grasp].grabbed is Spear && SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Saint && (!ModManager.Expedition || (ModManager.Expedition && !room.game.rainWorld.ExpeditionMode)))
+            ILLabel slamLabel = il.DefineLabel();
+            rotundCurs.GotoNext(MoveType.After, x => x.MatchBrfalse(out slamLabel)); // Get out IL_0014 as slamLabel
+            /* GOTO IL_0010
+             * 	IL_0006: ldsfld class SlugcatStats/Name MoreSlugcats.MoreSlugcatsEnums/SlugcatStatsName::Gourmand
+	         *  IL_000b: call bool class ExtEnum`1<class SlugcatStats/Name>::op_Equality(class ExtEnum`1<!0>, class ExtEnum`1<!0>)
+	         *  IL_0010: brfalse IL_0014
              */
-            pupthrowCurs.MarkLabel(spearLabel);
-
-            pupthrowCurs.GotoPrev(MoveType.Before, x => x.MatchLdarg(0));
-            /* GOTO
-             * if (ModManager.MSC && base.grasps[grasp].grabbed is Spear >HERE< && SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Saint && (!ModManager.Expedition || (ModManager.Expedition && !room.game.rainWorld.ExpeditionMode)))
-             */
-            pupthrowCurs.Emit(OpCodes.Ldarg_0);
-            pupthrowCurs.EmitDelegate((Player self) =>  // If self is Tundrapup, branch to spearLabel
+            rotundCurs.Emit(OpCodes.Ldarg_0); // self
+            rotundCurs.EmitDelegate((Player self) =>    // If self is Rotundpup or Rotundpup on back, branch to slamLabel
             {
-                if (self.slugcatStats.name == VariantName.Tundrapup)
+                Player pupOnBack = null;
+                if (self.slugOnBack?.slugcat != null)
                 {
-                    return true;
+                    pupOnBack = self.slugOnBack.slugcat;
+                    while (pupOnBack.slugOnBack?.slugcat != null)
+                    {
+                        if (pupOnBack.isRotundpup()) break;
+                        pupOnBack = pupOnBack.slugOnBack.slugcat;
+                    }
                 }
-                return false;
-            });
-            pupthrowCurs.Emit(OpCodes.Brtrue_S, spearLabel);
-
-            pupthrowCurs.GotoNext(x => x.MatchLdelemRef());
-            pupthrowCurs.GotoNext(x => x.Match(OpCodes.Brfalse_S));
-
-            rockLabel = pupthrowCurs.Next.Operand as ILLabel;
-
-            pupthrowCurs.GotoPrev(MoveType.After, x => x.MatchLdsfld<ModManager>(nameof(ModManager.MSC)), x => x.Match(OpCodes.Brfalse));
-
-            pupthrowCurs.Emit(OpCodes.Ldarg_0);
-            pupthrowCurs.EmitDelegate((Player self) =>  // If self is Tundrapup, branch to rockLabel
-            {
-                if (self.slugcatStats.name == VariantName.Tundrapup)
+                if (self.isRotundpup() || (pupOnBack != null && pupOnBack.isRotundpup()))
                 {
-                    return true;
+                    return false;
                 }
-                return false;
+                return true;
             });
-            pupthrowCurs.Emit(OpCodes.Brtrue_S, rockLabel);
-        } // refactor
-        private void IL_Rotund_ThrowObject(ILContext il)
+            rotundCurs.Emit(OpCodes.Brfalse_S, slamLabel);
+        }
+        private void IL_Player_ClassMechanicsGourmand(ILContext il)
         {
-            ILCursor pupthrowCurs = new(il);
-
-            ILLabel rotundLabel = il.DefineLabel();
-
-            pupthrowCurs.GotoNext(x => x.MatchLdsfld<MoreSlugcatsEnums.SlugcatStatsName>(nameof(MoreSlugcatsEnums.SlugcatStatsName.Gourmand)));
-            pupthrowCurs.GotoNext(MoveType.After, x => x.Match(OpCodes.Brfalse_S));
-            /* GOTO
-             * if (ModManager.MSC && SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Gourmand >HERE< && base.grasps[grasp].grabbed is Spear)
-             */
-            pupthrowCurs.MarkLabel(rotundLabel);
-
-            pupthrowCurs.GotoPrev(MoveType.After, x => x.MatchLdsfld<ModManager>(nameof(ModManager.MSC)), x => x.Match(OpCodes.Brfalse_S));
-            /* GOTO
-             * if (ModManager.MSC >HERE< && SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Gourmand && base.grasps[grasp].grabbed is Spear)
-             */
-            pupthrowCurs.Emit(OpCodes.Ldarg_0);
-            pupthrowCurs.EmitDelegate((Player self) =>  // If self is Rotundpup, branch to rotundLabel
+            if (!SimplifiedMovesetGourmand)
             {
-                if (self.slugcatStats.name == VariantName.Rotundpup)
+                ILCursor rotundCurs = new(il);
+
+                rotundCurs.GotoNext(MoveType.After, x => x.MatchLdsfld<MoreSlugcatsEnums.SlugcatStatsName>(nameof(MoreSlugcatsEnums.SlugcatStatsName.Gourmand)), x => x.Match(OpCodes.Call));
+                /* GOTO AFTER IL_000b
+                 * 	IL_0001: ldfld class SlugcatStats/Name Player::SlugCatClass
+                 *  IL_0006: ldsfld class SlugcatStats/Name MoreSlugcats.MoreSlugcatsEnums/SlugcatStatsName::Gourmand
+                 *  IL_000b: call bool class ExtEnum`1<class SlugcatStats/Name>::op_Equality(class ExtEnum`1<!0>, class ExtEnum`1<!0>)
+                 */
+                rotundCurs.Emit(OpCodes.Ldarg_0);
+                rotundCurs.EmitDelegate((Player self) =>   // If self is Rotundpup, return true
+                {
+                    return self.isRotundpup();
+                });
+                rotundCurs.Emit(OpCodes.Or);
+            }
+        }
+        private void IL_Player_ThrowObject(ILContext il)
+        {
+            ILCursor rotundCurs = new(il);
+            ILCursor tundraCurs = new(il);
+
+            rotundCurs.GotoNext(MoveType.After, x => x.MatchLdsfld<MoreSlugcatsEnums.SlugcatStatsName>(nameof(MoreSlugcatsEnums.SlugcatStatsName.Gourmand)), x => x.Match(OpCodes.Call));
+            /* GOTO AFTER IL_0031
+	         *  IL_002c: ldsfld class SlugcatStats/Name MoreSlugcats.MoreSlugcatsEnums/SlugcatStatsName::Gourmand
+	         *  IL_0031: call bool class ExtEnum`1<class SlugcatStats/Name>::op_Equality(class ExtEnum`1<!0>, class ExtEnum`1<!0>)
+	         *  IL_0036: brfalse.s IL_0059
+             */
+            rotundCurs.Emit(OpCodes.Ldarg_0);
+            rotundCurs.EmitDelegate((Player self) =>    // If self is Rotundpup, return true
+            {
+                if (self.isRotundpup())
                 {
                     return true;
                 }
                 return false;
             });
-            pupthrowCurs.Emit(OpCodes.Brtrue_S, rotundLabel);
-        } // refactor
+            rotundCurs.Emit(OpCodes.Or);
+
+            if (!EmeraldsTweaks)
+            {
+                while(tundraCurs.TryGotoNext(MoveType.After, x => x.MatchLdsfld<MoreSlugcatsEnums.SlugcatStatsName>(nameof(MoreSlugcatsEnums.SlugcatStatsName.Saint)), x => x.Match(OpCodes.Call)))
+                {
+                    /* WHILE TRYGOTO AFTER call bool class ExtEnum`1<class SlugcatStats/Name>::op_Equality(class ExtEnum`1<!0>, class ExtEnum`1<!0>)
+                     *  IL_****: ldsfld class SlugcatStats/Name MoreSlugcats.MoreSlugcatsEnums/SlugcatStatsName::Gourmand
+                     *  IL_****: call bool class ExtEnum`1<class SlugcatStats/Name>::op_Equality(class ExtEnum`1<!0>, class ExtEnum`1<!0>)
+                     *  IL_****: brfalse.s IL_****
+                     */
+                    tundraCurs.Emit(OpCodes.Ldarg_0);
+                    tundraCurs.EmitDelegate((Player self) =>    // If self is Tundrapup, return true
+                    {
+                        if (self.isTundrapup())
+                        {
+                            return true;
+                        }
+                        return false;
+                    });
+                    tundraCurs.Emit(OpCodes.Or);
+                }
+            }
+        } 
         private void IL_Player_EatMeatUpdate(ILContext il)
         {
             ILCursor rotundCurs = new(il);
@@ -1490,10 +1532,9 @@ namespace SlugpupStuff
             rotundCurs.Emit(OpCodes.Ldarg_0); // self
             rotundCurs.EmitDelegate((Player self) =>   // If self is Rotundpup, return true
             {
-                return self.slugcatStats.name == VariantName.Rotundpup;
+                return self.isRotundpup();
             });
             rotundCurs.Emit(OpCodes.Or);
-            Logger.LogDebug(il.ToString());
         }
         private void IL_Player_ObjectEaten(ILContext il)
         {
@@ -1505,15 +1546,15 @@ namespace SlugpupStuff
                  * 	IL_****: ldarg.0
                  *  IL_****: ldfld class SlugcatStats/Name Player::SlugCatClass
                  */
-                // ldfld class SlugcatStats/Name Player::SlugCatClass => slugcatClass
+                // ldfld class SlugcatStats/Name Player::SlugCatClass => SlugCatClass
                 nameCurs.Emit(OpCodes.Ldarg_0); // self
-                nameCurs.EmitDelegate((SlugcatStats.Name slugcatClass, Player self) =>   // If self.isSlugpup, return slugcatStats.name, else return slugcatClass
+                nameCurs.EmitDelegate((SlugcatStats.Name SlugCatClass, Player self) =>   // If self.isSlugpup, return slugcatStats.name, else return SlugCatClass
                 {
                     if (self.isSlugpup)
                     {
                         return self.slugcatStats.name;
                     }
-                    return slugcatClass;
+                    return SlugCatClass;
                 });
             }
         }
@@ -1527,15 +1568,15 @@ namespace SlugpupStuff
                  * 	IL_****: ldarg.0
                  *  IL_****: ldfld class SlugcatStats/Name Player::SlugCatClass
                  */
-                // ldfld class SlugcatStats/Name Player::SlugCatClass => slugcatClass
+                // ldfld class SlugcatStats/Name Player::SlugCatClass => SlugCatClass
                 nameCurs.Emit(OpCodes.Ldarg_0); // self
-                nameCurs.EmitDelegate((SlugcatStats.Name slugcatClass, Player self) =>   // If self.isSlugpup, return slugcatStats.name, else return slugcatClass
+                nameCurs.EmitDelegate((SlugcatStats.Name SlugCatClass, Player self) =>   // If self.isSlugpup, return slugcatStats.name, else return SlugCatClass
                 {
                     if (self.isSlugpup)
                     {
                         return self.slugcatStats.name;
                     }
-                    return slugcatClass;
+                    return SlugCatClass;
                 });
             }
         }
@@ -1553,7 +1594,7 @@ namespace SlugpupStuff
             statsCurs.Emit(OpCodes.Ldarg_1); // player
             statsCurs.EmitDelegate((Player player) =>
             {
-                if (SlugpupCWTs.pupStateCWT.TryGetValue(player.playerState as PlayerNPCState, out var pupNPCState))
+                if (player.playerState.TryGetPupState(out var pupNPCState))
                 {
                     if (player.abstractCreature.superSizeMe)
                     {
@@ -1576,11 +1617,11 @@ namespace SlugpupStuff
             statsCurs.Emit(OpCodes.Ldarg_1); // player
             statsCurs.EmitDelegate((Player.NPCStats self, Player player) =>
             {
-                if (player.playerState is PlayerNPCState playerNPCState && SlugpupCWTs.pupStateCWT.TryGetValue(playerNPCState, out var pupNPCState))
+                if (player.playerState.TryGetPupState(out var pupNPCState))
                 {
                     if (pupNPCState.Variant != null)
                     {
-                        if (pupNPCState.Variant == VariantName.Hunterpup && playerNPCState.isPup)
+                        if (pupNPCState.Variant == VariantName.Hunterpup && player.playerState.isPup)
                         {
                             self.Size = Mathf.Pow(Random.Range(0.75f, 1.75f), 1.5f);
                             self.Wideness = Mathf.Pow(Random.Range(0.5f, 1.25f), 1.5f);
@@ -1599,7 +1640,7 @@ namespace SlugpupStuff
             statsCurs.Emit(OpCodes.Ldarg_1); // player
             statsCurs.EmitDelegate((SlugcatStats.Name slugpup, Player player) =>
             {
-                if (player.playerState is PlayerNPCState playerNPCState && SlugpupCWTs.pupStateCWT.TryGetValue(playerNPCState, out var pupNPCState))
+                if (player.playerState.TryGetPupState(out var pupNPCState))
                 {
                     if (pupNPCState.Variant != null)
                     {
