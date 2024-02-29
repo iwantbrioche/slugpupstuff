@@ -434,14 +434,19 @@ namespace SlugpupStuff
         {
             if (self.isHunterpup() || self.isRotundpup())
             {
+                if (crit is IPlayerEdible)
+                { 
+                    return false;
+                }
+                if (!crit.dead)
+                {
+                    return false;
+                }
                 if (crit is Player)
                 {
                     return false;
                 }
-                if (crit is IPlayerEdible)
-                {
-                    return false;
-                }
+                return true;
             }
             return orig(self, crit);
         }

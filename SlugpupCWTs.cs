@@ -15,86 +15,78 @@ namespace SlugpupStuff
 
         public static bool isAquaticpup(this Player self)
         {
-            bool name = self.slugcatStats.name == SlugpupStuff.VariantName.Aquaticpup;
             bool state = false;
             if (self.playerState.TryGetPupState(out var pupNPCState))
             {
                 state = pupNPCState.Variant == SlugpupStuff.VariantName.Aquaticpup;
             }
-            return name || state;
+            return state || self.slugcatStats.name == SlugpupStuff.VariantName.Aquaticpup;
         }
         public static bool isAquaticpup(this SlugNPCAI self)
         {
-            bool name = self.cat.slugcatStats.name == SlugpupStuff.VariantName.Aquaticpup;
             bool state = false;
             if (self.cat.playerState.TryGetPupState(out var pupNPCState))
             {
                 state = pupNPCState.Variant == SlugpupStuff.VariantName.Aquaticpup;
             }
-            return name || state;
+            return state || self.cat.slugcatStats.name == SlugpupStuff.VariantName.Aquaticpup;
         }
 
         public static bool isTundrapup(this Player self)
         {
-            bool name = self.slugcatStats.name == SlugpupStuff.VariantName.Tundrapup;
             bool state = false;
             if (self.playerState.TryGetPupState(out var pupNPCState))
             {
                 state = pupNPCState.Variant == SlugpupStuff.VariantName.Tundrapup;
             }
-            return name || state;
+            return state || self.slugcatStats.name == SlugpupStuff.VariantName.Tundrapup;
         }
         public static bool isTundrapup(this SlugNPCAI self)
         {
-            bool name = self.cat.slugcatStats.name == SlugpupStuff.VariantName.Tundrapup;
             bool state = false;
             if (self.cat.playerState.TryGetPupState(out var pupNPCState))
             {
                 state = pupNPCState.Variant == SlugpupStuff.VariantName.Tundrapup;
             }
-            return name || state;
+            return state || self.cat.slugcatStats.name == SlugpupStuff.VariantName.Tundrapup;
         }
 
         public static bool isHunterpup(this Player self)
         {
-            bool name = self.slugcatStats.name == SlugpupStuff.VariantName.Hunterpup;
             bool state = false;
             if (self.playerState.TryGetPupState(out var pupNPCState))
             {
                 state = pupNPCState.Variant == SlugpupStuff.VariantName.Hunterpup;
             }
-            return name || state;
+            return state || self.slugcatStats.name == SlugpupStuff.VariantName.Hunterpup;
         }
         public static bool isHunterpup(this SlugNPCAI self)
         {
-            bool name = self.cat.slugcatStats.name == SlugpupStuff.VariantName.Hunterpup;
             bool state = false;
             if (self.cat.playerState.TryGetPupState(out var pupNPCState))
             {
                 state = pupNPCState.Variant == SlugpupStuff.VariantName.Hunterpup;
             }
-            return name || state;
+            return state || self.cat.slugcatStats.name == SlugpupStuff.VariantName.Hunterpup;
         }
 
         public static bool isRotundpup(this Player self)
         {
-            bool name = self.slugcatStats.name == SlugpupStuff.VariantName.Rotundpup;
             bool state = false;
             if (self.playerState.TryGetPupState(out var pupNPCState))
             {
                 state = pupNPCState.Variant == SlugpupStuff.VariantName.Rotundpup;
             }
-            return name || state;
+            return state || self.slugcatStats.name == SlugpupStuff.VariantName.Rotundpup;
         }
         public static bool isRotundpup(this SlugNPCAI self)
         {
-            bool name = self.cat.slugcatStats.name == SlugpupStuff.VariantName.Rotundpup;
             bool state = false;
             if (self.cat.playerState.TryGetPupState(out var pupNPCState))
             {
                 state = pupNPCState.Variant == SlugpupStuff.VariantName.Rotundpup;
             }
-            return name || state;
+            return state || self.cat.slugcatStats.name == SlugpupStuff.VariantName.Rotundpup;
         }
 
         public static PupNPCState GetPupState(this PlayerNPCState self)
