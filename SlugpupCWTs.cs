@@ -191,6 +191,32 @@ namespace SlugpupStuff
             public bool swallowing;
             public bool wantsToRegurgitate;
             public bool wantsToSwallowObject;
+
+            public float energyMin = 0f;
+            public float energyMax = 1f;
+            public float energyMod = 1f;
+
+            public float braveryMin = 0f;
+            public float braveryMax = 1f;
+            public float braveryMod = 1f;
+
+            public float sympathyMin = 0f;
+            public float sympathyMax = 1f;
+            public float sympathyMod = 1f;
+
+            public float dominanceMin = 0f;
+            public float dominanceMax = 1f;
+            public float dominanceMod = 1f;
+
+            public float nervousMin = 0f;
+            public float nervousMax = 1f;
+            public float nervousMod = 1f;
+
+            public float aggressionMin = 0f;
+            public float aggressionMax = 1f;
+            public float aggressionMod = 1f;
+
+
         }
         public class PupGraphics
         {

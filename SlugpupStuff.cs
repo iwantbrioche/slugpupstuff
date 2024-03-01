@@ -12,7 +12,7 @@ using Random = UnityEngine.Random;
 
 namespace SlugpupStuff
 {
-    [BepInPlugin(MOD_ID, "Slugpup Stuff", "1.2.7a")]
+    [BepInPlugin(MOD_ID, "Slugpup Stuff", "1.2.9")]
     public partial class SlugpupStuff : BaseUnityPlugin
     {
         public const string MOD_ID = "iwantbread.slugpupstuff";
@@ -46,6 +46,7 @@ namespace SlugpupStuff
                 SlugpupGraphics.Patch(Logger);
 
                 // Slugpup OnHooks
+                On.MoreSlugcats.SlugNPCAI.ctor += SlugNPCAI_ctor;
                 On.MoreSlugcats.SlugNPCAI.Update += SlugNPCAI_Update;
                 On.MoreSlugcats.SlugNPCAI.TheoreticallyEatMeat += SlugNPCAI_TheoreticallyEatMeat;
                 On.MoreSlugcats.SlugNPCAI.WantsToEatThis += SlugNPCAI_WantsToEatThis;
@@ -58,6 +59,9 @@ namespace SlugpupStuff
 
                 // Slugpup ILHooks
                 IL.MoreSlugcats.SlugNPCAI.ctor += IL_SlugNPCAI_ctor;
+                IL.MoreSlugcats.SlugNPCAI.Move += IL_SlugNPCAI_Move_Personality;
+                IL.MoreSlugcats.SlugNPCAI.Update += IL_SlugNPCAI_Update_Personality;
+                IL.MoreSlugcats.SlugNPCAI.DecideBehavior += IL_SlugNPCAI_DecideBehavior_Personality;
 
                 // Player OnHooks
                 On.Player.ctor += Player_ctor;
@@ -223,21 +227,13 @@ namespace SlugpupStuff
                 }
             }
         }
+        public float LerpModifier(float a, float b, float t, float mod)
+        {
+            return Mathf.Clamp01(Mathf.Lerp(mod < 1f ? a : a * mod, mod > 1f ? b : b * mod, t));
+        }
 
         // Hooks
-        private void IL_SlugNPCAI_ctor(ILContext il)
-        {
-            ILCursor itemTrackerCurs = new(il);
-            itemTrackerCurs.GotoNext(MoveType.Before, x => x.MatchNewobj<ItemTracker>());
-            /* GOTO BEFORE IL_007d
-             *	IL_007b: ldc.i4.m1
-	         *  IL_007c: ldc.i4.1
-	         *  IL_007d: newobj instance void ItemTracker::.ctor(class ArtificialIntelligence, int32, int32, int32, int32, bool)
-	         *  IL_0082: call instance void ArtificialIntelligence::AddModule(class AIModule)
-             */
-            itemTrackerCurs.Emit(OpCodes.Pop); 
-            itemTrackerCurs.Emit(OpCodes.Ldc_I4_0); // Switch stopTrackingCarried to false
-        }
+
         private void Player_ctor(On.Player.orig_ctor orig, Player self, AbstractCreature abstractCreature, World world)
         {
             orig(self, abstractCreature, world);
@@ -246,7 +242,6 @@ namespace SlugpupStuff
             {
                 if (pupNPCState.Variant != null)
                 {
-                    SetSlugpupPersonality(self);
                     if (RainWorld.ShowLogs)
                     {
                         Debug.Log($"{self} variant set to: {pupNPCState.Variant}");
@@ -315,6 +310,27 @@ namespace SlugpupStuff
             else
             {
                 orig(self, eu);
+            }
+        }
+        private void Player_UpdateMSC(On.Player.orig_UpdateMSC orig, Player self)
+        {
+            orig(self);
+            VariantMechanicsAquaticpup(self);
+            Player pupGrabbed = null;
+            foreach (var grasped in self.grasps)
+            {
+                if (grasped?.grabbed is Player pup && pup.isNPC)
+                {
+                    pupGrabbed = pup;
+                    break;
+                }
+            }
+            if (self.isAquaticpup() || (pupGrabbed != null && pupGrabbed.isAquaticpup()))
+            {
+                if (!self.monkAscension)
+                {
+                    self.buoyancy = 0.9f;
+                }
             }
         }
         private void IL_Player_ctor(ILContext il)
@@ -484,26 +500,19 @@ namespace SlugpupStuff
             counterCurs.Emit(OpCodes.Brtrue_S, branchLabel);
             counterCurs.Emit(OpCodes.Ldarg_0);
         }
-        private void Player_UpdateMSC(On.Player.orig_UpdateMSC orig, Player self)
+        private void SlugNPCAI_ctor(On.MoreSlugcats.SlugNPCAI.orig_ctor orig, SlugNPCAI self, AbstractCreature creature, World world)
         {
-            orig(self);
-            VariantMechanicsAquaticpup(self);
-            Player pupGrabbed = null;
-            foreach (var grasped in self.grasps)
+            orig(self, creature, world);
+            if (self.TryGetPupVariables(out var pupVariables))
             {
-                if (grasped?.grabbed is Player pup && pup.isNPC)
+                if (self.isAquaticpup())
                 {
-                    pupGrabbed = pup;
-                    break;
+                    pupVariables.energyMin = 0f;
+                    pupVariables.energyMax = 1f;
+                    pupVariables.energyMod = 0.01f;
                 }
             }
-            if (self.isAquaticpup() || (pupGrabbed != null && pupGrabbed.isAquaticpup()))
-            {
-                if (!self.monkAscension)
-                {
-                    self.buoyancy = 0.9f;
-                }
-            }
+  
         }
         private void SlugNPCAI_Move(On.MoreSlugcats.SlugNPCAI.orig_Move orig, SlugNPCAI self)
         {
@@ -531,33 +540,33 @@ namespace SlugpupStuff
         private void SlugNPCAI_Update(On.MoreSlugcats.SlugNPCAI.orig_Update orig, SlugNPCAI self)
         {
             orig(self);
-            if (self.nap)
-            {
-                if (Mathf.Clamp(0.06f / self.cat.abstractCreature.personality.energy, 0f, 1f) > Random.Range(0.35f, 1f) || self.cat.emoteSleepCounter > 1.4f)
-                {
-                    self.cat.emoteSleepCounter += Mathf.Clamp(0.0008f / self.cat.abstractCreature.personality.energy, 0.0008f, 0.05f);
-                    if (self.cat.emoteSleepCounter > 1.4f)
-                    {
-                        if (self.cat.graphicsModule != null)
-                        {
-                            (self.cat.graphicsModule as PlayerGraphics).blink = 5;
-                        }
-                        self.cat.sleepCurlUp = Mathf.SmoothStep(self.cat.sleepCurlUp, 1f, self.cat.emoteSleepCounter - 1.4f);
-                    }
-                    else
-                    {
-                        self.cat.sleepCurlUp = Mathf.Max(0f, self.cat.sleepCurlUp - 0.1f);
-                    }
-                }
-            }
-            else
-            {
-                self.cat.emoteSleepCounter = 0f;
-            }
-
-
             if (self.TryGetPupVariables(out var pupVariables))
             {
+                if (self.nap)
+                {
+                    if (Mathf.Clamp01(0.06f / LerpModifier(pupVariables.energyMin, pupVariables.energyMax, self.cat.abstractCreature.personality.energy, pupVariables.energyMod)) > Random.Range(0.35f, 1f) || self.cat.emoteSleepCounter > 1.4f)
+                    {
+                        self.cat.emoteSleepCounter += Mathf.Clamp(0.0008f / LerpModifier(pupVariables.energyMin, pupVariables.energyMax, self.cat.abstractCreature.personality.energy, pupVariables.energyMod), 0.0008f, 0.05f);
+                        if (self.cat.emoteSleepCounter > 1.4f)
+                        {
+                            if (self.cat.graphicsModule != null)
+                            {
+                                (self.cat.graphicsModule as PlayerGraphics).blink = 5;
+                            }
+                            self.cat.sleepCurlUp = Mathf.SmoothStep(self.cat.sleepCurlUp, 1f, self.cat.emoteSleepCounter - 1.4f);
+                        }
+                        else
+                        {
+                            self.cat.sleepCurlUp = Mathf.Max(0f, self.cat.sleepCurlUp - 0.1f);
+                        }
+                    }
+                }
+                else
+                {
+                    self.cat.emoteSleepCounter = 0f;
+                }
+
+
                 if (self.isRotundpup())
                 {
                     if (self.foodReaction < -110 && self.FunStuff && self.cat.objectInStomach == null && !pupVariables.regurgitating)
@@ -583,6 +592,136 @@ namespace SlugpupStuff
                 self.behaviorType = SlugNPCAI.BehaviorType.Fleeing;
             }
         }
+        private void IL_SlugNPCAI_ctor(ILContext il)
+        {
+            ILCursor itemTrackerCurs = new(il);
+            itemTrackerCurs.GotoNext(MoveType.Before, x => x.MatchNewobj<ItemTracker>());
+            /* GOTO BEFORE IL_007d
+             *	IL_007b: ldc.i4.m1
+	         *  IL_007c: ldc.i4.1
+	         *  IL_007d: newobj instance void ItemTracker::.ctor(class ArtificialIntelligence, int32, int32, int32, int32, bool)
+	         *  IL_0082: call instance void ArtificialIntelligence::AddModule(class AIModule)
+             */
+            itemTrackerCurs.Emit(OpCodes.Pop);
+            itemTrackerCurs.Emit(OpCodes.Ldc_I4_0); // Switch stopTrackingCarried to false
+        }
+        private void IL_SlugNPCAI_Move_Personality(ILContext il) // Personality Modifier ILHook
+        {
+            ILCursor energyCurs = new(il);
+
+            while (energyCurs.TryGotoNext(MoveType.After, x => x.MatchLdfld<AbstractCreature.Personality>(nameof(AbstractCreature.Personality.energy))))
+            {
+                /* WHILE TRYGOTO AFTER ldfld float32 AbstractCreature/Personality::energy
+                 *  IL_****: ldfld float32 AbstractCreature/Personality::energy
+                 */
+                // ldfld float32 AbstractCreature/Personality::energy => energy
+                energyCurs.Emit(OpCodes.Ldarg_0); // self
+                energyCurs.EmitDelegate((float energy, SlugNPCAI self) =>
+                {
+                    if (self.TryGetPupVariables(out var pupVariables))
+                    {
+                        return LerpModifier(pupVariables.energyMin, pupVariables.energyMax, energy, pupVariables.energyMod);
+                    }
+                    return energy;
+                });
+            }
+        }
+        private void IL_SlugNPCAI_Update_Personality(ILContext il)
+        {
+            ILCursor energyCurs = new(il);
+            ILCursor aggressionCurs = new(il);
+
+            while (energyCurs.TryGotoNext(MoveType.After, x => x.MatchLdfld<AbstractCreature.Personality>(nameof(AbstractCreature.Personality.energy))))
+            {
+                /* WHILE TRYGOTO AFTER ldfld float32 AbstractCreature/Personality::energy
+                 *  IL_****: ldfld float32 AbstractCreature/Personality::energy
+                 */
+                // ldfld float32 AbstractCreature/Personality::energy => energy
+                energyCurs.Emit(OpCodes.Ldarg_0); // self
+                energyCurs.EmitDelegate((float energy, SlugNPCAI self) =>
+                {
+                    if (self.TryGetPupVariables(out var pupVariables))
+                    {
+                        return LerpModifier(pupVariables.energyMin, pupVariables.energyMax, energy, pupVariables.energyMod);
+                    }
+                    return energy;
+                });
+            }
+
+            while (aggressionCurs.TryGotoNext(MoveType.After, x => x.MatchLdfld<AbstractCreature.Personality>(nameof(AbstractCreature.Personality.aggression))))
+            {
+                /* WHILE TRYGOTO AFTER ldfld float32 AbstractCreature/Personality::aggression
+                 *  IL_****: ldfld float32 AbstractCreature/Personality::aggression
+                 */
+                // ldfld float32 AbstractCreature/Personality::aggression => aggression
+                aggressionCurs.Emit(OpCodes.Ldarg_0); // self
+                aggressionCurs.EmitDelegate((float aggression, SlugNPCAI self) =>
+                {
+                    if (self.TryGetPupVariables(out var pupVariables))
+                    {
+                        return LerpModifier(pupVariables.aggressionMin, pupVariables.aggressionMax, aggression, pupVariables.aggressionMod);
+                    }
+                    return aggression;
+                });
+            }
+        } // Personality Modifier ILHook
+        private void IL_SlugNPCAI_DecideBehavior_Personality(ILContext il)
+        {
+            ILCursor braveryCurs = new(il);
+            ILCursor sympathyCurs = new(il);
+            ILCursor aggressionCurs = new(il);
+
+            while (braveryCurs.TryGotoNext(MoveType.After, x => x.MatchLdfld<AbstractCreature.Personality>(nameof(AbstractCreature.Personality.bravery))))
+            {
+                /* WHILE TRYGOTO AFTER ldfld float32 AbstractCreature/Personality::bravery
+                 *  IL_****: ldfld float32 AbstractCreature/Personality::bravery
+                 */
+                // ldfld float32 AbstractCreature/Personality::bravery => bravery
+                braveryCurs.Emit(OpCodes.Ldarg_0); // self
+                braveryCurs.EmitDelegate((float bravery, SlugNPCAI self) =>
+                {
+                    if (self.TryGetPupVariables(out var pupVariables))
+                    {
+                        return LerpModifier(pupVariables.braveryMin, pupVariables.braveryMax, bravery, pupVariables.braveryMod);
+                    }
+                    return bravery;
+                });
+            }
+
+            while (sympathyCurs.TryGotoNext(MoveType.After, x => x.MatchLdfld<AbstractCreature.Personality>(nameof(AbstractCreature.Personality.sympathy))))
+            {
+                /* WHILE TRYGOTO AFTER ldfld float32 AbstractCreature/Personality::sympathy
+                 *  IL_****: ldfld float32 AbstractCreature/Personality::sympathy
+                 */
+                // ldfld float32 AbstractCreature/Personality::sympathy => sympathy
+                sympathyCurs.Emit(OpCodes.Ldarg_0); // self
+                sympathyCurs.EmitDelegate((float sympathy, SlugNPCAI self) =>
+                {
+                    if (self.TryGetPupVariables(out var pupVariables))
+                    {
+                        return LerpModifier(pupVariables.sympathyMin, pupVariables.sympathyMax, sympathy, pupVariables.sympathyMod);
+                    }
+                    return sympathy;
+                });
+            }
+
+            while (aggressionCurs.TryGotoNext(MoveType.After, x => x.MatchLdfld<AbstractCreature.Personality>(nameof(AbstractCreature.Personality.aggression))))
+            {
+                /* WHILE TRYGOTO AFTER ldfld float32 AbstractCreature/Personality::aggression
+                 *  IL_****: ldfld float32 AbstractCreature/Personality::aggression
+                 */
+                // ldfld float32 AbstractCreature/Personality::aggression => aggression
+                aggressionCurs.Emit(OpCodes.Ldarg_0); // self
+                aggressionCurs.EmitDelegate((float aggression, SlugNPCAI self) =>
+                {
+                    if (self.TryGetPupVariables(out var pupVariables))
+                    {
+                        return LerpModifier(pupVariables.aggressionMin, pupVariables.aggressionMax, aggression, pupVariables.aggressionMod);
+                    }
+                    return aggression;
+                });
+            }
+        } // Personality Modifier ILHook
         private string PlayerNPCState_ToString(On.MoreSlugcats.PlayerNPCState.orig_ToString orig, PlayerNPCState self)
         {
             string text = orig(self);
@@ -597,7 +736,7 @@ namespace SlugpupStuff
         private void PlayerNPCState_LoadFromString(On.MoreSlugcats.PlayerNPCState.orig_LoadFromString orig, PlayerNPCState self, string[] s)
         {
             orig(self, s);
-            if (SlugpupCWTs.pupStateCWT.TryGetValue(self, out var pupNPCState))
+            if (self.TryGetPupState(out var pupNPCState))
             {
                 for (int i = 0; i < s.Length - 1; i++)
                 {
@@ -619,7 +758,7 @@ namespace SlugpupStuff
                             {
                                 if (array[1].Contains("<oA>"))
                                 {
-                                    pupNPCState.PupsPlusStomachObject = SaveState.AbstractPhysicalObjectFromString(self.player.Room.world, array[1]); ;
+                                    pupNPCState.PupsPlusStomachObject = SaveState.AbstractPhysicalObjectFromString(self.player.Room.world, array[1]);
                                 }
                                 else if (array[1].Contains("<cA>"))
                                 {
@@ -656,6 +795,7 @@ namespace SlugpupStuff
                     if (self.TryGetPupState(out var pupNPCState))
                     {
                         SlugcatStats.Name variant = pupNPCState.Variant;
+                        Debug.Log(pupNPCState.Variant);
                         if (variant != null)
                         {
                             return variant;
