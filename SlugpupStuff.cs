@@ -12,7 +12,7 @@ using Random = UnityEngine.Random;
 
 namespace SlugpupStuff
 {
-    [BepInPlugin(MOD_ID, "Slugpup Stuff", "1.2.8")]
+    [BepInPlugin(MOD_ID, "Slugpup Stuff", "1.2.9")]
     public partial class SlugpupStuff : BaseUnityPlugin
     {
         public const string MOD_ID = "iwantbread.slugpupstuff";
@@ -597,7 +597,7 @@ namespace SlugpupStuff
         private void PlayerNPCState_LoadFromString(On.MoreSlugcats.PlayerNPCState.orig_LoadFromString orig, PlayerNPCState self, string[] s)
         {
             orig(self, s);
-            if (SlugpupCWTs.pupStateCWT.TryGetValue(self, out var pupNPCState))
+            if (self.TryGetPupState(out var pupNPCState))
             {
                 for (int i = 0; i < s.Length - 1; i++)
                 {
