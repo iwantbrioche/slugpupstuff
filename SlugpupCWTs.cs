@@ -215,8 +215,6 @@ namespace SlugpupStuff
             public float aggressionMin = 0f;
             public float aggressionMax = 1f;
             public float aggressionMod = 1f;
-
-
         }
         public class PupGraphics
         {

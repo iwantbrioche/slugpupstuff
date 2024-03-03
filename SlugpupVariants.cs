@@ -47,7 +47,10 @@ namespace SlugpupStuff
             [
                 1000,
                 1001,
-                2220
+                2220,
+                3118,
+                4118,
+                765
             ];
             return idlist;
         }
@@ -64,7 +67,10 @@ namespace SlugpupStuff
         }
         public List<int> ID_HunterPupID()
         {
-            List<int> idlist = [];
+            List<int> idlist =
+            [
+                1002
+            ];
             return idlist;
         }
         public List<int> ID_RotundPupID()
