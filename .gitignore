@@ -363,3 +363,9 @@ MigrationBackup/
 FodyWeavers.xsd
 /lib/Assembly-CSharp-nstrip.dll
 /TODO.txt
+/lib/DevConsole.dll
+/lib/DressMySlugcat.dll
+/lib/EmeraldsTweaksRemix.dll
+/lib/Pearlcat.dll
+/lib/SimplifiedMoveset.dll
+/lib/PUBLIC-Assembly-CSharp.dll
