@@ -146,7 +146,7 @@ namespace SlugpupStuff
                 if (self.player.isTundrapup())
                 {
                     string headElement = sLeaser.sprites[3]?.element?.name;
-                    if (headElement != null)
+                    if (headElement != null && headElement.Contains("Head"))
                     {
                         headElement = "HeadB" + headElement.Remove(0, 5);
                         sLeaser.sprites[3].element = Futile.atlasManager.GetElementWithName(headElement);

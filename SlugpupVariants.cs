@@ -357,7 +357,14 @@ namespace SlugpupStuff
                 }
                 if (parent != null && parent.SlugCatClass != MoreSlugcatsEnums.SlugcatStatsName.Rivulet)
                 {
-                    self.slowMovementStun = 5;
+                    if (!self.submerged)
+                    {
+                        self.slowMovementStun = 5;
+                    }
+                    if (!parent.monkAscension)
+                    {
+                        parent.buoyancy = 0.9f;
+                    }
                 }
             }
         }
@@ -438,18 +445,22 @@ namespace SlugpupStuff
         }
         private bool Player_CanEatMeat(On.Player.orig_CanEatMeat orig, Player self, Creature crit)
         {
+            if (self.isTundrapup())
+            {
+                return false;
+            }
             if (self.isHunterpup() || self.isRotundpup())
             {
-                if (crit is IPlayerEdible)
-                { 
-                    return false;
-                }
                 if (!crit.dead)
                 {
                     return false;
                 }
-                if (crit is Player)
+                if (self.EatMeatOmnivoreGreenList(crit))
                 {
+                    return true;
+                }
+                if (crit is IPlayerEdible or Player)
+                { 
                     return false;
                 }
                 return true;
@@ -660,7 +671,14 @@ namespace SlugpupStuff
             {
                 if (obj is Spear)
                 {
-                    return 0.005f;
+                    //if (self.TryGetPupVariables(out var pupVariables))
+                    //{
+                    //    if (LerpModifier(pupVariables.aggressionMin, pupVariables.aggressionMax, self.cat.abstractCreature.personality.aggression, pupVariables.aggressionMod) > Random.Range(0.7f, 1f))
+                    //    {
+                    //        return 1.5f;
+                    //    }
+                    //}
+                    return 0f;
                 }
             }
             return orig(self, obj, target);
@@ -673,7 +691,11 @@ namespace SlugpupStuff
             }
             if (self.isHunterpup() || self.isRotundpup())
             {
-                if (crit.dead && crit.State.meatLeft > 0 && crit is not Player)
+                if (crit is Player)
+                {
+                    return false;
+                }
+                if (crit.dead && crit.State.meatLeft > 0)
                 {
                     return true;
                 }
@@ -684,16 +706,16 @@ namespace SlugpupStuff
         {
             if (self.isTundrapup())
             {
-                if (obj is JellyFish)
-                {
-                    return false;
-                }
                 if (self.friendTracker.giftOfferedToMe?.item != null && self.friendTracker.giftOfferedToMe.item == obj)
                 {
-                    if ((obj is Creature crit && self.TheoreticallyEatMeat(crit, false) && crit.dead))
+                    if ((obj is Creature crit && self.TheoreticallyEatMeat(crit, false) && crit.dead) || obj is JellyFish)
                     {
                         return !self.IsFull;
                     }
+                }
+                if (obj is JellyFish)
+                {
+                    return false;
                 }
             }
             if (self.isAquaticpup())
@@ -708,6 +730,13 @@ namespace SlugpupStuff
         }
         private bool SlugNPCAI_HasEdible(On.MoreSlugcats.SlugNPCAI.orig_HasEdible orig, SlugNPCAI self)
         {
+            if (self.isTundrapup() && self.TryGetPupVariables(out var pupVariables))
+            {
+                if (orig(self) && self.cat.grasps[0].grabbed is Creature or JellyFish)
+                {
+                    return false;
+                }
+            }
             if (self.isAquaticpup())
             {
                 if (orig(self) && self.cat.grasps[0].grabbed is WaterNut)
@@ -1055,7 +1084,7 @@ namespace SlugpupStuff
                         break;
                     }
                 }
-                if (self.isAquaticpup() || !self.isRivulet && pupGrabbed != null && pupGrabbed.isAquaticpup())
+                if (self.isAquaticpup() || !self.isRivulet && (pupGrabbed != null && pupGrabbed.isAquaticpup()))
                 {
                     self.waterJumpDelay = 12;
                 }
@@ -1131,7 +1160,7 @@ namespace SlugpupStuff
                         break;
                     }
                 }
-                if (self.isAquaticpup() || !self.isRivulet && pupGrabbed != null && pupGrabbed.isAquaticpup())
+                if (self.isAquaticpup() || !self.isRivulet && (pupGrabbed != null && pupGrabbed.isAquaticpup()))
                 {
                     return true;
                 }
@@ -1157,7 +1186,7 @@ namespace SlugpupStuff
                         break;
                     }
                 }
-                if (self.isAquaticpup() || !self.isRivulet && pupGrabbed != null && pupGrabbed.isAquaticpup())
+                if (self.isAquaticpup() || !self.isRivulet && (pupGrabbed != null && pupGrabbed.isAquaticpup()))
                 {
                     return true;
                 }
@@ -1183,7 +1212,7 @@ namespace SlugpupStuff
                         break;
                     }
                 }
-                if (self.isAquaticpup() || !self.isRivulet && pupGrabbed != null && pupGrabbed.isAquaticpup())
+                if (self.isAquaticpup() || !self.isRivulet && (pupGrabbed != null && pupGrabbed.isAquaticpup()))
                 {
                     return true;
                 }
@@ -1210,7 +1239,7 @@ namespace SlugpupStuff
                         break;
                     }
                 }
-                if (self.isAquaticpup() || !self.isRivulet && pupGrabbed != null && pupGrabbed.isAquaticpup())
+                if (self.isAquaticpup() || !self.isRivulet && (pupGrabbed != null && pupGrabbed.isAquaticpup()))
                 {
                     return 16f;
                 }
@@ -1236,7 +1265,7 @@ namespace SlugpupStuff
                         break;
                     }
                 }
-                if (self.isAquaticpup() || !self.isRivulet && pupGrabbed != null && pupGrabbed.isAquaticpup())
+                if (self.isAquaticpup() || !self.isRivulet && (pupGrabbed != null && pupGrabbed.isAquaticpup()))
                 {
                     return 16f;
                 }
@@ -1261,7 +1290,7 @@ namespace SlugpupStuff
                         break;
                     }
                 }
-                if (self.isAquaticpup() || !self.isRivulet && pupGrabbed != null && pupGrabbed.isAquaticpup())
+                if (self.isAquaticpup() || !self.isRivulet && (pupGrabbed != null && pupGrabbed.isAquaticpup()))
                 {
                     return true;
                 }
@@ -1288,7 +1317,7 @@ namespace SlugpupStuff
                         break;
                     }
                 }
-                if (self.isAquaticpup() || !self.isRivulet && pupGrabbed != null && pupGrabbed.isAquaticpup())
+                if (self.isAquaticpup() || !self.isRivulet && (pupGrabbed != null && pupGrabbed.isAquaticpup()))
                 {
                     return 9;
                 }
@@ -1313,7 +1342,7 @@ namespace SlugpupStuff
                         break;
                     }
                 }
-                if (self.isAquaticpup() || !self.isRivulet && pupGrabbed != null && pupGrabbed.isAquaticpup())
+                if (self.isAquaticpup() || !self.isRivulet && (pupGrabbed != null && pupGrabbed.isAquaticpup()))
                 {
                     return true;
                 }
@@ -1340,7 +1369,7 @@ namespace SlugpupStuff
                         break;
                     }
                 }
-                if (self.isAquaticpup() || !self.isRivulet && pupGrabbed != null && pupGrabbed.isAquaticpup())
+                if (self.isAquaticpup() || !self.isRivulet && (pupGrabbed != null && pupGrabbed.isAquaticpup()))
                 {
                     return 10f;
                 }
@@ -1609,7 +1638,7 @@ namespace SlugpupStuff
                 {
                     if (player.abstractCreature.superSizeMe)
                     {
-                        player.setPupStatus(false);
+                        player.playerState.forceFullGrown = true;
                     }
                     if (player.isSlugpup && player.abstractCreature.creatureTemplate.type == MoreSlugcatsEnums.CreatureTemplateType.SlugNPC)
                     {
@@ -1632,7 +1661,7 @@ namespace SlugpupStuff
                 {
                     if (pupNPCState.Variant != null)
                     {
-                        if (pupNPCState.Variant == VariantName.Hunterpup && player.playerState.isPup)
+                        if (pupNPCState.Variant == VariantName.Hunterpup && player.playerState.isPup && !player.playerState.forceFullGrown)
                         {
                             self.Size = Mathf.Pow(Random.Range(0.75f, 1.75f), 1.5f);
                             self.Wideness = Mathf.Pow(Random.Range(0.5f, 1.25f), 1.5f);

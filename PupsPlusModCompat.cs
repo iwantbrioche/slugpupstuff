@@ -36,21 +36,19 @@ namespace SlugpupStuff
                             }
                         }
 
-                        var abstractPup = new AbstractCreature(game.world,
-                            StaticWorld.GetCreatureTemplate(MoreSlugcatsEnums.CreatureTemplateType.SlugNPC),
-                            null,
-                            GameConsole.TargetPos.Room.realizedRoom.GetWorldCoordinate(GameConsole.TargetPos.Pos),
-                            id ?? game.GetNewID()
-                        );
+                        var abstractPup = new AbstractCreature(game.world, StaticWorld.GetCreatureTemplate(MoreSlugcatsEnums.CreatureTemplateType.SlugNPC), null, GameConsole.TargetPos.Room.realizedRoom.GetWorldCoordinate(GameConsole.TargetPos.Pos), id ?? game.GetNewID());
 
                         if (args.Length != 0)
+                        {
                             abstractPup.spawnData = "{" + string.Join(",", args.Select((string tag) => tags2.FirstOrDefault((string testTag) => tag.Equals(testTag, StringComparison.OrdinalIgnoreCase)) ?? tag)) + "}";
+                        }
                         abstractPup.setCustomFlags();
-
                         GameConsole.TargetPos.Room.AddEntity(abstractPup);
-
                         if (GameConsole.TargetPos.Room.realizedRoom != null)
+                        {
                             abstractPup.RealizeInRoom();
+                        }
+
 
                     }
                     catch(Exception ex)
@@ -74,8 +72,7 @@ namespace SlugpupStuff
         public static void SetupDMSSprites()
         {
             new MonoMod.RuntimeDetour.Hook(
-                typeof(DressMySlugcat.Utils).GetProperty(nameof(DressMySlugcat.Utils.ValidSlugcatNames),
-                    System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static).GetGetMethod(),
+                typeof(DressMySlugcat.Utils).GetProperty(nameof(DressMySlugcat.Utils.ValidSlugcatNames), System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static).GetGetMethod(),
                 PupsPlusModCompat.ValidPupNames);
 
             DressMySlugcat.SpriteDefinitions.AvailableSprites.Add(new DressMySlugcat.SpriteDefinitions.AvailableSprite

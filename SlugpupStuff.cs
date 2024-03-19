@@ -8,6 +8,10 @@ using System.Text.RegularExpressions;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
 using Random = UnityEngine.Random;
+using static SlugpupStuff.SlugpupCustom;
+using System.Collections.Generic;
+using Microsoft.SqlServer.Server;
+using System.Drawing;
 
 
 namespace SlugpupStuff
@@ -55,7 +59,7 @@ namespace SlugpupStuff
                 On.MoreSlugcats.SlugNPCAI.GetFoodType += SlugNPCAI_GetFoodType;
                 On.MoreSlugcats.SlugNPCAI.Move += SlugNPCAI_Move;
                 On.MoreSlugcats.SlugNPCAI.DecideBehavior += SlugNPCAI_DecideBehavior;
-
+                On.MoreSlugcats.SlugNPCAI.SocialEvent += SlugNPCAI_SocialEvent;
 
                 // Slugpup ILHooks
                 IL.MoreSlugcats.SlugNPCAI.ctor += IL_SlugNPCAI_ctor;
@@ -89,6 +93,7 @@ namespace SlugpupStuff
                 IL.Player.Collide += IL_Player_Collide;
                 IL.Player.ClassMechanicsGourmand += IL_Player_ClassMechanicsGourmand;
                 IL.Player.ThrowObject += IL_Player_ThrowObject;
+                IL.Player.StomachGlowLightColor += IL_Player_StomachGlowLightColor;
                 IL.Player.EatMeatUpdate += IL_Player_EatMeatUpdate;
                 IL.Player.ObjectEaten += IL_Player_ObjectEaten;
                 IL.Player.FoodInRoom_Room_bool += IL_Player_FoodInRoom;
@@ -119,7 +124,6 @@ namespace SlugpupStuff
                 throw;
             }
         }
-
 
 
         public void RainWorld_PostModsInit(On.RainWorld.orig_PostModsInit orig, RainWorld self)
@@ -163,73 +167,6 @@ namespace SlugpupStuff
                 Logger.LogError(ex);
                 throw;
             }
-        }
-
-        // Slugpup Methods
-        public void PupSwallowObject(Player self, int grabbedIndex)
-        {
-            Player parent = null;
-            if (self.grabbedBy.Count > 0 && self.grabbedBy[0].grabber is Player player)
-            {
-                parent = player;
-            }
-            if (self.TryGetPupVariables(out var pupVariables))
-            {
-                if (self.objectInStomach == null && self.CanBeSwallowed(parent != null ? parent.grasps[grabbedIndex].grabbed : self.grasps[grabbedIndex].grabbed) && self.Consious)
-                {
-                    pupVariables.swallowing = true;
-                    self.swallowAndRegurgitateCounter++;
-                    self.AI.heldWiggle = 0;
-                    if (self.swallowAndRegurgitateCounter > 90)
-                    {
-                        self.SwallowObject(grabbedIndex);
-                        self.swallowAndRegurgitateCounter = 0;
-                        (self.graphicsModule as PlayerGraphics).swallowing = 20;
-
-                        pupVariables.swallowing = false;
-                        pupVariables.wantsToSwallowObject = false;
-                    }
-                }
-            }
-        }
-        public void PupRegurgitate(Player self)
-        {
-            if (self.TryGetPupVariables(out var pupVariables) && self.Consious)
-            {
-                pupVariables.regurgitating = true;
-                self.swallowAndRegurgitateCounter++;
-
-                bool spitUpObject = false;
-                if (self.isRotundpup() && self.objectInStomach == null)
-                {
-                    spitUpObject = true;
-                }
-                self.AI.heldWiggle = 0;
-                if (self.swallowAndRegurgitateCounter > 110)
-                {
-                    if (!spitUpObject || (spitUpObject && self.FoodInStomach > 0 && !self.Malnourished))
-                    {
-                        if (spitUpObject)
-                        {
-                            self.SubtractFood(1);
-                        }
-                        self.Regurgitate();
-                    }
-                    else
-                    {
-                        self.firstChunk.vel += new Vector2(Random.Range(-1f, 1f), 0f);
-                        self.Stun(30);
-                    }
-
-                    self.swallowAndRegurgitateCounter = 0;
-                    pupVariables.regurgitating = false;
-                    pupVariables.wantsToRegurgitate = false;
-                }
-            }
-        }
-        public float LerpModifier(float a, float b, float t, float mod)
-        {
-            return Mathf.Clamp01(Mathf.Lerp(mod < 1f ? a : a * mod, mod > 1f ? b : b * mod, t));
         }
 
         // Hooks
@@ -287,11 +224,11 @@ namespace SlugpupStuff
 
                     if (grabbedIndex > -1 && self.grasps[grabbedIndex].grabbed != null)
                     {
-                        PupSwallowObject(pupGrabbed, grabbedIndex);
+                        pupGrabbed.PupSwallowObject(grabbedIndex);
                     }
                     else if (pupGrabbed.objectInStomach != null || pupGrabbed.isRotundpup() && slugpupRemix.ManualItemGen.Value)
                     {
-                        PupRegurgitate(pupGrabbed);
+                        pupGrabbed.PupRegurgitate();
                     }
                     else
                     {
@@ -323,13 +260,6 @@ namespace SlugpupStuff
                 {
                     pupGrabbed = pup;
                     break;
-                }
-            }
-            if (self.isAquaticpup() || (pupGrabbed != null && pupGrabbed.isAquaticpup()))
-            {
-                if (!self.monkAscension)
-                {
-                    self.buoyancy = 0.9f;
                 }
             }
         }
@@ -500,17 +430,39 @@ namespace SlugpupStuff
             counterCurs.Emit(OpCodes.Brtrue_S, branchLabel);
             counterCurs.Emit(OpCodes.Ldarg_0);
         }
+        private void IL_Player_StomachGlowLightColor(ILContext il)
+        {
+            ILCursor glowCurs = new(il);
+
+            glowCurs.GotoNext(MoveType.After, x => x.Match(OpCodes.Call));
+            /* GOTO AFTER IL_0001
+             * 	IL_0000: ldarg.0
+	         *  IL_0001: call instance class MoreSlugcats.SlugNPCAI Player::get_AI()
+	         *  IL_0006: brtrue.s IL_0011 
+             */
+            glowCurs.Emit(OpCodes.Pop);   // Pop IL_0001 off the stack
+            glowCurs.Emit(OpCodes.Ldc_I4_0);   // Emit false into IL_0011 branch
+        }
         private void SlugNPCAI_ctor(On.MoreSlugcats.SlugNPCAI.orig_ctor orig, SlugNPCAI self, AbstractCreature creature, World world)
         {
             orig(self, creature, world);
             if (self.TryGetPupVariables(out var pupVariables))
             {
-                if (self.isAquaticpup())
+                //pupVariables.pathingVisualizer = new(self);
+                //pupVariables.labelManager = new(self.cat);
+                if (pupVariables.labelManager != null)
                 {
-                    pupVariables.energyMin = 0f;
-                    pupVariables.energyMax = 1f;
-                    pupVariables.energyMod = 0.01f;
+                    //pupVariables.labelManager.AddLabel("x");
+                    //pupVariables.labelManager.AddLabel("y");
+                    //pupVariables.labelManager.AddLabel("grab");
+                    //pupVariables.labelManager.AddLabel("jump");
+                    //pupVariables.labelManager.AddLabel("throw");
+                    //pupVariables.labelManager.AddLabel("stomachItem");
+                    pupVariables.labelManager.AddLabel("grabTarget");
+                    pupVariables.labelManager.AddLabel("giftedItem");
                 }
+
+                // DO PERSONALITY STUFF HERE
             }
   
         }
@@ -534,6 +486,10 @@ namespace SlugpupStuff
                         self.cat.input[0].jmp = Random.Range(0, 2) == 0;
                     }
                 }
+            }
+            if (self.TryGetPupVariables(out var pupVariables))
+            {
+                pupVariables.pathingVisualizer?.VisualizeConnections();
             }
 
         }
@@ -576,11 +532,30 @@ namespace SlugpupStuff
                 }
                 if (pupVariables.wantsToRegurgitate)
                 {
-                    PupRegurgitate(self.cat);
+                    self.cat.PupRegurgitate();
                 }
                 if (pupVariables.wantsToSwallowObject && self.cat.grasps[0]?.grabbed != null)
                 {
-                    PupSwallowObject(self.cat, 0);
+                    self.cat.PupSwallowObject(0);
+                }
+
+                pupVariables.pathingVisualizer?.Update();
+                if (pupVariables.labelManager != null)
+                {
+                    pupVariables.labelManager.Update(self.cat.mainBodyChunk.pos + new Vector2(35f, 60f));
+
+                    //pupVariables.labelManager.UpdateLabel("x", $"X: {self.cat.input[0].x}");
+                    //pupVariables.labelManager.UpdateLabel("y", $"Y: {self.cat.input[0].y}");
+                    //pupVariables.labelManager.UpdateLabel("grab", $"GRAB: {self.cat.input[0].pckp}");
+                    //pupVariables.labelManager.UpdateLabel("jump", $"JUMP: {self.cat.input[0].jmp}");
+                    //pupVariables.labelManager.UpdateLabel("throw", $"THROW: {self.cat.input[0].thrw}");
+                    //if (self.cat.objectInStomach != null) pupVariables.labelManager.UpdateLabel("stomachItem", $"stomachItem: {self.cat.objectInStomach.type}");
+                    if (self.grabTarget != null) pupVariables.labelManager.UpdateLabel("grabTarget", $"grabTarget: {self.grabTarget.abstractPhysicalObject.type}");
+                    if (pupVariables.giftedItem != null) pupVariables.labelManager.UpdateLabel("giftedItem", $"giftedItem: {pupVariables.giftedItem.type}");
+
+                    //pupVariables.labelManager.LabelToggle("stomachItem", self.cat.objectInStomach != null);
+                    pupVariables.labelManager.LabelToggle("grabTarget", self.grabTarget != null);
+                    pupVariables.labelManager.LabelToggle("giftedItem", pupVariables.giftedItem != null);
                 }
             }
         }
@@ -591,6 +566,17 @@ namespace SlugpupStuff
             {
                 self.behaviorType = SlugNPCAI.BehaviorType.Fleeing;
             }
+        }
+        private void SlugNPCAI_SocialEvent(On.MoreSlugcats.SlugNPCAI.orig_SocialEvent orig, SlugNPCAI self, SocialEventRecognizer.EventID ID, Creature subjectCrit, Creature objectCrit, PhysicalObject involvedItem)
+        {
+            if (ID == SocialEventRecognizer.EventID.ItemTransaction)
+            {
+                if (self.TryGetPupVariables(out var pupVariables))
+                {
+                    pupVariables.giftedItem = involvedItem.abstractPhysicalObject;
+                }
+            }
+                orig(self, ID, subjectCrit, objectCrit, involvedItem);
         }
         private void IL_SlugNPCAI_ctor(ILContext il)
         {
@@ -849,15 +835,14 @@ namespace SlugpupStuff
         {
             ILCursor stomachObjCurs = new(il);
 
-            stomachObjCurs.GotoNext(x => x.MatchLdstr("Add pup to pendingFriendSpawns "));
+            stomachObjCurs.GotoNext(x => x.MatchLdstr("Add pup to pendingFriendSpawns"));
             stomachObjCurs.GotoNext(MoveType.Before, x => x.MatchLdarg(0));
-            /* GOTO BEFORE IL_0294
-             * 	IL_0294: ldarg.0
-			 *  IL_0295: ldfld class SaveState RegionState::saveState
-			 *  IL_029a: ldfld class [netstandard]System.Collections.Generic.List`1<string> SaveState::pendingFriendCreatures
+            /* GOTO BEFORE IL_02ab
+             * 	IL_02b0: ldarg.0
+			 *  IL_02b1: ldfld class SaveState RegionState::saveState
+			 *  IL_02b6: ldfld class [mscorlib]System.Collections.Generic.List`1<string> SaveState::pendingFriendCreatures
              */
-            ILLabel emitLabel = stomachObjCurs.MarkLabel();
-            stomachObjCurs.Emit(OpCodes.Ldloc, 5);
+            stomachObjCurs.Emit(OpCodes.Ldloc, 6);
             stomachObjCurs.EmitDelegate((AbstractCreature abstractCreature) =>   // If abstractCreature is player and player playerState is PlayerNPCState, set PupsPlusStomachObject to objectInStomach
             {
                 if (abstractCreature.realizedCreature is Player player && player.isNPC)
@@ -872,13 +857,6 @@ namespace SlugpupStuff
                     }
                 }
             });
-
-            stomachObjCurs.GotoPrev(MoveType.Before, x => x.Match(OpCodes.Brfalse_S));
-            /* GOTO BEFORE IL_027c
-             * 	IL_0277: call bool RainWorld::get_ShowLogs()
-			 *  IL_027c: brfalse.s IL_0294
-             */
-            stomachObjCurs.Next.Operand = emitLabel;   // Change brfalse.s branch operand from IL_0294 to emitLabel
         }
         private void IL_Snail_Click(ILContext il)
         {

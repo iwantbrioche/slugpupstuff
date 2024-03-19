@@ -1,0 +1,7 @@
+﻿[*.cs]
+
+# IDE0290: Use primary constructor
+csharp_style_prefer_primary_constructors = false
+
+# Default severity for analyzer diagnostics with category 'Style'
+dotnet_analyzer_diagnostic.category-Style.severity = none

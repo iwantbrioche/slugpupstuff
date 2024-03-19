@@ -7,6 +7,20 @@
 	  <LangVersion>latest</LangVersion>
   </PropertyGroup>
 
+	<PropertyGroup>
+		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+		<OutputPath>mod\debug\plugins</OutputPath>
+		<DebugType>portable</DebugType>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)' == 'Release'">
+		<OutputPath>mod\release\plugins\newest</OutputPath>
+		<DebugType>portable</DebugType>
+	</PropertyGroup>
+	
   <ItemGroup>
     <None Remove=".gitattributes" />
     <None Remove=".gitignore" />
@@ -14,56 +28,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="BepInEx">
-      <HintPath>lib\BepInEx.dll</HintPath>
-    </Reference>
-    <Reference Include="DevConsole">
-      <HintPath>..\..\..\Steam Games\steamapps\workshop\content\312520\2920528044\plugins\DevConsole.dll</HintPath>
-    </Reference>
-    <Reference Include="DressMySlugcat">
-      <HintPath>..\..\..\Steam Games\steamapps\workshop\content\312520\2948971756\plugins\DressMySlugcat.dll</HintPath>
-    </Reference>
-    <Reference Include="EmeraldsTweaksRemix">
-      <HintPath>..\..\..\Steam Games\steamapps\workshop\content\312520\2933890889\plugins\EmeraldsTweaksRemix.dll</HintPath>
-    </Reference>
-    <Reference Include="HOOKS-Assembly-CSharp">
-      <HintPath>lib\HOOKS-Assembly-CSharp.dll</HintPath>
-    </Reference>
-    <Reference Include="Mono.Cecil">
-      <HintPath>lib\Mono.Cecil.dll</HintPath>
-    </Reference>
-    <Reference Include="Mono.Cecil.Pdb">
-      <HintPath>lib\Mono.Cecil.Pdb.dll</HintPath>
-    </Reference>
-    <Reference Include="MonoMod">
-      <HintPath>lib\MonoMod.dll</HintPath>
-    </Reference>
-    <Reference Include="MonoMod.Common">
-      <HintPath>lib\MonoMod.Common.dll</HintPath>
-    </Reference>
-    <Reference Include="MonoMod.RuntimeDetour">
-      <HintPath>lib\MonoMod.RuntimeDetour.dll</HintPath>
-    </Reference>
-    <Reference Include="MonoMod.Utils">
-      <HintPath>lib\MonoMod.Utils.dll</HintPath>
-    </Reference>
-    <Reference Include="Pearlcat">
-      <HintPath>..\..\..\Steam Games\steamapps\workshop\content\312520\3013739512\plugins\Pearlcat.dll</HintPath>
-    </Reference>
-    <Reference Include="Assembly-CSharp">
-      <HintPath>..\rain world references\PUBLIC-Assembly-CSharp.dll</HintPath>
-    </Reference>
-    <Reference Include="SimplifiedMoveset">
-      <HintPath>..\..\..\Steam Games\steamapps\workshop\content\312520\2931679448\plugins\SimplifiedMoveset.dll</HintPath>
-    </Reference>
-    <Reference Include="UnityEngine">
-      <HintPath>lib\UnityEngine.dll</HintPath>
-    </Reference>
-    <Reference Include="UnityEngine.CoreModule">
-      <HintPath>lib\UnityEngine.CoreModule.dll</HintPath>
-    </Reference>
-    <Reference Include="UnityEngine.InputLegacyModule">
-      <HintPath>lib\UnityEngine.InputLegacyModule.dll</HintPath>
+    <Reference Include="lib\*.dll">
+		<Private>false</Private>
     </Reference>
   </ItemGroup>
 

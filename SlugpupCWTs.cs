@@ -1,4 +1,5 @@
 ﻿using MoreSlugcats;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
 namespace SlugpupStuff
@@ -12,6 +13,7 @@ namespace SlugpupStuff
         public static readonly ConditionalWeakTable<PlayerNPCState, PupNPCState> pupStateCWT = new();
 
         public static readonly ConditionalWeakTable<AbstractCreature, PupAbstract> pupAbstractCWT = new();
+
 
         public static bool isAquaticpup(this Player self)
         {
@@ -185,12 +187,15 @@ namespace SlugpupStuff
             return pupAbstract != null;
         }
 
+
         public class PupVariables
         {
             public bool regurgitating;
             public bool swallowing;
             public bool wantsToRegurgitate;
             public bool wantsToSwallowObject;
+
+            public AbstractPhysicalObject giftedItem;
 
             public float energyMin = 0f;
             public float energyMax = 1f;
@@ -215,6 +220,9 @@ namespace SlugpupStuff
             public float aggressionMin = 0f;
             public float aggressionMax = 1f;
             public float aggressionMod = 1f;
+
+            public SlugpupDebugger.DebugLabelManager labelManager;
+            public SlugpupDebugger.PathingVisualizer pathingVisualizer;
         }
         public class PupGraphics
         {
