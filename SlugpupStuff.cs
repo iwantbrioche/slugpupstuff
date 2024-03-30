@@ -18,7 +18,7 @@ using HUD;
 
 namespace SlugpupStuff
 {
-    [BepInPlugin(MOD_ID, "Slugpup Stuff", "1.2.10")]
+    [BepInPlugin(MOD_ID, "Slugpup Stuff", "1.2.11")]
     public partial class SlugpupStuff : BaseUnityPlugin
     {
         public const string MOD_ID = "iwantbread.slugpupstuff";

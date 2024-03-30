@@ -90,8 +90,7 @@ namespace SlugpupStuff
                     {
                         if (spitUpObject)
                         {
-                            self.SubtractQuarterFood();
-                            self.SubtractQuarterFood();
+                            self.SubtractFood(1);
                         }
                         self.Regurgitate();
                     }
