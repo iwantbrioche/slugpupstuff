@@ -1,0 +1,18 @@
+{
+  "Title": "Pups\u002B",
+  "Description": "Adds four new slugpup variants based off The Hunter, The Rivulet, The Gourmand, and The Saint. Each variant comes with new stats, different food requirements, and special abilities! Also adds various miscellaneous behaviors as well.",
+  "ID": "iwantbread.slugpupstuff",
+  "Version": "1.2.9",
+  "TargetGameVersion": "v1.9.06b",
+  "Requirements": "moreslugcats,rwremix",
+  "RequirementNames": "More Slugcats,Rainworld Remix",
+  "Authors": "iwantbread",
+  "Visibility": "Public",
+  "Tags": [
+    "Creatures",
+    "Game Mechanics"
+  ],
+  "WorkshopID": 3137878904,
+  "UploadFilesOnly": true,
+  "UploadThumbnail": false
+}

@@ -8,22 +8,32 @@ using System.Text.RegularExpressions;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
 using Random = UnityEngine.Random;
+using Custom = RWCustom.Custom;
+using static SlugpupStuff.SlugpupCustom;
+using System.Collections.Generic;
+using Microsoft.SqlServer.Server;
+using System.Drawing;
+using HUD;
 
 
 namespace SlugpupStuff
 {
-    [BepInPlugin(MOD_ID, "Slugpup Stuff", "1.2.9")]
+    [BepInPlugin(MOD_ID, "Slugpup Stuff", "1.2.10")]
     public partial class SlugpupStuff : BaseUnityPlugin
     {
         public const string MOD_ID = "iwantbread.slugpupstuff";
         private bool IsInit;
         private bool PostIsInit;
-        private SlugpupRemix slugpupRemix;
+        public SlugpupStuffRemix slugpupRemix;
+        public static float aquaticChance;
+        public static float tundraChance;
+        public static float hunterchance;
+        public static float rotundChance;
         public void OnEnable()
         {
             On.RainWorld.OnModsInit += RainWorld_OnModsInit;
             On.RainWorld.PostModsInit += RainWorld_PostModsInit;
-            slugpupRemix = new SlugpupRemix(this, Logger);
+            slugpupRemix = new SlugpupStuffRemix(this, Logger);
         }
         public void RainWorld_OnModsInit(On.RainWorld.orig_OnModsInit orig, RainWorld self)
         {
@@ -46,6 +56,7 @@ namespace SlugpupStuff
                 SlugpupGraphics.Patch(Logger);
 
                 // Slugpup OnHooks
+                On.MoreSlugcats.SlugNPCAI.ctor += SlugNPCAI_ctor;
                 On.MoreSlugcats.SlugNPCAI.Update += SlugNPCAI_Update;
                 On.MoreSlugcats.SlugNPCAI.TheoreticallyEatMeat += SlugNPCAI_TheoreticallyEatMeat;
                 On.MoreSlugcats.SlugNPCAI.WantsToEatThis += SlugNPCAI_WantsToEatThis;
@@ -54,7 +65,8 @@ namespace SlugpupStuff
                 On.MoreSlugcats.SlugNPCAI.GetFoodType += SlugNPCAI_GetFoodType;
                 On.MoreSlugcats.SlugNPCAI.Move += SlugNPCAI_Move;
                 On.MoreSlugcats.SlugNPCAI.DecideBehavior += SlugNPCAI_DecideBehavior;
-
+                On.MoreSlugcats.SlugNPCAI.SocialEvent += SlugNPCAI_SocialEvent;
+                On.MoreSlugcats.SlugNPCAI.TravelPreference += SlugNPCAI_TravelPreference;
 
                 // Slugpup ILHooks
                 IL.MoreSlugcats.SlugNPCAI.ctor += IL_SlugNPCAI_ctor;
@@ -65,7 +77,7 @@ namespace SlugpupStuff
                 On.Player.AllowGrabbingBatflys += Player_AllowGrabbingBatflys;
                 On.Player.CanEatMeat += Player_CanEatMeat;
                 On.Player.SaintTongueCheck += Player_SaintTongueCheck;
-                On.Player.ClassMechanicsSaint += Player_VariantMechanicsTundrapup;
+                On.Player.ClassMechanicsSaint += Player_ClassMechanicsSaint;
                 On.Player.SlugSlamConditions += Player_SlugSlamConditions;
                 On.Player.GrabUpdate += Player_GrabUpdate;
                 On.Player.TongueUpdate += Player_TongueUpdate;
@@ -75,6 +87,7 @@ namespace SlugpupStuff
 
                 // Player ILHooks
                 IL.Player.ctor += IL_Player_ctor;
+                IL.Player.Update += IL_Player_Update;
                 IL.Player.SwallowObject += IL_Player_SwallowObject;
                 IL.Player.Regurgitate += IL_Player_Regurgitate;
                 IL.Player.GrabUpdate += IL_Player_GrabUpdate;
@@ -85,9 +98,11 @@ namespace SlugpupStuff
                 IL.Player.Collide += IL_Player_Collide;
                 IL.Player.ClassMechanicsGourmand += IL_Player_ClassMechanicsGourmand;
                 IL.Player.ThrowObject += IL_Player_ThrowObject;
+                IL.Player.StomachGlowLightColor += IL_Player_StomachGlowLightColor;
                 IL.Player.EatMeatUpdate += IL_Player_EatMeatUpdate;
                 IL.Player.ObjectEaten += IL_Player_ObjectEaten;
                 IL.Player.FoodInRoom_Room_bool += IL_Player_FoodInRoom;
+                IL.Player.SetMalnourished += IL_Player_SetMalnourished;
                 IL.Player.NPCStats.ctor += IL_NPCStats_ctor;
 
                 // Other OnHooks
@@ -95,6 +110,7 @@ namespace SlugpupStuff
                 On.SlugcatStats.SlugcatFoodMeter += SlugcatStats_SlugcatFoodMeter;
                 On.SlugcatStats.HiddenOrUnplayableSlugcat += SlugcatStats_HiddenOrUnplayableSlugcat;
                 On.Player.Tongue.Shoot += Tongue_Shoot;
+                On.MoreSlugcats.PlayerNPCState.ctor += PlayerNPCState_ctor;
                 On.MoreSlugcats.PlayerNPCState.ToString += PlayerNPCState_ToString;
                 On.MoreSlugcats.PlayerNPCState.LoadFromString += PlayerNPCState_LoadFromString;
                 On.AbstractCreature.setCustomFlags += AbstractCreature_setCustomFlags;
@@ -105,6 +121,10 @@ namespace SlugpupStuff
                 IL.RegionState.AdaptRegionStateToWorld += IL_RegionState_AdaptRegionStateToWorld;
                 IL.MoreSlugcats.PlayerNPCState.CycleTick += IL_PlayerNPCState_CycleTick;
 
+                aquaticChance = (slugpupRemix.aquaticChance.Value - slugpupRemix.tundraChance.Value) / 100f;
+                tundraChance = ((slugpupRemix.tundraChance.Value - slugpupRemix.hunterChance.Value) / 100f) + aquaticChance;
+                hunterchance = ((slugpupRemix.hunterChance.Value - slugpupRemix.rotundChance.Value) / 100f) + tundraChance;
+                rotundChance = (slugpupRemix.rotundChance.Value / 100f) + hunterchance;
 
                 IsInit = true;
             }
@@ -149,6 +169,7 @@ namespace SlugpupStuff
                 {
                     PupsPlusModCompat.RegisterSpawnPupCommand();
                     Logger.LogInfo("spawn_pup command registered");
+                    //PupsPlusModCompat.RegisterPupsPlusDebugCommands();
                 }
 
                 PostIsInit = true;
@@ -161,96 +182,16 @@ namespace SlugpupStuff
             }
         }
 
-        // Slugpup Methods
-        public void PupSwallowObject(Player self, int grabbedIndex)
-        {
-            Player parent = null;
-            if (self.grabbedBy.Count > 0 && self.grabbedBy[0].grabber is Player player)
-            {
-                parent = player;
-            }
-            if (self.TryGetPupVariables(out var pupVariables))
-            {
-                if (self.objectInStomach == null && self.CanBeSwallowed(parent != null ? parent.grasps[grabbedIndex].grabbed : self.grasps[grabbedIndex].grabbed) && self.Consious)
-                {
-                    pupVariables.swallowing = true;
-                    self.swallowAndRegurgitateCounter++;
-                    self.AI.heldWiggle = 0;
-                    if (self.swallowAndRegurgitateCounter > 90)
-                    {
-                        self.SwallowObject(grabbedIndex);
-                        self.swallowAndRegurgitateCounter = 0;
-                        (self.graphicsModule as PlayerGraphics).swallowing = 20;
-
-                        pupVariables.swallowing = false;
-                        pupVariables.wantsToSwallowObject = false;
-                    }
-                }
-            }
-        }
-        public void PupRegurgitate(Player self)
-        {
-            if (self.TryGetPupVariables(out var pupVariables) && self.Consious)
-            {
-                pupVariables.regurgitating = true;
-                self.swallowAndRegurgitateCounter++;
-
-                bool spitUpObject = false;
-                if (self.isRotundpup() && self.objectInStomach == null)
-                {
-                    spitUpObject = true;
-                }
-                self.AI.heldWiggle = 0;
-                if (self.swallowAndRegurgitateCounter > 110)
-                {
-                    if (!spitUpObject || (spitUpObject && self.FoodInStomach > 0 && !self.Malnourished))
-                    {
-                        if (spitUpObject)
-                        {
-                            self.SubtractFood(1);
-                        }
-                        self.Regurgitate();
-                    }
-                    else
-                    {
-                        self.firstChunk.vel += new Vector2(Random.Range(-1f, 1f), 0f);
-                        self.Stun(30);
-                    }
-
-                    self.swallowAndRegurgitateCounter = 0;
-                    pupVariables.regurgitating = false;
-                    pupVariables.wantsToRegurgitate = false;
-                }
-            }
-        }
-
         // Hooks
-        private void IL_SlugNPCAI_ctor(ILContext il)
-        {
-            ILCursor itemTrackerCurs = new(il);
-            itemTrackerCurs.GotoNext(MoveType.Before, x => x.MatchNewobj<ItemTracker>());
-            /* GOTO BEFORE IL_007d
-             *	IL_007b: ldc.i4.m1
-	         *  IL_007c: ldc.i4.1
-	         *  IL_007d: newobj instance void ItemTracker::.ctor(class ArtificialIntelligence, int32, int32, int32, int32, bool)
-	         *  IL_0082: call instance void ArtificialIntelligence::AddModule(class AIModule)
-             */
-            itemTrackerCurs.Emit(OpCodes.Pop); 
-            itemTrackerCurs.Emit(OpCodes.Ldc_I4_0); // Switch stopTrackingCarried to false
-        }
+
         private void Player_ctor(On.Player.orig_ctor orig, Player self, AbstractCreature abstractCreature, World world)
         {
             orig(self, abstractCreature, world);
-            if (self.npcStats != null) self.npcStats = new Player.NPCStats(self);
             if (self.isNPC && self.isSlugpup && self.playerState.TryGetPupState(out var pupNPCState))
             {
                 if (pupNPCState.Variant != null)
                 {
-                    SetSlugpupPersonality(self);
-                    if (RainWorld.ShowLogs)
-                    {
-                        Debug.Log($"{self} variant set to: {pupNPCState.Variant}");
-                    }
+                    Custom.Log($"{self} variant set to: {pupNPCState.Variant}");
                 }
             }
             if (self.isTundrapup())
@@ -292,11 +233,11 @@ namespace SlugpupStuff
 
                     if (grabbedIndex > -1 && self.grasps[grabbedIndex].grabbed != null)
                     {
-                        PupSwallowObject(pupGrabbed, grabbedIndex);
+                        pupGrabbed.PupSwallowObject(grabbedIndex);
                     }
                     else if (pupGrabbed.objectInStomach != null || pupGrabbed.isRotundpup() && slugpupRemix.ManualItemGen.Value)
                     {
-                        PupRegurgitate(pupGrabbed);
+                        pupGrabbed.PupRegurgitate();
                     }
                     else
                     {
@@ -316,6 +257,12 @@ namespace SlugpupStuff
             {
                 orig(self, eu);
             }
+        }
+        private void Player_UpdateMSC(On.Player.orig_UpdateMSC orig, Player self)
+        {
+            orig(self);
+            self.VariantMechanicsAquaticpup();
+            if (slugpupRemix.RotundBackExaustion.Value) self.VariantMechanicsRotundpup();
         }
         private void IL_Player_ctor(ILContext il)
         {
@@ -347,6 +294,44 @@ namespace SlugpupStuff
                     }
                 }
             });
+        }
+        private void IL_Player_Update(ILContext il)
+        {
+            ILCursor exhaustCurs = new(il);
+
+            exhaustCurs.GotoNext(MoveType.After, x => x.MatchLdfld<Player>(nameof(Player.gourmandExhausted)));
+            /* GOTO AFTER ldfld bool Player::gourmandExhausted
+             * 	ldarg.0
+	         *  ldfld bool Player::gourmandExhausted
+	         *  brtrue.s IL_0c80
+             */
+            exhaustCurs.Emit(OpCodes.Ldarg_0);
+            exhaustCurs.EmitDelegate((Player self) =>   // If pup is on back and pup is Rotundpup, return true
+            {
+                if (self.TryGetParentVariables(out var parentVariables))
+                {
+                    return parentVariables.rotundPupExhaustion;
+                }
+                return false;
+            });
+            exhaustCurs.Emit(OpCodes.Or);
+
+            exhaustCurs.GotoNext(MoveType.After, x => x.MatchLdfld<Player>(nameof(Player.gourmandExhausted)));
+            /* GOTO AFTER ldfld bool Player::gourmandExhausted
+             * 	ldarg.0
+	         *  ldfld bool Player::gourmandExhausted
+	         *  brtrue.s IL_0d4e
+             */
+            exhaustCurs.Emit(OpCodes.Ldarg_0);
+            exhaustCurs.EmitDelegate((Player self) =>   // If pup is on back and pup is Rotundpup, return true
+            {
+                if (self.TryGetParentVariables(out var parentVariables))
+                {
+                    return parentVariables.rotundPupExhaustion;
+                }
+                return false;
+            });
+            exhaustCurs.Emit(OpCodes.Or);
         }
         private void IL_Player_SwallowObject(ILContext il)
         {
@@ -484,36 +469,68 @@ namespace SlugpupStuff
             counterCurs.Emit(OpCodes.Brtrue_S, branchLabel);
             counterCurs.Emit(OpCodes.Ldarg_0);
         }
-        private void Player_UpdateMSC(On.Player.orig_UpdateMSC orig, Player self)
+        private void IL_Player_StomachGlowLightColor(ILContext il)
         {
-            orig(self);
-            VariantMechanicsAquaticpup(self);
-            Player pupGrabbed = null;
-            foreach (var grasped in self.grasps)
+            ILCursor glowCurs = new(il);
+
+            glowCurs.GotoNext(MoveType.After, x => x.Match(OpCodes.Call));
+            /* GOTO AFTER IL_0001
+             * 	IL_0000: ldarg.0
+	         *  IL_0001: call instance class MoreSlugcats.SlugNPCAI Player::get_AI()
+	         *  IL_0006: brtrue.s IL_0011 
+             */
+            glowCurs.Emit(OpCodes.Pop);   // Pop IL_0001 off the stack
+            glowCurs.Emit(OpCodes.Ldc_I4_0);   // Emit false into IL_0011 branch
+        }
+        private void IL_Player_SetMalnourished(ILContext il)
+        {
+            ILCursor variCurs = new(il);
+
+            variCurs.GotoNext(MoveType.After, x => x.MatchLdfld<Player>(nameof(Player.SlugCatClass)));
+            /* GOTO AFTER ldfld class SlugcatStats/Name Player::SlugCatClass
+             * 	ldarg.0
+	         *  ldfld class SlugcatStats/Name Player::SlugCatClass
+	         *  ldarg.1
+             */
+            //ldfld class SlugcatStats/Name Player::SlugCatClass => slugpup
+            variCurs.Emit(OpCodes.Ldarg_0); // self
+            variCurs.EmitDelegate((SlugcatStats.Name slugpup, Player self) =>
             {
-                if (grasped?.grabbed is Player pup && pup.isNPC)
+                if (self.playerState.TryGetPupState(out var pupNPCState))
                 {
-                    pupGrabbed = pup;
-                    break;
+                    if (pupNPCState.Variant != null)
+                    {
+                        return pupNPCState.Variant;
+                    }
                 }
-            }
-            if (self.isAquaticpup() || (pupGrabbed != null && pupGrabbed.isAquaticpup()))
+                return slugpup;
+            });
+        }
+        private void SlugNPCAI_ctor(On.MoreSlugcats.SlugNPCAI.orig_ctor orig, SlugNPCAI self, AbstractCreature creature, World world)
+        {
+            orig(self, creature, world);
+            if (self.TryGetPupVariables(out var pupVariables))
             {
-                if (!self.monkAscension)
-                {
-                    self.buoyancy = 0.9f;
-                }
+                //pupVariables.pathingVisualizer = new(self, 5);
+                //pupVariables.labelManager = new(self.cat);
             }
+  
         }
         private void SlugNPCAI_Move(On.MoreSlugcats.SlugNPCAI.orig_Move orig, SlugNPCAI self)
         {
             orig(self);
             if (self.cat.gourmandExhausted)
             {
-                if (self.threatTracker.ThreatOfTile(self.creature.pos, false) < 0.2f && self.behaviorType != SlugNPCAI.BehaviorType.Fleeing)
+                if (!self.OnAnyBeam())
                 {
-                    self.cat.input[0].x = 0;
-                    self.cat.input[0].y = 0;
+                    self.cat.input[0].jmp = false;
+                }
+                if (self.cat.input[0].x == 0 && self.cat.input[0].y == 0 && !self.cat.input[0].pckp && self.FunStuff)
+                {
+                    if (Random.value < Mathf.Lerp(0f, 0.3f, Mathf.InverseLerp(0.1f, 0f, self.creature.personality.energy)))
+                    {
+                        self.cat.standing = false;
+                    }
                 }
             }
             if (self.isTundrapup())
@@ -526,38 +543,40 @@ namespace SlugpupStuff
                     }
                 }
             }
+            if (self.TryGetPupVariables(out var pupVariables))
+            {
+                pupVariables.pathingVisualizer?.VisualizeConnections();
+            }
 
         }
         private void SlugNPCAI_Update(On.MoreSlugcats.SlugNPCAI.orig_Update orig, SlugNPCAI self)
         {
             orig(self);
-            if (self.nap)
-            {
-                if (Mathf.Clamp(0.06f / self.cat.abstractCreature.personality.energy, 0f, 1f) > Random.Range(0.35f, 1f) || self.cat.emoteSleepCounter > 1.4f)
-                {
-                    self.cat.emoteSleepCounter += Mathf.Clamp(0.0008f / self.cat.abstractCreature.personality.energy, 0.0008f, 0.05f);
-                    if (self.cat.emoteSleepCounter > 1.4f)
-                    {
-                        if (self.cat.graphicsModule != null)
-                        {
-                            (self.cat.graphicsModule as PlayerGraphics).blink = 5;
-                        }
-                        self.cat.sleepCurlUp = Mathf.SmoothStep(self.cat.sleepCurlUp, 1f, self.cat.emoteSleepCounter - 1.4f);
-                    }
-                    else
-                    {
-                        self.cat.sleepCurlUp = Mathf.Max(0f, self.cat.sleepCurlUp - 0.1f);
-                    }
-                }
-            }
-            else
-            {
-                self.cat.emoteSleepCounter = 0f;
-            }
-
-
             if (self.TryGetPupVariables(out var pupVariables))
             {
+                if (self.nap)
+                {
+                    if (Mathf.Clamp01(0.06f / self.creature.personality.energy) > Random.Range(0.35f, 1f) || self.cat.emoteSleepCounter > 1.4f)
+                    {
+                        self.cat.emoteSleepCounter += Mathf.Clamp(0.0008f / self.creature.personality.energy, 0.0008f, 0.05f);
+                        if (self.cat.emoteSleepCounter > 1.4f)
+                        {
+                            if (self.cat.graphicsModule != null)
+                            {
+                                (self.cat.graphicsModule as PlayerGraphics).blink = 5;
+                            }
+                            self.cat.sleepCurlUp = Mathf.SmoothStep(self.cat.sleepCurlUp, 1f, self.cat.emoteSleepCounter - 1.4f);
+                        }
+                        else
+                        {
+                            self.cat.sleepCurlUp = Mathf.Max(0f, self.cat.sleepCurlUp - 0.1f);
+                        }
+                    }
+                }
+                else
+                {
+                    self.cat.emoteSleepCounter = 0f;
+                }
                 if (self.isRotundpup())
                 {
                     if (self.foodReaction < -110 && self.FunStuff && self.cat.objectInStomach == null && !pupVariables.regurgitating)
@@ -567,12 +586,43 @@ namespace SlugpupStuff
                 }
                 if (pupVariables.wantsToRegurgitate)
                 {
-                    PupRegurgitate(self.cat);
+                    self.cat.PupRegurgitate();
                 }
                 if (pupVariables.wantsToSwallowObject && self.cat.grasps[0]?.grabbed != null)
                 {
-                    PupSwallowObject(self.cat, 0);
+                    self.cat.PupSwallowObject(0);
                 }
+                if (pupVariables.giftedItem != null)
+                {
+                    bool giftedTracked = false;
+                    foreach(var rep in self.itemTracker.items)
+                    {
+                        if (rep.representedItem != pupVariables.giftedItem) continue;
+                        giftedTracked = true;
+                    }
+                    if (pupVariables.giftedItem.realizedObject == null || !giftedTracked)
+                    {
+                        pupVariables.giftedItem = null;
+                    }
+                }
+                if (self.behaviorType == SlugNPCAI.BehaviorType.OnHead || self.behaviorType == SlugNPCAI.BehaviorType.BeingHeld)
+                {
+                    if (self.cat.grasps[0]?.grabbed != null)
+                    {
+                        if (self.cat.Grabability(self.cat.grasps[0].grabbed) > Player.ObjectGrabability.TwoHands)
+                        {
+                            self.cat.ReleaseGrasp(0);
+                        }
+                    }
+                }
+
+                //pupVariables.pathingVisualizer?.Update();
+                //if (pupVariables.labelManager != null)
+                //{
+                //    pupVariables.labelManager.UpdateLabel("grabTarget", $"grabTarget: {(self.grabTarget != null ? self.grabTarget is Creature ? (self.grabTarget as Creature).abstractCreature.creatureTemplate.type : self.grabTarget.abstractPhysicalObject.type : "NULL")}", self.grabTarget != null);
+                //    pupVariables.labelManager.UpdateLabel("giftedItem", $"giftedItem: {(pupVariables.giftedItem != null ? pupVariables.giftedItem is AbstractCreature ? (pupVariables.giftedItem as AbstractCreature).creatureTemplate.type : pupVariables.giftedItem.type : "NULL")}", pupVariables.giftedItem != null);
+                //    pupVariables.labelManager.Update(self.cat.mainBodyChunk.pos + new Vector2(35f, 30f));
+                //}
             }
         }
         private void SlugNPCAI_DecideBehavior(On.MoreSlugcats.SlugNPCAI.orig_DecideBehavior orig, SlugNPCAI self)
@@ -581,6 +631,54 @@ namespace SlugpupStuff
             if (self.behaviorType == SlugNPCAI.BehaviorType.Attacking && self.cat.gourmandExhausted)
             {
                 self.behaviorType = SlugNPCAI.BehaviorType.Fleeing;
+            }
+        }
+        private void SlugNPCAI_SocialEvent(On.MoreSlugcats.SlugNPCAI.orig_SocialEvent orig, SlugNPCAI self, SocialEventRecognizer.EventID ID, Creature subjectCrit, Creature objectCrit, PhysicalObject involvedItem)
+        {
+            if (ID == SocialEventRecognizer.EventID.ItemTransaction && objectCrit == self.cat)
+            {
+                if (self.TryGetPupVariables(out var pupVariables))
+                {
+                    pupVariables.giftedItem = involvedItem.abstractPhysicalObject;
+                }
+            }
+                orig(self, ID, subjectCrit, objectCrit, involvedItem);
+        }
+        private void IL_SlugNPCAI_ctor(ILContext il)
+        {
+            ILCursor itemTrackerCurs = new(il);
+            itemTrackerCurs.GotoNext(MoveType.Before, x => x.MatchNewobj<ItemTracker>());
+            /* GOTO BEFORE IL_007d
+             *	IL_007b: ldc.i4.m1
+	         *  IL_007c: ldc.i4.1
+	         *  IL_007d: newobj instance void ItemTracker::.ctor(class ArtificialIntelligence, int32, int32, int32, int32, bool)
+	         *  IL_0082: call instance void ArtificialIntelligence::AddModule(class AIModule)
+             */
+            itemTrackerCurs.Emit(OpCodes.Pop);
+            itemTrackerCurs.Emit(OpCodes.Ldc_I4_0); // Switch stopTrackingCarried to false
+        }
+        private PathCost SlugNPCAI_TravelPreference(On.MoreSlugcats.SlugNPCAI.orig_TravelPreference orig, SlugNPCAI self, MovementConnection coord, PathCost cost)
+        {
+            PathCost origCost = orig(self, coord, cost);
+            if (self.behaviorType != SlugNPCAI.BehaviorType.Fleeing)
+            {
+                origCost = cost;
+                if (self.cat.gourmandExhausted)
+                {
+                    origCost += new PathCost(50f, PathCost.Legality.Unallowed);
+                }
+            }
+            return origCost;
+        }
+        private void PlayerNPCState_ctor(On.MoreSlugcats.PlayerNPCState.orig_ctor orig, PlayerNPCState self, AbstractCreature abstractCreature, int playerNumber)
+        {
+            orig(self, abstractCreature, playerNumber);
+            if (self.TryGetPupState(out var pupNPCState))
+            {
+                if (pupNPCState.Variant == VariantName.Rotundpup)
+                {
+                    self.meatLeft += 1;
+                }
             }
         }
         private string PlayerNPCState_ToString(On.MoreSlugcats.PlayerNPCState.orig_ToString orig, PlayerNPCState self)
@@ -619,7 +717,7 @@ namespace SlugpupStuff
                             {
                                 if (array[1].Contains("<oA>"))
                                 {
-                                    pupNPCState.PupsPlusStomachObject = SaveState.AbstractPhysicalObjectFromString(self.player.Room.world, array[1]); ;
+                                    pupNPCState.PupsPlusStomachObject = SaveState.AbstractPhysicalObjectFromString(self.player.Room.world, array[1]);
                                 }
                                 else if (array[1].Contains("<cA>"))
                                 {
@@ -709,15 +807,14 @@ namespace SlugpupStuff
         {
             ILCursor stomachObjCurs = new(il);
 
-            stomachObjCurs.GotoNext(x => x.MatchLdstr("Add pup to pendingFriendSpawns "));
+            stomachObjCurs.GotoNext(x => x.MatchLdstr("Add pup to pendingFriendSpawns {0}"));
             stomachObjCurs.GotoNext(MoveType.Before, x => x.MatchLdarg(0));
-            /* GOTO BEFORE IL_0294
-             * 	IL_0294: ldarg.0
-			 *  IL_0295: ldfld class SaveState RegionState::saveState
-			 *  IL_029a: ldfld class [netstandard]System.Collections.Generic.List`1<string> SaveState::pendingFriendCreatures
+            /* GOTO BEFORE IL_02ab
+             * 	IL_02b0: ldarg.0
+			 *  IL_02b1: ldfld class SaveState RegionState::saveState
+			 *  IL_02b6: ldfld class [mscorlib]System.Collections.Generic.List`1<string> SaveState::pendingFriendCreatures
              */
-            ILLabel emitLabel = stomachObjCurs.MarkLabel();
-            stomachObjCurs.Emit(OpCodes.Ldloc, 5);
+            stomachObjCurs.Emit(OpCodes.Ldloc, 6); // abstractCreature
             stomachObjCurs.EmitDelegate((AbstractCreature abstractCreature) =>   // If abstractCreature is player and player playerState is PlayerNPCState, set PupsPlusStomachObject to objectInStomach
             {
                 if (abstractCreature.realizedCreature is Player player && player.isNPC)
@@ -732,13 +829,6 @@ namespace SlugpupStuff
                     }
                 }
             });
-
-            stomachObjCurs.GotoPrev(MoveType.Before, x => x.Match(OpCodes.Brfalse_S));
-            /* GOTO BEFORE IL_027c
-             * 	IL_0277: call bool RainWorld::get_ShowLogs()
-			 *  IL_027c: brfalse.s IL_0294
-             */
-            stomachObjCurs.Next.Operand = emitLabel;   // Change brfalse.s branch operand from IL_0294 to emitLabel
         }
         private void IL_Snail_Click(ILContext il)
         {

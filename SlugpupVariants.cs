@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using UnityEngine;
+using static SlugpupStuff.SlugpupCWTs;
 using Debug = UnityEngine.Debug;
 using Random = UnityEngine.Random;
 
@@ -13,7 +14,7 @@ namespace SlugpupStuff
 {
     public partial class SlugpupStuff   // Slugpup Variants, Variant Stats, and Variant Abilities
     {
-        public class VariantName
+        public static class VariantName
         {
             public static SlugcatStats.Name Aquaticpup;
             public static SlugcatStats.Name Tundrapup;
@@ -41,146 +42,42 @@ namespace SlugpupStuff
         }
 
         // Variant Methods
-        public List<int> ID_PupIDExclude()
+        public static List<int> ID_AquaticPupID()
+        {
+            List<int> idlist = [];
+            return idlist;
+        }
+        public static List<int> ID_TundraPupID()
+        {
+            List<int> idlist = [];
+            return idlist;
+
+        }
+        public static List<int> ID_HunterPupID()
+        {
+            List<int> idlist =
+            [
+                1002
+            ];
+            return idlist;
+        }
+        public static List<int> ID_RotundPupID()
+        {
+            List<int> idlist = [];
+            return idlist;
+        }
+        public static List<int> ID_PupIDExclude()
         {
             List<int> idlist =
             [
                 1000,
                 1001,
-                2220
+                2220,
+                3118,
+                4118,
+                765
             ];
             return idlist;
-        }
-        public List<int> ID_AquaticPupID()
-        {
-            List<int> idlist = [];
-            return idlist;
-        }
-        public List<int> ID_TundraPupID()
-        {
-            List<int> idlist = [];
-            return idlist;
-
-        }
-        public List<int> ID_HunterPupID()
-        {
-            List<int> idlist = [];
-            return idlist;
-        }
-        public List<int> ID_RotundPupID()
-        {
-            List<int> idlist = [];
-            return idlist;
-        }
-        public SlugcatStats.Name GetSlugpupVariant(Player player)
-        {
-            if (Pearlcat && PupsPlusModCompat.IsPearlpup(player))
-            {
-                return null;
-            }
-            if (player.abstractCreature.TryGetPupAbstract(out var pupAbstract))
-            {
-                if (pupAbstract.aquatic) return VariantName.Aquaticpup;
-                if (pupAbstract.tundra) return VariantName.Tundrapup;
-                if (pupAbstract.hunter) return VariantName.Hunterpup;
-                if (pupAbstract.rotund) return VariantName.Rotundpup;
-                if (pupAbstract.regular) return null;
-            }
-            if (player.abstractCreature.ID != null && !ID_PupIDExclude().Contains(player.abstractCreature.ID.RandomSeed))
-            {
-                Random.State state = Random.state;
-                Random.InitState(player.abstractCreature.ID.RandomSeed);
-
-                float variChance = Random.value;
-
-                Random.state = state;
-                float aquaticChance = (slugpupRemix.aquaticChance.Value - slugpupRemix.tundraChance.Value) / 100f;
-                float tundraChance = ((slugpupRemix.tundraChance.Value - slugpupRemix.hunterChance.Value) / 100f) + aquaticChance;
-                float hunterchance = ((slugpupRemix.hunterChance.Value - slugpupRemix.rotundChance.Value) / 100f) + tundraChance;
-                float rotundChance = (slugpupRemix.rotundChance.Value / 100f) + hunterchance;
-
-                // setup variant chance
-                if (variChance <= aquaticChance || ID_AquaticPupID().Contains(player.abstractCreature.ID.RandomSeed))
-                {
-                    return VariantName.Aquaticpup;
-                }
-                else if (variChance <= tundraChance || ID_TundraPupID().Contains(player.abstractCreature.ID.RandomSeed))
-                {
-                    return VariantName.Tundrapup;
-                }
-                else if (variChance <= hunterchance || ID_HunterPupID().Contains(player.abstractCreature.ID.RandomSeed))
-                {
-                    return VariantName.Hunterpup;
-                }
-                else if (variChance <= rotundChance || ID_RotundPupID().Contains(player.abstractCreature.ID.RandomSeed))
-                {
-                    return VariantName.Rotundpup;
-                }
-            }
-            return null;
-        }
-        public void SetSlugpupPersonality(Player self)
-        {
-            Random.State state = Random.state;
-            Random.InitState(self.abstractCreature.ID.RandomSeed);
-            if (self.isAquaticpup())
-            {
-                // Higher Energy Calculation
-                self.abstractCreature.personality.energy = Random.value;
-                self.abstractCreature.personality.energy = Mathf.Clamp(Custom.PushFromHalf(self.abstractCreature.personality.energy + 0.15f + 0.1f * (1.25f * self.abstractCreature.personality.energy), 0.4f), 0f, 1f);
-                // Base Personality Calculations
-                self.abstractCreature.personality.nervous = Mathf.Lerp(Random.value, Mathf.Lerp(self.abstractCreature.personality.energy, 1f - self.abstractCreature.personality.bravery, 0.5f), Mathf.Pow(Random.value, 0.25f));
-                self.abstractCreature.personality.aggression = Mathf.Lerp(Random.value, (self.abstractCreature.personality.energy + self.abstractCreature.personality.bravery) / 2f * (1f - self.abstractCreature.personality.sympathy), Mathf.Pow(Random.value, 0.25f));
-                self.abstractCreature.personality.dominance = Mathf.Lerp(Random.value, (self.abstractCreature.personality.energy + self.abstractCreature.personality.bravery + self.abstractCreature.personality.aggression) / 3f, Mathf.Pow(Random.value, 0.25f));
-                self.abstractCreature.personality.nervous = Custom.PushFromHalf(self.abstractCreature.personality.nervous, 2.5f);
-                self.abstractCreature.personality.aggression = Custom.PushFromHalf(self.abstractCreature.personality.aggression, 2.5f);
-            }
-            if (self.isTundrapup())
-            {
-                // Higher Sympathy Calculation
-                self.abstractCreature.personality.sympathy = Random.value;
-                self.abstractCreature.personality.sympathy = Mathf.Clamp(Custom.PushFromHalf(self.abstractCreature.personality.sympathy + 0.15f + 0.5f * (0.4f * self.abstractCreature.personality.sympathy), 2f), 0f, 1f);
-                // Base Nervousness Calculation
-                self.abstractCreature.personality.nervous = Mathf.Lerp(Random.value, Mathf.Lerp(self.abstractCreature.personality.energy, 1f - self.abstractCreature.personality.bravery, 0.5f), Mathf.Pow(Random.value, 0.25f));
-                // Base Aggression & Dominance Calculations
-                self.abstractCreature.personality.aggression = Mathf.Lerp(Random.value, (self.abstractCreature.personality.energy + self.abstractCreature.personality.bravery) / 2f * (1f - self.abstractCreature.personality.sympathy), Mathf.Pow(Random.value, 0.25f));
-                self.abstractCreature.personality.dominance = Mathf.Lerp(Random.value, (self.abstractCreature.personality.energy + self.abstractCreature.personality.bravery + self.abstractCreature.personality.aggression) / 3f, Mathf.Pow(Random.value, 0.25f));
-                // Higher Nervousness & Less Aggression Calculations
-                self.abstractCreature.personality.nervous = Mathf.Clamp(Custom.PushFromHalf(self.abstractCreature.personality.nervous + 0.2f * 0.15f * (1.25f * self.abstractCreature.personality.nervous), 3f), 0f, 1f);
-                self.abstractCreature.personality.aggression = Mathf.Clamp(Custom.PushFromHalf(self.abstractCreature.personality.aggression / 1.75f, 0.485f), 0f, 1f);
-            }
-            if (self.isHunterpup())
-            {
-                // Higher Bravery & Less Sympathy Calculations
-                self.abstractCreature.personality.sympathy = Random.value;
-                self.abstractCreature.personality.bravery = Random.value;
-                self.abstractCreature.personality.sympathy = Mathf.Clamp(Custom.PushFromHalf((self.abstractCreature.personality.sympathy / 1.2f) - 0.15f, 0.6f), 0f, 1f);
-                self.abstractCreature.personality.bravery = Mathf.Clamp(Custom.PushFromHalf(self.abstractCreature.personality.bravery + 0.01f * (1.5f * self.abstractCreature.personality.bravery), 1.05f), 0f, 1f);
-                // Base Nervousness Calculation
-                self.abstractCreature.personality.nervous = Mathf.Lerp(Random.value, Mathf.Lerp(self.abstractCreature.personality.energy, 1f - self.abstractCreature.personality.bravery, 0.5f), Mathf.Pow(Random.value, 0.25f));
-                // Base Aggression Calculation
-                self.abstractCreature.personality.aggression = Mathf.Lerp(Random.value, (self.abstractCreature.personality.energy + self.abstractCreature.personality.bravery) / 2f * (1f - self.abstractCreature.personality.sympathy), Mathf.Pow(Random.value, 0.25f));
-                // Base Dominance & Nervousness Calculations
-                self.abstractCreature.personality.dominance = Mathf.Lerp(Random.value, (self.abstractCreature.personality.energy + self.abstractCreature.personality.bravery + self.abstractCreature.personality.aggression) / 3f, Mathf.Pow(Random.value, 0.25f));
-                self.abstractCreature.personality.nervous = Custom.PushFromHalf(self.abstractCreature.personality.nervous, 2.5f);
-                // Higher Aggression Calculation
-                self.abstractCreature.personality.aggression = Mathf.Clamp(Custom.PushFromHalf(self.abstractCreature.personality.aggression + 0.1f + 0.05f * (0.25f * self.abstractCreature.personality.aggression), 1.35f), 0f, 1f);
-            }
-            if (self.isRotundpup())
-            {
-                // Lower Energy Calculation
-                self.abstractCreature.personality.energy = Random.value;
-                self.abstractCreature.personality.energy = Mathf.Clamp(Custom.PushFromHalf(self.abstractCreature.personality.energy / 1.6f, 0.8f), 0f, 1f);
-                // Base Nervousness & Aggression Calculations
-                self.abstractCreature.personality.nervous = Mathf.Lerp(Random.value, Mathf.Lerp(self.abstractCreature.personality.energy, 1f - self.abstractCreature.personality.bravery, 0.5f), Mathf.Pow(Random.value, 0.25f));
-                self.abstractCreature.personality.aggression = Mathf.Lerp(Random.value, (self.abstractCreature.personality.energy + self.abstractCreature.personality.bravery) / 2f * (1f - self.abstractCreature.personality.sympathy), Mathf.Pow(Random.value, 0.25f));
-                // Higher Dominance Calculation
-                self.abstractCreature.personality.dominance = Mathf.Clamp(Mathf.Lerp(Random.value, (self.abstractCreature.personality.energy + self.abstractCreature.personality.bravery + self.abstractCreature.personality.aggression) / 3f, Mathf.Pow(Random.value, .85f)) * 1.25f, 0f, 1f);
-                // Base Nervousness & Aggression Calculations
-                self.abstractCreature.personality.nervous = Custom.PushFromHalf(self.abstractCreature.personality.nervous, 2.5f);
-                self.abstractCreature.personality.aggression = Custom.PushFromHalf(self.abstractCreature.personality.aggression, 2.5f);
-            }
-            Random.state = state;
         }
 
         // Hooks
@@ -331,33 +228,9 @@ namespace SlugpupStuff
             variCurs.Emit(OpCodes.Or);
 
         }
-        private void VariantMechanicsAquaticpup(Player self)
+        private void Player_ClassMechanicsSaint(On.Player.orig_ClassMechanicsSaint orig, Player self)
         {
-            if (self.isAquaticpup())
-            {
-                self.buoyancy = 0.9f;
-                if (self.grasps[0] != null && self.grasps[0].grabbed is WaterNut)
-                {
-                    (self.grasps[0].grabbed as WaterNut).swellCounter--;
-                    if ((self.grasps[0].grabbed as WaterNut).swellCounter < 1)
-                    {
-                        (self.grasps[0].grabbed as WaterNut).Swell();
-                    }
-                }
-                Player parent = null;
-                if (self.grabbedBy.Count > 0 && self.grabbedBy[0].grabber is Player player)
-                {
-                    parent = player;
-                }
-                if (parent != null && parent.SlugCatClass != MoreSlugcatsEnums.SlugcatStatsName.Rivulet)
-                {
-                    self.slowMovementStun = 5;
-                }
-            }
-        }
-        private void Player_VariantMechanicsTundrapup(On.Player.orig_ClassMechanicsSaint orig, Player self)
-        {
-            if (self.isTundrapup() || (self.SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Saint && self.isNPC))
+            if (self.isTundrapup())
             {
                 Player parent = null;
                 if (self.grabbedBy.Count > 0 && self.grabbedBy[0].grabber is Player player)
@@ -372,32 +245,35 @@ namespace SlugpupStuff
                         parent = parent.onBack.slugOnBack.owner;
                     }
                 }
-                if (parent != null)
+                if (self.SaintTongueCheck())
                 {
-                    if (parent.input[0].jmp && !parent.input[1].jmp && !parent.input[0].pckp && parent.canJump <= 0 && parent.bodyMode != Player.BodyModeIndex.Crawl && parent.animation != Player.AnimationIndex.ClimbOnBeam && parent.animation != Player.AnimationIndex.AntlerClimb && parent.animation != Player.AnimationIndex.HangFromBeam && self.SaintTongueCheck())
+                    if (parent != null)
                     {
-                        Vector2 vector = new(parent.flipDirection, 0.7f);
-                        Vector2 normalized = vector.normalized;
-                        if (parent.input[0].y > 0)
+                        if (parent.input[0].jmp && !parent.input[1].jmp && !parent.input[0].pckp && parent.canJump <= 0 && parent.bodyMode != Player.BodyModeIndex.Crawl && parent.animation != Player.AnimationIndex.ClimbOnBeam && parent.animation != Player.AnimationIndex.AntlerClimb && parent.animation != Player.AnimationIndex.HangFromBeam)
                         {
-                            normalized = new Vector2(0f, 1f);
+                            Vector2 vector = new(parent.flipDirection, 0.7f);
+                            Vector2 normalized = vector.normalized;
+                            if (parent.input[0].y > 0)
+                            {
+                                normalized = new Vector2(0f, 1f);
+                            }
+                            normalized = (normalized + parent.mainBodyChunk.vel.normalized * 0.2f).normalized;
+                            self.tongue.Shoot(normalized);
                         }
-                        normalized = (normalized + self.mainBodyChunk.vel.normalized * 0.2f).normalized;
-                        self.tongue.Shoot(normalized);
                     }
-                }
-                else
-                {
-                    if (self.input[0].jmp && !self.input[1].jmp && !self.input[0].pckp && self.canJump <= 0 && self.bodyMode != Player.BodyModeIndex.Crawl && self.animation != Player.AnimationIndex.ClimbOnBeam && self.animation != Player.AnimationIndex.AntlerClimb && self.animation != Player.AnimationIndex.HangFromBeam && self.SaintTongueCheck())
+                    else
                     {
-                        Vector2 vector = new(self.flipDirection, 0.7f);
-                        Vector2 normalized = vector.normalized;
-                        if (self.input[0].y > 0)
+                        if (self.input[0].jmp && !self.input[1].jmp && !self.input[0].pckp && self.canJump <= 0 && self.bodyMode != Player.BodyModeIndex.Crawl && self.animation != Player.AnimationIndex.ClimbOnBeam && self.animation != Player.AnimationIndex.AntlerClimb && self.animation != Player.AnimationIndex.HangFromBeam)
                         {
-                            normalized = new Vector2(0f, 1f);
+                            Vector2 vector = new(self.flipDirection, 0.7f);
+                            Vector2 normalized = vector.normalized;
+                            if (self.input[0].y > 0)
+                            {
+                                normalized = new Vector2(0f, 1f);
+                            }
+                            normalized = (normalized + self.mainBodyChunk.vel.normalized * 0.2f).normalized;
+                            self.tongue.Shoot(normalized);
                         }
-                        normalized = (normalized + self.mainBodyChunk.vel.normalized * 0.2f).normalized;
-                        self.tongue.Shoot(normalized);
                     }
                 }
             }
@@ -417,6 +293,10 @@ namespace SlugpupStuff
         private void Player_ThrownSpear(On.Player.orig_ThrownSpear orig, Player self, Spear spear)
         {
             orig(self, spear);
+            if (self.isTundrapup())
+            {
+                spear.spearDamageBonus = 0.2f + 0.3f * Mathf.Pow(Random.value, 6f);
+            }
             if (self.isRotundpup() && !self.gourmandExhausted)
             {
                 if (SimplifiedMovesetGourmand)
@@ -432,18 +312,22 @@ namespace SlugpupStuff
         }
         private bool Player_CanEatMeat(On.Player.orig_CanEatMeat orig, Player self, Creature crit)
         {
+            if (self.isTundrapup())
+            {
+                return false;
+            }
             if (self.isHunterpup() || self.isRotundpup())
             {
-                if (crit is IPlayerEdible)
-                { 
-                    return false;
-                }
                 if (!crit.dead)
                 {
                     return false;
                 }
-                if (crit is Player)
+                if (self.EatMeatOmnivoreGreenList(crit))
                 {
+                    return true;
+                }
+                if (crit is IPlayerEdible or Player)
+                { 
                     return false;
                 }
                 return true;
@@ -460,9 +344,40 @@ namespace SlugpupStuff
         }
         private bool Player_SaintTongueCheck(On.Player.orig_SaintTongueCheck orig, Player self)
         {
-            if (self.Consious && self.isTundrapup() && self.tongue.mode == Player.Tongue.Mode.Retracted && self.bodyMode != Player.BodyModeIndex.CorridorClimb && !self.corridorDrop && self.bodyMode != Player.BodyModeIndex.ClimbIntoShortCut && self.bodyMode != Player.BodyModeIndex.WallClimb && self.bodyMode != Player.BodyModeIndex.Swimming && self.animation != Player.AnimationIndex.VineGrab && self.animation != Player.AnimationIndex.ZeroGPoleGrab)
+            if (self.isNPC)
             {
-                return true;
+                Player parent = null;
+                if (self.grabbedBy.Count > 0 && self.grabbedBy[0].grabber is Player player)
+                {
+                    parent = player;
+                }
+                if (self.onBack != null)
+                {
+                    parent = self.onBack.slugOnBack.owner;
+                    while (parent.onBack != null)
+                    {
+                        parent = parent.onBack.slugOnBack.owner;
+                    }
+                }
+                if (self.isTundrapup())
+                {
+                    if (self.Consious)
+                    {
+                        if (self.tongue.mode == Player.Tongue.Mode.Retracted && self.bodyMode != Player.BodyModeIndex.CorridorClimb && !self.corridorDrop && self.bodyMode != Player.BodyModeIndex.ClimbIntoShortCut && self.bodyMode != Player.BodyModeIndex.WallClimb && self.bodyMode != Player.BodyModeIndex.Swimming && self.animation != Player.AnimationIndex.VineGrab && self.animation != Player.AnimationIndex.ZeroGPoleGrab)
+                        {
+                            if (parent != null)
+                            {
+                                if (parent.bodyMode != Player.BodyModeIndex.CorridorClimb && !parent.corridorDrop && parent.bodyMode != Player.BodyModeIndex.ClimbIntoShortCut && parent.bodyMode != Player.BodyModeIndex.WallClimb && parent.bodyMode != Player.BodyModeIndex.Swimming && parent.animation != Player.AnimationIndex.VineGrab && parent.animation != Player.AnimationIndex.ZeroGPoleGrab)
+                                {
+                                    return true;
+                                }
+                                return false;
+                            }
+                            return true;
+                        }
+                    }
+                    return false;
+                }
             }
             return orig(self);
         }
@@ -565,30 +480,45 @@ namespace SlugpupStuff
         {
             if (self.player.isNPC)
             {
-                Player parent = null;
-                if (self.player.grabbedBy.Count > 0 && self.player.grabbedBy[0].grabber is Player player)
-                {
-                    parent = player;
-                }
-                if (self.player.onBack != null)
-                {
-                    parent = self.player.onBack.slugOnBack.owner;
-                    while (parent.onBack != null)
-                    {
-                        parent = parent.onBack.slugOnBack.owner;
-                    }
-                }
                 self.resetRopeLength();
                 if (self.Attached)
                 {
                     self.Release();
                 }
-                else if (parent != null && !slugpupRemix.SaintTundraGrapple.Value && parent.SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Saint)
-                {
-                    return;
-                }
                 else if (self.mode == Player.Tongue.Mode.Retracted)
                 {
+                    Player parent = null;
+                    if (self.player.grabbedBy.Count > 0 && self.player.grabbedBy[0].grabber is Player player)
+                    {
+                        parent = player;
+                    }
+                    if (self.player.onBack != null)
+                    {
+                        parent = self.player.onBack.slugOnBack.owner;
+                        while (parent.onBack != null)
+                        {
+                            parent = parent.onBack.slugOnBack.owner;
+                        }
+                    }
+                    if (parent != null)
+                    {
+                        if (!slugpupRemix.SaintTundraGrapple.Value && parent.SlugCatClass == MoreSlugcatsEnums.SlugcatStatsName.Saint) return;
+
+                        if (slugpupRemix.OneGrapple.Value)
+                        {
+                            if (self.player.onBack != null && self.player.onBack.slugOnBack.owner.onBack != null)
+                            {
+                                return;
+                            }
+                            if (self.player.grabbedBy.Count <= 0)
+                            {
+                                foreach (var grasped in parent.grasps)
+                                {
+                                    if (grasped?.grabbed is Player pup && pup.isNPC && pup.isTundrapup()) return;
+                                }
+                            }
+                        }
+                    }
                     self.mode = Player.Tongue.Mode.ShootingOut;
                     self.player.room.PlaySound(SoundID.Tube_Worm_Shoot_Tongue, self.baseChunk);
                     float num = parent != null ? parent.input[0].x : self.player.input[0].x;
@@ -654,7 +584,11 @@ namespace SlugpupStuff
             {
                 if (obj is Spear)
                 {
-                    return 0.005f;
+                    if (slugpupRemix.TundraViolence.Value)
+                    {
+                        return 0.05f;
+                    }
+                    return 0f;
                 }
             }
             return orig(self, obj, target);
@@ -663,11 +597,22 @@ namespace SlugpupStuff
         {
             if (self.isTundrapup())
             {
+                if (self.TryGetPupVariables(out var pupVariables))
+                {
+                    if (crit.abstractCreature == pupVariables.giftedItem && crit.dead)
+                    {
+                        return true;
+                    }
+                }
                 return false;
             }
             if (self.isHunterpup() || self.isRotundpup())
             {
-                if (crit.dead && crit.State.meatLeft > 0 && crit is not Player)
+                if (crit is Player)
+                {
+                    return false;
+                }
+                if (crit.dead && crit.State.meatLeft > 0)
                 {
                     return true;
                 }
@@ -676,20 +621,6 @@ namespace SlugpupStuff
         }
         private bool SlugNPCAI_WantsToEatThis(On.MoreSlugcats.SlugNPCAI.orig_WantsToEatThis orig, SlugNPCAI self, PhysicalObject obj)
         {
-            if (self.isTundrapup())
-            {
-                if (obj is JellyFish)
-                {
-                    return false;
-                }
-                if (self.friendTracker.giftOfferedToMe?.item != null && self.friendTracker.giftOfferedToMe.item == obj)
-                {
-                    if ((obj is Creature crit && self.TheoreticallyEatMeat(crit, false) && crit.dead))
-                    {
-                        return !self.IsFull;
-                    }
-                }
-            }
             if (self.isAquaticpup())
             {
                 if (obj is WaterNut)
@@ -702,6 +633,17 @@ namespace SlugpupStuff
         }
         private bool SlugNPCAI_HasEdible(On.MoreSlugcats.SlugNPCAI.orig_HasEdible orig, SlugNPCAI self)
         {
+            if (self.isTundrapup() && self.TryGetPupVariables(out var pupVariables))
+            {
+                if (orig(self) && self.cat.grasps[0].grabbed is Creature or JellyFish)
+                {
+                    if (self.cat.grasps[0].grabbed.abstractPhysicalObject == pupVariables.giftedItem)
+                    {
+                        return true;
+                    }
+                    return false;
+                }
+            }
             if (self.isAquaticpup())
             {
                 if (orig(self) && self.cat.grasps[0].grabbed is WaterNut)
@@ -1049,7 +991,7 @@ namespace SlugpupStuff
                         break;
                     }
                 }
-                if (self.isAquaticpup() || !self.isRivulet && pupGrabbed != null && pupGrabbed.isAquaticpup())
+                if (self.isAquaticpup() || !self.isRivulet && (pupGrabbed != null && pupGrabbed.isAquaticpup()))
                 {
                     self.waterJumpDelay = 12;
                 }
@@ -1125,7 +1067,7 @@ namespace SlugpupStuff
                         break;
                     }
                 }
-                if (self.isAquaticpup() || !self.isRivulet && pupGrabbed != null && pupGrabbed.isAquaticpup())
+                if (self.isAquaticpup() || !self.isRivulet && (pupGrabbed != null && pupGrabbed.isAquaticpup()))
                 {
                     return true;
                 }
@@ -1151,7 +1093,7 @@ namespace SlugpupStuff
                         break;
                     }
                 }
-                if (self.isAquaticpup() || !self.isRivulet && pupGrabbed != null && pupGrabbed.isAquaticpup())
+                if (self.isAquaticpup() || !self.isRivulet && (pupGrabbed != null && pupGrabbed.isAquaticpup()))
                 {
                     return true;
                 }
@@ -1177,7 +1119,7 @@ namespace SlugpupStuff
                         break;
                     }
                 }
-                if (self.isAquaticpup() || !self.isRivulet && pupGrabbed != null && pupGrabbed.isAquaticpup())
+                if (self.isAquaticpup() || !self.isRivulet && (pupGrabbed != null && pupGrabbed.isAquaticpup()))
                 {
                     return true;
                 }
@@ -1204,7 +1146,7 @@ namespace SlugpupStuff
                         break;
                     }
                 }
-                if (self.isAquaticpup() || !self.isRivulet && pupGrabbed != null && pupGrabbed.isAquaticpup())
+                if (self.isAquaticpup() || !self.isRivulet && (pupGrabbed != null && pupGrabbed.isAquaticpup()))
                 {
                     return 16f;
                 }
@@ -1230,7 +1172,7 @@ namespace SlugpupStuff
                         break;
                     }
                 }
-                if (self.isAquaticpup() || !self.isRivulet && pupGrabbed != null && pupGrabbed.isAquaticpup())
+                if (self.isAquaticpup() || !self.isRivulet && (pupGrabbed != null && pupGrabbed.isAquaticpup()))
                 {
                     return 16f;
                 }
@@ -1255,7 +1197,7 @@ namespace SlugpupStuff
                         break;
                     }
                 }
-                if (self.isAquaticpup() || !self.isRivulet && pupGrabbed != null && pupGrabbed.isAquaticpup())
+                if (self.isAquaticpup() || !self.isRivulet && (pupGrabbed != null && pupGrabbed.isAquaticpup()))
                 {
                     return true;
                 }
@@ -1282,7 +1224,7 @@ namespace SlugpupStuff
                         break;
                     }
                 }
-                if (self.isAquaticpup() || !self.isRivulet && pupGrabbed != null && pupGrabbed.isAquaticpup())
+                if (self.isAquaticpup() || !self.isRivulet && (pupGrabbed != null && pupGrabbed.isAquaticpup()))
                 {
                     return 9;
                 }
@@ -1307,7 +1249,7 @@ namespace SlugpupStuff
                         break;
                     }
                 }
-                if (self.isAquaticpup() || !self.isRivulet && pupGrabbed != null && pupGrabbed.isAquaticpup())
+                if (self.isAquaticpup() || !self.isRivulet && (pupGrabbed != null && pupGrabbed.isAquaticpup()))
                 {
                     return true;
                 }
@@ -1334,7 +1276,7 @@ namespace SlugpupStuff
                         break;
                     }
                 }
-                if (self.isAquaticpup() || !self.isRivulet && pupGrabbed != null && pupGrabbed.isAquaticpup())
+                if (self.isAquaticpup() || !self.isRivulet && (pupGrabbed != null && pupGrabbed.isAquaticpup()))
                 {
                     return 10f;
                 }
@@ -1516,7 +1458,7 @@ namespace SlugpupStuff
                     {
                         if (self.isTundrapup())
                         {
-                            return true;
+                            return !slugpupRemix.TundraViolence.Value;
                         }
                         return false;
                     });
@@ -1601,13 +1543,9 @@ namespace SlugpupStuff
             {
                 if (player.playerState.TryGetPupState(out var pupNPCState))
                 {
-                    if (player.abstractCreature.superSizeMe)
-                    {
-                        player.setPupStatus(false);
-                    }
                     if (player.isSlugpup && player.abstractCreature.creatureTemplate.type == MoreSlugcatsEnums.CreatureTemplateType.SlugNPC)
                     {
-                        pupNPCState.Variant ??= GetSlugpupVariant(player);
+                        pupNPCState.Variant ??= player.GetSlugpupVariant();
                     }
                 }
             });
@@ -1622,16 +1560,102 @@ namespace SlugpupStuff
             statsCurs.Emit(OpCodes.Ldarg_1); // player
             statsCurs.EmitDelegate((Player.NPCStats self, Player player) =>
             {
+
                 if (player.playerState.TryGetPupState(out var pupNPCState))
                 {
+                    if (player.abstractCreature.superSizeMe) player.playerState.forceFullGrown = true;
+
+                    Random.State state = Random.state;
+                    Random.InitState(player.abstractCreature.ID.RandomSeed);
                     if (pupNPCState.Variant != null)
                     {
-                        if (pupNPCState.Variant == VariantName.Hunterpup && player.playerState.isPup)
+                        AbstractCreature.Personality personality = player.abstractCreature.personality;
+                        if (pupNPCState.Variant == VariantName.Aquaticpup)
                         {
-                            self.Size = Mathf.Pow(Random.Range(0.75f, 1.75f), 1.5f);
-                            self.Wideness = Mathf.Pow(Random.Range(0.5f, 1.25f), 1.5f);
+                            self.Bal = Mathf.Lerp(Random.Range(0f, 0.2f), 1f, self.Bal);
+                            self.Met = Mathf.Lerp(Random.Range(0.1f, 0.3f), 1f, self.Met);
+
+                            // Higher Energy
+                            //      increased by higher metabolism, and lower size
+                            //      decreased by lower balance
+                            personality.energy = Mathf.Clamp01(Mathf.Pow(personality.energy + Random.Range(0f, 0.25f), 0.5f + 0.1f * (1f - self.Met) + 0.15f * self.Size + 0.1f * (1f - self.Bal)));
+
+                            // Base Personality Calculations
+                            personality.nervous = Mathf.Lerp(Random.value, Mathf.Lerp(personality.energy, 1f - personality.bravery, 0.5f), Mathf.Pow(Random.value, 0.25f));
+                            personality.aggression = Mathf.Lerp(Random.value, (personality.energy + personality.bravery) / 2f * (1f - personality.sympathy), Mathf.Pow(Random.value, 0.25f));
+                            personality.dominance = Mathf.Lerp(Random.value, (personality.energy + personality.bravery + personality.aggression) / 3f, Mathf.Pow(Random.value, 0.25f));
+                            personality.nervous = Custom.PushFromHalf(personality.nervous, 2.5f);
+                            personality.aggression = Custom.PushFromHalf(personality.aggression, 2.5f);
                         }
+                        if (pupNPCState.Variant == VariantName.Tundrapup)
+                        {
+                            self.Size = Mathf.Lerp(0f, Random.Range(0.7f, 1f), self.Size);
+                            self.Stealth = Mathf.Lerp(Random.Range(0f, 0.3f), 1f, self.Stealth);
+
+                            // Higher Nervousness
+                            //      increased by lower color luminosity, and lower size
+                            //      decreased by higher stealth
+                            personality.nervous = Mathf.Clamp01(Mathf.Pow(personality.nervous + Random.Range(0f, 0.3f), 0.4f + 0.15f * self.Size + 0.15f * self.L + 0.1f * self.Stealth));
+
+                            // Higher Sympathy
+                            //      increased by lower size
+                            //      decreased by higher metabolism
+                            personality.sympathy = Mathf.Clamp01(Mathf.Pow(personality.sympathy + Random.Range(0f, 0.2f), 0.5f + 0.15f * self.Size + 0.15f * self.Met));
+
+                            // Lower Aggression
+                            //      increased by higher size, and higher metabolism
+                            //      decreased by higher stealth
+                            personality.aggression = Mathf.Clamp01(Mathf.Pow(personality.aggression - Random.Range(0f, 0.15f), 1.35f + 0.15f * (1f - self.Size) + 0.1f * (1f - self.Met) + 0.15f * self.Stealth));
+                            if (float.IsNaN(personality.aggression)) personality.aggression = float.MinValue;
+
+                            // Base Personality Calculations
+                            personality.dominance = Mathf.Lerp(Random.value, (personality.energy + personality.bravery + personality.aggression) / 3f, Mathf.Pow(Random.value, 0.25f));
+                        }
+                        if (pupNPCState.Variant == VariantName.Hunterpup && (player.playerState.isPup || !player.playerState.forceFullGrown))
+                        {
+                            self.Size = Mathf.Lerp(0.5f, Random.Range(1.5f, 1.8f), self.Size);
+                            self.Wideness = Mathf.Lerp(0.35f, Random.Range(1f, 1.3f), self.Wideness);
+
+                            // Higher Bravery
+                            //      increased by higher stealth, and higher wideness
+                            //      decreased by lower size
+                            personality.bravery = Mathf.Clamp01(Mathf.Pow(personality.bravery + Random.Range(0f, 0.3f), 0.5f + 0.15f * (1f - self.Stealth) + 0.1f * (1f - self.Wideness) + 0.15f * (1f - self.Size)));
+
+                            // Higher Aggression
+                            //      increased by higher metabolism, and higher size
+                            //      decreased by higher stealth
+                            personality.aggression = Mathf.Clamp01(Mathf.Pow(personality.aggression + Random.Range(0f, 0.2f), 0.6f + 0.1f * (1f - self.Met) + 0.15f * (1f - self.Size) + 0.15f * self.Stealth));
+
+                            // Base Personality Calculations
+                            personality.nervous = Mathf.Lerp(Random.value, Mathf.Lerp(personality.energy, 1f - personality.bravery, 0.5f), Mathf.Pow(Random.value, 0.25f));
+                            personality.dominance = Mathf.Lerp(Random.value, (personality.energy + personality.bravery + personality.aggression) / 3f, Mathf.Pow(Random.value, 0.25f));
+                            personality.nervous = Custom.PushFromHalf(personality.nervous, 2.5f);
+                        }
+                        if (pupNPCState.Variant == VariantName.Rotundpup)
+                        {
+                            self.Wideness = Mathf.Lerp(0.5f, Random.Range(1.65f, 1.8f), self.Wideness);
+                            self.Met = Mathf.Lerp(0f, Random.Range(0.7f, 0.9f), self.Met);
+
+                            // Lower Energy
+                            //      increased by lower metabolism
+                            //      decreased by lower balance, and higher wideness
+                            personality.energy = Mathf.Clamp01(Mathf.Pow(personality.energy - Random.Range(0f, 0.1f), 1.2f + 0.1f * (1f - self.Met) + 0.1f * (1f - self.Bal) + 0.15f * self.Wideness));
+
+                            // Higher Dominance
+                            //      increased by higher size, high wideness
+                            //      decreased by lower widness
+                            personality.dominance = Mathf.Clamp01(Mathf.Pow(personality.dominance + Random.Range(0f, 0.25f), 0.4f + 0.1f * (1f - self.Size) + 0.2f * (1f - self.Wideness)));
+                            if (float.IsNaN(personality.dominance)) personality.dominance = float.MinValue;
+
+                            // Base Personality Calculations
+                            personality.nervous = Mathf.Lerp(Random.value, Mathf.Lerp(personality.energy, 1f - personality.bravery, 0.5f), Mathf.Pow(Random.value, 0.25f));
+                            personality.aggression = Mathf.Lerp(Random.value, (personality.energy + personality.bravery) / 2f * (1f - personality.sympathy), Mathf.Pow(Random.value, 0.25f));
+                            personality.nervous = Custom.PushFromHalf(personality.nervous, 2.5f);
+                            personality.aggression = Custom.PushFromHalf(personality.aggression, 2.5f);
+                        }
+                        player.abstractCreature.personality = personality;
                     }
+                    Random.state = state;
                 }
             });
 
