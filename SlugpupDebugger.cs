@@ -62,16 +62,48 @@ namespace SlugpupStuff
                 }
             }
 
+            public List<MovementConnection> GetUpcoming(ArtificialIntelligence ai, int count)
+            {
+                if (ai.pathFinder != null && ai.pathFinder is StandardPather)
+                {
+                    MovementConnection movementConnection = (ai.pathFinder as StandardPather).FollowPath(ai.creature.pos, actuallyFollowingThisPath: false);
+                    if (movementConnection != default)
+                    {
+                        List<MovementConnection> connections = new();
+                        for (int i = 0; i < count; i++)
+                        {
+                            if (!(movementConnection != default)) break;
+                            connections.Add(movementConnection);
+
+                            movementConnection = (ai.pathFinder as StandardPather).FollowPath(movementConnection.destinationCoord, actuallyFollowingThisPath: false);
+                            for (int j = 0; j < connections.Count; j++)
+                            {
+                                if (!(movementConnection != default)) break;
+                                if (connections[j].destinationCoord == movementConnection.destinationCoord)
+                                {
+                                    movementConnection = default;
+                                }
+                            }
+                            if (movementConnection == default) break;
+                        }
+                        return connections;
+                    }
+                }
+                return null;
+            }
+
             public SlugNPCAI AI;
             public Creature crit;
+            int connectionCount;
             public ConnectionSprite[] conSprites;
             public ConnectionSprite[] savedConSprites;
             public DebugSprite[] destSprites;
-            public PathingVisualizer(SlugNPCAI pup)
+            public PathingVisualizer(SlugNPCAI pup, int count)
             {
                 AI = pup;
                 crit = pup.cat;
-                conSprites = new ConnectionSprite[2];
+                connectionCount = count;
+                conSprites = new ConnectionSprite[connectionCount];
                 //if (AI.pathFinder is StandardPather standardPather)
                 //{
                 //    savedConSprites = new ConnectionSprite[standardPather.savedPastConnections];
@@ -145,16 +177,16 @@ namespace SlugpupStuff
             public void VisualizeConnections()
             {
 
-                List<MovementConnection> upcoming = AI.GetUpcoming();
+                List<MovementConnection> upcoming = GetUpcoming(AI, connectionCount);
                 if (upcoming != null)
                 {
                     for (int u = 0; u < upcoming.Count && u < conSprites.Length; u++)
                     {
-                        Vector2 vector = crit.room.MiddleOfTile(upcoming[u].startCoord);
-                        Vector2 vector2 = crit.room.MiddleOfTile(upcoming[u].destinationCoord);
-                        conSprites[u].pos = vector2;
-                        conSprites[u].sprite.rotation = Custom.AimFromOneVectorToAnother(vector2, vector);
-                        conSprites[u].sprite.scaleY = Vector2.Distance(vector2, vector);
+                        Vector2 startCoord = crit.room.MiddleOfTile(upcoming[u].startCoord);
+                        Vector2 destCoord = crit.room.MiddleOfTile(upcoming[u].destinationCoord);
+                        conSprites[u].pos = destCoord;
+                        conSprites[u].sprite.rotation = Custom.AimFromOneVectorToAnother(destCoord, startCoord);
+                        conSprites[u].sprite.scaleY = Vector2.Distance(destCoord, startCoord);
                         conSprites[u].connection = upcoming[u];
                         conSprites[u].sprite.isVisible = true;
                     }
@@ -174,39 +206,6 @@ namespace SlugpupStuff
                     }
                 }
 
-                if (savedConSprites != null)
-                {
-                    List<MovementConnection> saved = (AI.pathFinder as StandardPather).pastConnections;
-                    if (saved != null)
-                    {
-                        for (int s = 0; s < saved.Count && s < savedConSprites.Length; s++)
-                        {
-                            Vector2 vector = crit.room.MiddleOfTile(saved[s].startCoord);
-                            Vector2 vector2 = crit.room.MiddleOfTile(saved[s].destinationCoord);
-                            savedConSprites[s].pos = vector2;
-                            savedConSprites[s].sprite.rotation = Custom.AimFromOneVectorToAnother(vector2, vector);
-                            savedConSprites[s].sprite.scaleY = Vector2.Distance(vector2, vector);
-                            savedConSprites[s].connection = saved[s];
-                            savedConSprites[s].sprite.color = Color.white;
-                            savedConSprites[s].sprite.alpha = 0.5f;
-                            savedConSprites[s].sprite.isVisible = true;
-                        }
-                        for (int sa = 0; sa < savedConSprites.Length; sa++)
-                        {
-                            if (!saved.Contains(savedConSprites[sa].connection))
-                            {
-                                savedConSprites[sa].sprite.isVisible = false;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        for (int sb = 0; sb < savedConSprites.Length; sb++)
-                        {
-                            savedConSprites[sb].sprite.isVisible = false;
-                        }
-                    }
-                }
                 //if (AI.pathFinder.destination != null)
                 //{
                 //    destSprites[0].pos = crit.Room.realizedRoom.MiddleOfTile(AI.pathFinder.destination);
@@ -244,17 +243,25 @@ namespace SlugpupStuff
 
             public void Update(Vector2 pos)
             {
-                int num = 0;
+                int labelNumber = 0;
                 Vector2 labelPos = default;
                 foreach (var infoLabel in labelDict.Values)
                 {
+                    if (!toggleLabels) infoLabel.label.isVisible = false;
                     if (infoLabel.obj.room == creature.room.world.game.cameras[0].room)
                     {
                         if (!infoLabel.label.isVisible) continue;
-                        labelPos = (pos - new Vector2(0f, 15f) * num);
+                        labelPos = (pos - new Vector2(0f, 15f) * labelNumber);
+                        int labelAmount = 0;
+                        foreach (var infoLabelB in labelDict.Values)
+                        {
+                            if (infoLabel == infoLabelB || !infoLabelB.label.isVisible) continue;
+                            labelAmount++;
+                        }
+                        labelPos += new Vector2(0f, 15f) * labelAmount;
                         infoLabel.label.x = labelPos.x - creature.room.world.game.cameras[0].pos.x;
                         infoLabel.label.y = labelPos.y - creature.room.world.game.cameras[0].pos.y;
-                        num++;
+                        labelNumber++;
                         infoLabel.label.isVisible = true;
                     }
                     else
@@ -285,23 +292,34 @@ namespace SlugpupStuff
             {
                 DebugLabel infoLabel = new(creature, default);
                 infoLabel.label.color = Color.white;
-                Futile.stage.AddChild(infoLabel.label);
+                creature.room.world.game.cameras[0].ReturnFContainer("HUD").AddChild(infoLabel.label);
                 labelDict.Add(name, infoLabel);
             }
 
-            public void UpdateLabel(string name, string label)
+            public void AddLabelstoContainer(RoomCamera rCam)
+            {
+                foreach (var infoLabel in labelDict.Values)
+                {
+                    infoLabel.label.RemoveFromContainer();
+                    rCam.ReturnFContainer("HUD").AddChild(infoLabel.label);
+                }
+            }
+
+            public void UpdateLabel(string name, string label, bool visible = true)
             {
                 if (labelDict.TryGetValue(name, out var infoLabel))
                 {
                     infoLabel.label.text = label;
+                    infoLabel.label.isVisible = visible;
                 }
+                else AddLabel(name);
             }
 
             public void RemoveLabel(string name)
             {
-                if (labelDict.TryGetValue(name, out var infolabel))
+                if (labelDict.TryGetValue(name, out var infoLabel))
                 {
-                    infolabel.label.RemoveFromContainer();
+                    infoLabel.label.RemoveFromContainer();
                     labelDict.Remove(name);
                 }
             }
@@ -310,12 +328,15 @@ namespace SlugpupStuff
             {
                 if (labelDict.TryGetValue(name, out var infoLabel))
                 {
-                    if (infoLabel.obj.room == creature.room.world.game.cameras[0].room)
-                    {
-                        infoLabel.label.isVisible = visible;
-                    }
-
+                    infoLabel.label.isVisible = visible;
                 }
+            }
+
+            public static bool toggleLabels = false;
+            public static void ToggleLabels()
+            {
+                if (toggleLabels) toggleLabels = false;
+                else toggleLabels = true;
             }
         }
     }

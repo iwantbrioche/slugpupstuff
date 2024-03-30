@@ -9,6 +9,8 @@ using System.Text.RegularExpressions;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
 using Random = UnityEngine.Random;
+using static SlugpupStuff.SlugpupStuff;
+using RWCustom;
 
 namespace SlugpupStuff
 {
@@ -31,6 +33,18 @@ namespace SlugpupStuff
             }
         }
 
+        public static void SubtractQuarterFood(this Player self)
+        {
+            if (self.FoodInStomach > 0)
+            {
+                self.playerState.quarterFoodPoints--;
+                if (self.playerState.quarterFoodPoints < -1)
+                {
+                    self.playerState.quarterFoodPoints += 3;
+                    self.SubtractFood(1);
+                }
+            }
+        }
         public static void PupSwallowObject(this Player self, int grabbedIndex)
         {
             Player parent = null;
@@ -76,7 +90,8 @@ namespace SlugpupStuff
                     {
                         if (spitUpObject)
                         {
-                            self.SubtractFood(1);
+                            self.SubtractQuarterFood();
+                            self.SubtractQuarterFood();
                         }
                         self.Regurgitate();
                     }
@@ -92,32 +107,110 @@ namespace SlugpupStuff
                 }
             }
         }
-        public static bool WantsItem(this SlugNPCAI self, PhysicalObject obj)
+        public static void VariantMechanicsAquaticpup(this Player self)
         {
-            if (!(Random.value < Mathf.Lerp(0f, 0.9f, Mathf.InverseLerp(0.4f, 1f, self.cat.abstractCreature.personality.bravery))))
+            if (self.isAquaticpup())
             {
-                if ((obj is Spear || obj is ScavengerBomb || obj is SingularityBomb) && Random.value < Mathf.Lerp(0f, 0.05f, Mathf.InverseLerp(0.4f, 1f, self.cat.abstractCreature.personality.aggression)))
+                self.buoyancy = 0.9f;
+                if (self.grasps[0] != null && self.grasps[0].grabbed is WaterNut)
                 {
-                    return true;
+                    (self.grasps[0].grabbed as WaterNut).swellCounter--;
+                    if ((self.grasps[0].grabbed as WaterNut).swellCounter < 1)
+                    {
+                        (self.grasps[0].grabbed as WaterNut).Swell();
+                    }
                 }
-                if (Random.value < Mathf.Lerp(0f, 0.05f * ((obj is DataPearl || obj is OverseerCarcass || obj is NSHSwarmer || obj is VultureMask) ? 3f : 1f), Mathf.InverseLerp(0.4f, 1f, self.cat.abstractCreature.personality.energy)))
+                Player parent = null;
+                if (self.grabbedBy.Count > 0 && self.grabbedBy[0].grabber is Player player)
                 {
-                    return true;
+                    parent = player;
                 }
-                if ((obj is FirecrackerPlant || obj is FlyLure || obj is PuffBall || obj is FlareBomb || obj is GooieDuck || obj is BubbleGrass || obj is NeedleEgg) && Random.value < Mathf.Lerp(0f, 0.05f, Mathf.InverseLerp(0.3f, 1f, self.cat.abstractCreature.personality.dominance)))
+                if (parent != null && parent.SlugCatClass != MoreSlugcatsEnums.SlugcatStatsName.Rivulet)
                 {
-                    return true;
-                }
-                if ((obj is Rock || obj is PuffBall || obj is FlareBomb || obj is FirecrackerPlant || obj is LillyPuck || obj is JellyFish) && Random.value < Mathf.Lerp(0f, 0.05f, Mathf.InverseLerp(0.3f, 1f, self.cat.abstractCreature.personality.nervous)))
-                {
-                    return true;
+                    if (!self.submerged)
+                    {
+                        self.slowMovementStun = 5;
+                    }
+                    if (!parent.monkAscension)
+                    {
+                        parent.buoyancy = 0.9f;
+                    }
                 }
             }
-            return false;
         }
-        public static float LerpModifier(float a, float b, float t, float mod)
+        public static void VariantMechanicsRotundpup(this Player self)
         {
-            return Mathf.Clamp01(Mathf.Lerp(mod < 1f ? a : a * mod, mod > 1f ? b : b * mod, t));
+            Player pupOnBack = null;
+            if (self.slugOnBack?.slugcat != null)
+            {
+                pupOnBack = self.slugOnBack.slugcat;
+                while (pupOnBack.slugOnBack?.slugcat != null)
+                {
+                    if (pupOnBack.isRotundpup()) break;
+                    pupOnBack = pupOnBack.slugOnBack.slugcat;
+                }
+            }
+            if (self.TryGetParentVariables(out var parentVariables))
+            {
+                if (pupOnBack != null && pupOnBack.isRotundpup() && self.aerobicLevel >= 0.9f)
+                {
+                    parentVariables.rotundPupExhaustion = true;
+                }
+                if (self.aerobicLevel < 0.6f)
+                {
+                    parentVariables.rotundPupExhaustion = false;
+                }
+                if (parentVariables.rotundPupExhaustion)
+                {
+                    if (pupOnBack != null && pupOnBack.isRotundpup())
+                    {
+                        self.slowMovementStun = Mathf.Max(self.slowMovementStun, (int)Custom.LerpMap(self.aerobicLevel, 0.35f, 0.2f, 4f, 0f));
+                    }
+                    self.lungsExhausted = true;
+                }
+            }
+        }
+        public static SlugcatStats.Name GetSlugpupVariant(this Player player)
+        {
+            if (SlugpupStuff.Pearlcat && PupsPlusModCompat.IsPearlpup(player)) return null;
+
+            if (player.abstractCreature.TryGetPupAbstract(out var pupAbstract))
+            {
+                if (pupAbstract.aquatic) return VariantName.Aquaticpup;
+                if (pupAbstract.tundra) return VariantName.Tundrapup;
+                if (pupAbstract.hunter) return VariantName.Hunterpup;
+                if (pupAbstract.rotund) return VariantName.Rotundpup;
+                if (pupAbstract.regular) return null;
+            }
+
+            if (!SlugpupStuff.ID_PupIDExclude().Contains(player.abstractCreature.ID.RandomSeed))
+            {
+                Random.State state = Random.state;
+                Random.InitState(player.abstractCreature.ID.RandomSeed);
+
+                float variChance = Random.value;
+
+                Random.state = state;
+
+                // setup variant chance
+                if (variChance <= aquaticChance || ID_AquaticPupID().Contains(player.abstractCreature.ID.RandomSeed))
+                {
+                    return VariantName.Aquaticpup;
+                }
+                else if (variChance <= tundraChance || ID_TundraPupID().Contains(player.abstractCreature.ID.RandomSeed))
+                {
+                    return VariantName.Tundrapup;
+                }
+                else if (variChance <= hunterchance || ID_HunterPupID().Contains(player.abstractCreature.ID.RandomSeed))
+                {
+                    return VariantName.Hunterpup;
+                }
+                else if (variChance <= rotundChance || ID_RotundPupID().Contains(player.abstractCreature.ID.RandomSeed))
+                {
+                    return VariantName.Rotundpup;
+                }
+            }
+            return null;
         }
     }
 }

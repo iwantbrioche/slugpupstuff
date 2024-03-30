@@ -12,12 +12,7 @@
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)' == 'Debug'">
-		<OutputPath>mod\debug\plugins</OutputPath>
-		<DebugType>portable</DebugType>
-	</PropertyGroup>
-
-	<PropertyGroup Condition="'$(Configuration)' == 'Release'">
-		<OutputPath>mod\release\plugins\newest</OutputPath>
+		<OutputPath>mod\newest\plugins</OutputPath>
 		<DebugType>portable</DebugType>
 	</PropertyGroup>
 	

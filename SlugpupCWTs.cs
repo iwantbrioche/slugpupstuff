@@ -8,9 +8,11 @@ namespace SlugpupStuff
     {
         public static readonly ConditionalWeakTable<PlayerGraphics, PupGraphics> pupGraphicsCWT = new();
 
+        public static readonly ConditionalWeakTable<Player, ParentVariables> parentVariablesCWT = new();
+
         public static readonly ConditionalWeakTable<SlugNPCAI, PupVariables> pupCWT = new();
 
-        public static readonly ConditionalWeakTable<PlayerNPCState, PupNPCState> pupStateCWT = new();
+        public static readonly ConditionalWeakTable<PlayerNPCState, PupState> pupStateCWT = new();
 
         public static readonly ConditionalWeakTable<AbstractCreature, PupAbstract> pupAbstractCWT = new();
 
@@ -91,15 +93,15 @@ namespace SlugpupStuff
             return state || self.cat.slugcatStats.name == SlugpupStuff.VariantName.Rotundpup;
         }
 
-        public static PupNPCState GetPupState(this PlayerNPCState self)
+        public static PupState GetPupState(this PlayerNPCState self)
         {
             if (self != null)
             {
-                return pupStateCWT.GetValue(self, _ => new PupNPCState());
+                return pupStateCWT.GetValue(self, _ => new PupState());
             }
             return null;
         }
-        public static bool TryGetPupState(this PlayerState self, out PupNPCState pupNPCState)
+        public static bool TryGetPupState(this PlayerState self, out PupState pupNPCState)
         {
             if (self != null && self is PlayerNPCState playerNPCState)
             {
@@ -109,7 +111,7 @@ namespace SlugpupStuff
 
             return pupNPCState != null;
         }
-        public static bool TryGetPupState(this PlayerNPCState self, out PupNPCState pupNPCState)
+        public static bool TryGetPupState(this PlayerNPCState self, out PupState pupNPCState)
         {
             if (self != null)
             {
@@ -120,6 +122,24 @@ namespace SlugpupStuff
             return pupNPCState != null;
         }
 
+        public static ParentVariables GetParentVariables(this Player self)
+        {
+            if (self != null)
+            {
+                return parentVariablesCWT.GetValue(self, _ => new ParentVariables());
+            }
+            return null;
+        }
+        public static bool TryGetParentVariables(this Player self, out ParentVariables parentVariables)
+        {
+            if (self != null)
+            {
+                parentVariables = self.GetParentVariables();
+            }
+            else parentVariables = null;
+
+            return parentVariables != null;
+        }
         public static PupVariables GetPupVariables(this SlugNPCAI self)
         {
             if (self != null)
@@ -188,6 +208,10 @@ namespace SlugpupStuff
         }
 
 
+        public class ParentVariables
+        {
+            public bool rotundPupExhaustion;
+        }
         public class PupVariables
         {
             public bool regurgitating;
@@ -197,30 +221,6 @@ namespace SlugpupStuff
 
             public AbstractPhysicalObject giftedItem;
 
-            public float energyMin = 0f;
-            public float energyMax = 1f;
-            public float energyMod = 1f;
-
-            public float braveryMin = 0f;
-            public float braveryMax = 1f;
-            public float braveryMod = 1f;
-
-            public float sympathyMin = 0f;
-            public float sympathyMax = 1f;
-            public float sympathyMod = 1f;
-
-            public float dominanceMin = 0f;
-            public float dominanceMax = 1f;
-            public float dominanceMod = 1f;
-
-            public float nervousMin = 0f;
-            public float nervousMax = 1f;
-            public float nervousMod = 1f;
-
-            public float aggressionMin = 0f;
-            public float aggressionMax = 1f;
-            public float aggressionMod = 1f;
-
             public SlugpupDebugger.DebugLabelManager labelManager;
             public SlugpupDebugger.PathingVisualizer pathingVisualizer;
         }
@@ -229,7 +229,7 @@ namespace SlugpupStuff
             public int TongueSpriteIndex;
         }
 
-        public class PupNPCState
+        public class PupState
         {
             public SlugcatStats.Name Variant;
             public AbstractPhysicalObject PupsPlusStomachObject;

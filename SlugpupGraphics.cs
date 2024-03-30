@@ -126,12 +126,16 @@ namespace SlugpupStuff
             {
                 self.gills.AddToContainer(sLeaser, rCam, rCam.ReturnFContainer("Midground"));
             }
-            if (SlugpupCWTs.pupGraphicsCWT.TryGetValue(self, out var pupGraphics))
+            if (self.TryGetPupGraphics(out var pupGraphics))
             {
                 if (self.player.isTundrapup())
                 {
                     rCam.ReturnFContainer("Midground").AddChild(sLeaser.sprites[pupGraphics.TongueSpriteIndex]);
                 }
+            }
+            if (self.player.TryGetPupVariables(out var pupVariables))
+            {
+                pupVariables.labelManager?.AddLabelstoContainer(rCam);
             }
         }
         private static void PlayerGraphics_DrawSprites(On.PlayerGraphics.orig_DrawSprites orig, PlayerGraphics self, RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)

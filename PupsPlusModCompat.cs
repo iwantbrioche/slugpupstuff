@@ -66,8 +66,15 @@ namespace SlugpupStuff
                     else return null;
                 })
                 .Register();
-
-
+        }
+        public static void RegisterPupsPlusDebugCommands()
+        {
+            new CommandBuilder("slugpupDebuglabels_toggle")
+                .RunGame((game, args) =>
+                {
+                    SlugpupDebugger.DebugLabelManager.ToggleLabels();
+                })
+                .Register();
         }
         public static void SetupDMSSprites()
         {
