@@ -18,17 +18,17 @@ using HUD;
 
 namespace SlugpupStuff
 {
-    [BepInPlugin(MOD_ID, "Slugpup Stuff", "1.2.13")]
+    [BepInPlugin(MOD_ID, "Slugpup Stuff", "1.2.15")]
     public partial class SlugpupStuff : BaseUnityPlugin
     {
         public const string MOD_ID = "iwantbread.slugpupstuff";
         private bool IsInit;
         private bool PostIsInit;
-        public SlugpupStuffRemix slugpupRemix;
-        public static float aquaticChance;
-        public static float tundraChance;
-        public static float hunterchance;
-        public static float rotundChance;
+        public static SlugpupStuffRemix slugpupRemix;
+        public static float aquaticChance => (slugpupRemix.aquaticChance.Value - slugpupRemix.tundraChance.Value) / 100f;
+        public static float tundraChance => ((slugpupRemix.tundraChance.Value - slugpupRemix.hunterChance.Value) / 100f) + aquaticChance;
+        public static float hunterchance => ((slugpupRemix.hunterChance.Value - slugpupRemix.rotundChance.Value) / 100f) + tundraChance;
+        public static float rotundChance => (slugpupRemix.rotundChance.Value / 100f) + hunterchance;
         public void OnEnable()
         {
             On.RainWorld.OnModsInit += RainWorld_OnModsInit;
@@ -110,7 +110,6 @@ namespace SlugpupStuff
                 On.SlugcatStats.SlugcatFoodMeter += SlugcatStats_SlugcatFoodMeter;
                 On.SlugcatStats.HiddenOrUnplayableSlugcat += SlugcatStats_HiddenOrUnplayableSlugcat;
                 On.Player.Tongue.Shoot += Tongue_Shoot;
-                On.MoreSlugcats.PlayerNPCState.ctor += PlayerNPCState_ctor;
                 On.MoreSlugcats.PlayerNPCState.ToString += PlayerNPCState_ToString;
                 On.MoreSlugcats.PlayerNPCState.LoadFromString += PlayerNPCState_LoadFromString;
                 On.AbstractCreature.setCustomFlags += AbstractCreature_setCustomFlags;
@@ -120,11 +119,6 @@ namespace SlugpupStuff
                 IL.SlugcatStats.NourishmentOfObjectEaten += IL_SlugcatStats_NourishmentOfObjectEaten;
                 IL.RegionState.AdaptRegionStateToWorld += IL_RegionState_AdaptRegionStateToWorld;
                 IL.MoreSlugcats.PlayerNPCState.CycleTick += IL_PlayerNPCState_CycleTick;
-
-                aquaticChance = (slugpupRemix.aquaticChance.Value - slugpupRemix.tundraChance.Value) / 100f;
-                tundraChance = ((slugpupRemix.tundraChance.Value - slugpupRemix.hunterChance.Value) / 100f) + aquaticChance;
-                hunterchance = ((slugpupRemix.hunterChance.Value - slugpupRemix.rotundChance.Value) / 100f) + tundraChance;
-                rotundChance = (slugpupRemix.rotundChance.Value / 100f) + hunterchance;
 
                 IsInit = true;
             }
@@ -669,17 +663,6 @@ namespace SlugpupStuff
                 }
             }
             return origCost;
-        }
-        private void PlayerNPCState_ctor(On.MoreSlugcats.PlayerNPCState.orig_ctor orig, PlayerNPCState self, AbstractCreature abstractCreature, int playerNumber)
-        {
-            orig(self, abstractCreature, playerNumber);
-            if (self.TryGetPupState(out var pupNPCState))
-            {
-                if (pupNPCState.Variant == VariantName.Rotundpup)
-                {
-                    self.meatLeft += 1;
-                }
-            }
         }
         private string PlayerNPCState_ToString(On.MoreSlugcats.PlayerNPCState.orig_ToString orig, PlayerNPCState self)
         {

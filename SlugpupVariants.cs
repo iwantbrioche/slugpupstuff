@@ -327,7 +327,7 @@ namespace SlugpupStuff
                     return true;
                 }
                 if (crit is IPlayerEdible or Player)
-                { 
+                {
                     return false;
                 }
                 return true;
@@ -1635,6 +1635,8 @@ namespace SlugpupStuff
                         {
                             self.Wideness = Mathf.Lerp(0.5f, Random.Range(1.65f, 1.8f), self.Wideness);
                             self.Met = Mathf.Lerp(0f, Random.Range(0.7f, 0.9f), self.Met);
+
+                            player.playerState.meatLeft = 4;
 
                             // Lower Energy
                             //      increased by lower metabolism

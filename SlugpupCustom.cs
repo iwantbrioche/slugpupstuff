@@ -171,6 +171,7 @@ namespace SlugpupStuff
         }
         public static SlugcatStats.Name GetSlugpupVariant(this Player player)
         {
+
             if (SlugpupStuff.Pearlcat && PupsPlusModCompat.IsPearlpup(player)) return null;
 
             if (player.abstractCreature.TryGetPupAbstract(out var pupAbstract))
