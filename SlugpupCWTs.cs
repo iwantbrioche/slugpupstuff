@@ -12,7 +12,7 @@ namespace SlugpupStuff
 
         public static readonly ConditionalWeakTable<SlugNPCAI, PupVariables> pupCWT = new();
 
-        public static readonly ConditionalWeakTable<PlayerNPCState, PupState> pupStateCWT = new();
+        public static readonly ConditionalWeakTable<PlayerNPCState, PupNPCState> pupStateCWT = new();
 
         public static readonly ConditionalWeakTable<AbstractCreature, PupAbstract> pupAbstractCWT = new();
 
@@ -93,15 +93,15 @@ namespace SlugpupStuff
             return state || self.cat.slugcatStats.name == SlugpupStuff.VariantName.Rotundpup;
         }
 
-        public static PupState GetPupState(this PlayerNPCState self)
+        public static PupNPCState GetPupState(this PlayerNPCState self)
         {
             if (self != null)
             {
-                return pupStateCWT.GetValue(self, _ => new PupState());
+                return pupStateCWT.GetValue(self, _ => new PupNPCState());
             }
             return null;
         }
-        public static bool TryGetPupState(this PlayerState self, out PupState pupNPCState)
+        public static bool TryGetPupState(this PlayerState self, out PupNPCState pupNPCState)
         {
             if (self != null && self is PlayerNPCState playerNPCState)
             {
@@ -111,7 +111,7 @@ namespace SlugpupStuff
 
             return pupNPCState != null;
         }
-        public static bool TryGetPupState(this PlayerNPCState self, out PupState pupNPCState)
+        public static bool TryGetPupState(this PlayerNPCState self, out PupNPCState pupNPCState)
         {
             if (self != null)
             {
@@ -229,7 +229,7 @@ namespace SlugpupStuff
             public int TongueSpriteIndex;
         }
 
-        public class PupState
+        public class PupNPCState // DONT CHANGE THIS FFS, BEASTMASTERPUPEXTRAS RELIES ON IT!!!!!
         {
             public SlugcatStats.Name Variant;
             public AbstractPhysicalObject PupsPlusStomachObject;

@@ -327,7 +327,7 @@ namespace SlugpupStuff
                     return true;
                 }
                 if (crit is IPlayerEdible or Player)
-                { 
+                {
                     return false;
                 }
                 return true;
@@ -1636,12 +1636,13 @@ namespace SlugpupStuff
                             self.Wideness = Mathf.Lerp(0.5f, Random.Range(1.65f, 1.8f), self.Wideness);
                             self.Met = Mathf.Lerp(0f, Random.Range(0.7f, 0.9f), self.Met);
 
+                            player.playerState.meatLeft = 4;
+
                             // Lower Energy
                             //      increased by lower metabolism
                             //      decreased by lower balance, and higher wideness
                             personality.energy = Mathf.Clamp01(Mathf.Pow(personality.energy - Random.Range(0f, 0.1f), 1.2f + 0.1f * (1f - self.Met) + 0.1f * (1f - self.Bal) + 0.15f * self.Wideness));
                             if (float.IsNaN(personality.energy)) personality.energy = 0.00000001f;
-
                             // Higher Dominance
                             //      increased by higher size, high wideness
                             //      decreased by lower widness
