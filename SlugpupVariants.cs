@@ -1606,7 +1606,7 @@ namespace SlugpupStuff
                             //      increased by higher size, and higher metabolism
                             //      decreased by higher stealth
                             personality.aggression = Mathf.Clamp01(Mathf.Pow(personality.aggression - Random.Range(0f, 0.15f), 1.35f + 0.15f * (1f - self.Size) + 0.1f * (1f - self.Met) + 0.15f * self.Stealth));
-                            if (float.IsNaN(personality.aggression)) personality.aggression = 0.00000001f
+                            if (float.IsNaN(personality.aggression)) personality.aggression = 0.00000001f;
 
                             // Base Personality Calculations
                             personality.dominance = Mathf.Lerp(Random.value, (personality.energy + personality.bravery + personality.aggression) / 3f, Mathf.Pow(Random.value, 0.25f));
@@ -1640,7 +1640,7 @@ namespace SlugpupStuff
                             //      increased by lower metabolism
                             //      decreased by lower balance, and higher wideness
                             personality.energy = Mathf.Clamp01(Mathf.Pow(personality.energy - Random.Range(0f, 0.1f), 1.2f + 0.1f * (1f - self.Met) + 0.1f * (1f - self.Bal) + 0.15f * self.Wideness));
-                            if (float.IsNaN(personality.energy)) personality.energy = 0.00000001f
+                            if (float.IsNaN(personality.energy)) personality.energy = 0.00000001f;
 
                             // Higher Dominance
                             //      increased by higher size, high wideness
