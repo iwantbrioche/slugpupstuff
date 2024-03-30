@@ -1,7 +1,7 @@
 {
   "id": "iwantbread.slugpupstuff",
   "name": "Pups+",
-  "version": "1.2.11",
+  "version": "1.2.12",
   "target_game_version": "v1.9.15",
   "authors": "iwantbread",
   "description": "Adds four new slugpup variants based off The Hunter, The Rivulet, The Gourmand, and The Saint. Each variant comes with new stats, different food requirements, and special abilities! Also adds various miscellaneous behaviors as well.",
