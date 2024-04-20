@@ -1,0 +1,64 @@
+﻿Pups+ 1.3, the big one
+
+TODO
+	To be done this version
+
+MAIN FEATURE(s)
+[] Slugpup Wanting
+[] Remix toggle for Slugpup Wanting
+
+[] Remix Menu ID to Variant
+
+[] Replace regurgitate and swallow methods with slugpup holding grab input
+[] Emerald's rainbow aquaticpups and tundrapup tongues
+[$] Fix Tameable DLL incompat
+[$] Fix the first segment of Tundrapup tongue
+[$] Fix Tundrapup OneGrapple
+[] DISABLE DEBUG STUFF BEFORE RLEASE
+
+BUGS TO INVESTIGATE
+[?] Tundrapup 0g grappling not working
+[?] 0g Slugpup storage not working
+
+BIG TODO
+	To be done in the next few versions
+[] Slugpup Wanting 
+	- Slugpups will be able to want items and go retrieve said items on their own 
+	- Slugpups will be able to communicate wanted items via pointing or grabby hands 
+[] Slugpup Variant Icons
+	- Spawn variant pups with sandbox spawning
+	- Change icons based on variant
+[] Slugpup Hearing 
+	- Slugpups will be able to react to noises 
+	  - EX:
+			Nervous pups will startle and run to parent or stay close to dominant pups
+			Aggressive or brave pups will grab a weapon
+			Dominant pups will protect other pups
+[] Slugpup Rep 
+	- Slugpups will have a dynamic reputation with parent 
+	- Slugpups will have default reputations before tamed based on personality 
+	  - EX:
+			Pups might be aggressive or fearful towards the player until being tamed
+	- Taking bad care of pups will lower their reputation 
+	- Bad enough parent rep will cause the pup to run away
+[] Remix Menu ID to Variant
+	- Set ID of slugpup to variant and pup will always be said variant
+[] Pathfinding Changes
+	- Slugpups will be less inclined to jump into deathpits
+	- Slugpups will detect and jump over obstacles like items or corpses in way of path
+[] Misc Behaviors
+	- [] Slugpup Uppies
+
+DEV TODO
+[$] Debug Visuals
+	- [$]Pathing visuals
+	- [$]Item visuals
+
+
+
+
+[KEY]
+[] = Not Started
+[/] = In Progress
+[$] = Done
+[?] = Don't know
