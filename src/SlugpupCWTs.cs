@@ -91,19 +91,11 @@ namespace SlugpupStuff
             return state || self.cat.slugcatStats.name == SlugpupStuff.VariantName.Rotundpup;
         }
 
-        public static PupNPCState GetPupState(this PlayerNPCState self)
-        {
-            if (self != null)
-            {
-                return pupStateCWT.GetValue(self, _ => new PupNPCState());
-            }
-            return null;
-        }
         public static bool TryGetPupState(this PlayerState self, out PupNPCState pupNPCState)
         {
             if (self != null && self is PlayerNPCState playerNPCState)
             {
-                pupNPCState = playerNPCState.GetPupState();
+                pupNPCState = pupStateCWT.GetOrCreateValue(playerNPCState);
             }
             else pupNPCState = null;
 
@@ -113,44 +105,27 @@ namespace SlugpupStuff
         {
             if (self != null)
             {
-                pupNPCState = self.GetPupState();
+                pupNPCState = pupStateCWT.GetOrCreateValue(self);
             }
             else pupNPCState = null;
 
             return pupNPCState != null;
         }
-
-        public static ParentVariables GetParentVariables(this Player self)
-        {
-            if (self != null)
-            {
-                return parentVariablesCWT.GetValue(self, _ => new ParentVariables());
-            }
-            return null;
-        }
         public static bool TryGetParentVariables(this Player self, out ParentVariables parentVariables)
         {
             if (self != null)
             {
-                parentVariables = self.GetParentVariables();
+                parentVariables = parentVariablesCWT.GetOrCreateValue(self);
             }
             else parentVariables = null;
 
             return parentVariables != null;
         }
-        public static PupVariables GetPupVariables(this SlugNPCAI self)
-        {
-            if (self != null)
-            {
-                return pupCWT.GetValue(self, _ => new PupVariables());
-            }
-            return null;
-        }
         public static bool TryGetPupVariables(this Player self, out PupVariables pupVariables)
         {
             if (self.AI != null)
             {
-                pupVariables = self.AI.GetPupVariables();
+                pupVariables = pupCWT.GetOrCreateValue(self.AI);
             }
             else pupVariables = null;
 
@@ -160,45 +135,29 @@ namespace SlugpupStuff
         {
             if (self != null)
             {
-                pupVariables = self.GetPupVariables();
+                pupVariables = pupCWT.GetOrCreateValue(self);
             }
             else pupVariables = null;
 
             return pupVariables != null;
         }
 
-        public static PupGraphics GetPupGraphics(this PlayerGraphics self)
-        {
-            if (self != null)
-            {
-                return pupGraphicsCWT.GetValue(self, _ => new PupGraphics());
-            }
-            return null;
-        }
         public static bool TryGetPupGraphics(this PlayerGraphics self, out PupGraphics pupGraphics)
         {
             if (self != null)
             {
-                pupGraphics = self.GetPupGraphics();
+                pupGraphics = pupGraphicsCWT.GetOrCreateValue(self);
             }
             else pupGraphics = null;
 
             return pupGraphics != null;
         }
 
-        public static PupAbstract GetPupAbstract(this AbstractCreature self)
-        {
-            if (self != null)
-            {
-                return pupAbstractCWT.GetValue(self, _ => new PupAbstract());
-            }
-            return null;
-        }
         public static bool TryGetPupAbstract(this AbstractCreature self, out PupAbstract pupAbstract)
         {
             if (self != null)
             {
-                pupAbstract = self.GetPupAbstract();
+                pupAbstract = pupAbstractCWT.GetOrCreateValue(self);
             }
             else pupAbstract = null;
 
