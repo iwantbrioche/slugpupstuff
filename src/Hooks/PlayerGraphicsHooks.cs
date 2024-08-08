@@ -1,11 +1,10 @@
 ﻿
-namespace SlugpupStuff
+namespace SlugpupStuff.Hooks
 {
-    public class SlugpupGraphics
+    public static class PlayerGraphicsHooks
     {
         public static void Patch()
         {
-            // Graphics On Hooks
             On.PlayerGraphics.ctor += PlayerGraphics_ctor;
             On.PlayerGraphics.InitiateSprites += PlayerGraphics_InitiateSprites;
             On.PlayerGraphics.DrawSprites += PlayerGraphics_DrawSprites;
@@ -17,14 +16,10 @@ namespace SlugpupStuff
             On.PlayerGraphics.ColoredBodyPartList += PlayerGraphics_ColoredBodyPartList;
             On.SlugcatHand.Update += SlugcatHand_Update;
 
-            // Graphics IL Hooks
             IL.PlayerGraphics.DrawSprites += IL_PlayerGraphics_DrawSprites;
             IL.PlayerGraphics.InitiateSprites += IL_PlayerGraphics_InitiateSprites;
             IL.PlayerGraphics.Update += IL_PlayerGraphics_Update;
         }
-
-
-        // Hooks
         private static void PlayerGraphics_ctor(On.PlayerGraphics.orig_ctor orig, PlayerGraphics self, PhysicalObject ow)
         {
             orig(self, ow);
@@ -82,11 +77,11 @@ namespace SlugpupStuff
                             {
                                 self.mode = Limb.Mode.HuntAbsolutePosition;
                                 self.absoluteHuntPos = (pupGrabbed.graphicsModule as PlayerGraphics).head.pos;
-                                self.absoluteHuntPos += new Vector2(0f, -4f) + Custom.RNV() * 2f * Random.value * Mathf.InverseLerp(0.5f, 1f, num5);
+                                self.absoluteHuntPos += new Vector2(0f, -4f) + PupsPlusCustom.RNV() * 2f * Random.value * Mathf.InverseLerp(0.5f, 1f, num5);
 
                                 (pupGrabbed.graphicsModule as PlayerGraphics).blink = 5;
-                                (pupGrabbed.graphicsModule as PlayerGraphics).head.vel += Custom.RNV() * 2f * Random.value * Mathf.InverseLerp(0.5f, 1f, num5);
-                                pupGrabbed.bodyChunks[0].vel += Custom.RNV() * 0.2f * Random.value * Mathf.InverseLerp(0.5f, 1f, num5);
+                                (pupGrabbed.graphicsModule as PlayerGraphics).head.vel += PupsPlusCustom.RNV() * 2f * Random.value * Mathf.InverseLerp(0.5f, 1f, num5);
+                                pupGrabbed.bodyChunks[0].vel += PupsPlusCustom.RNV() * 0.2f * Random.value * Mathf.InverseLerp(0.5f, 1f, num5);
                             }
                         }
                     }
@@ -126,7 +121,7 @@ namespace SlugpupStuff
             }
             if (self.TryGetPupGraphics(out var pupGraphics))
             {
-                if (pupGraphics.sLeaserLength == 0 || sLeaser.sprites.Length <= pupGraphics.sLeaserLength) return; 
+                if (pupGraphics.sLeaserLength == 0 || sLeaser.sprites.Length <= pupGraphics.sLeaserLength) return;
                 if (self.player.isTundrapup())
                 {
                     rCam.ReturnFContainer("Midground").AddChild(sLeaser.sprites[pupGraphics.TongueSpriteIndex]);
@@ -154,13 +149,13 @@ namespace SlugpupStuff
                     {
                         float to = Mathf.Lerp(self.lastStretch, self.stretch, timeStacker);
                         Vector2 upperTongueDrawPos = Vector2.Lerp(self.ropeSegments[0].lastPos, self.ropeSegments[0].pos, timeStacker);
-                        upperTongueDrawPos += Custom.DirVec(Vector2.Lerp(self.ropeSegments[1].lastPos, self.ropeSegments[1].pos, timeStacker), upperTongueDrawPos) * 1f;
+                        upperTongueDrawPos += PupsPlusCustom.DirVec(Vector2.Lerp(self.ropeSegments[1].lastPos, self.ropeSegments[1].pos, timeStacker), upperTongueDrawPos) * 1f;
                         float num = 0f;
                         for (int k = 1; k < self.ropeSegments.Length; k++)
                         {
                             float num2 = k / (self.ropeSegments.Length - 1);
                             Vector2 lowerTongueDrawPos = ((k < self.ropeSegments.Length - 2) ? Vector2.Lerp(self.ropeSegments[k].lastPos, self.ropeSegments[k].pos, timeStacker) : new Vector2(sLeaser.sprites[9].x + camPos.x, sLeaser.sprites[9].y + camPos.y));
-                            Vector2 a3 = Custom.PerpendicularVector((upperTongueDrawPos - lowerTongueDrawPos).normalized);
+                            Vector2 a3 = PupsPlusCustom.PerpendicularVector((upperTongueDrawPos - lowerTongueDrawPos).normalized);
                             float d3 = 0.2f + 1.6f * Mathf.Lerp(1f, to, Mathf.Pow(Mathf.Sin(num2 * (float)Math.PI), 0.7f));
                             Vector2 vector = upperTongueDrawPos - a3 * d3;
                             Vector2 vector2 = lowerTongueDrawPos + a3 * d3;
@@ -243,7 +238,7 @@ namespace SlugpupStuff
                     for (int j = 0; j < (sLeaser.sprites[pupGraphics.TongueSpriteIndex] as TriangleMesh).verticeColors.Length; j++)
                     {
                         float num = Mathf.Clamp(Mathf.Sin(j / ((sLeaser.sprites[pupGraphics.TongueSpriteIndex] as TriangleMesh).verticeColors.Length - 1) * (float)Math.PI), 0f, 1f);
-                        (sLeaser.sprites[pupGraphics.TongueSpriteIndex] as TriangleMesh).verticeColors[j] = Color.Lerp(palette.fogColor, Custom.HSL2RGB(Mathf.Lerp(from, to, num), sl, Mathf.Lerp(from2, to2, Mathf.Pow(num, 0.15f))), 0.7f);
+                        (sLeaser.sprites[pupGraphics.TongueSpriteIndex] as TriangleMesh).verticeColors[j] = Color.Lerp(palette.fogColor, PupsPlusCustom.HSL2RGB(Mathf.Lerp(from, to, num), sl, Mathf.Lerp(from2, to2, Mathf.Pow(num, 0.15f))), 0.7f);
 
                         if (self.player.room != null && self.player.room.world.game.rainWorld.progression.miscProgressionData.currentlySelectedSinglePlayerSlugcat == MoreSlugcatsEnums.SlugcatStatsName.Sofanthiel)
                         {
@@ -352,7 +347,7 @@ namespace SlugpupStuff
                 }
             });
             initCurs.Emit(OpCodes.Ldarg_0); // re-emit ldarg.0
-        } 
+        }
         private static void IL_PlayerGraphics_DrawSprites(ILContext il)
         {
             ILCursor drawCurs = new(il);

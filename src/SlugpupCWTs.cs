@@ -181,6 +181,7 @@ namespace SlugpupStuff
             public SlugpupDebugger.DebugLabelManager labelManager;
             public SlugpupDebugger.PathingVisualizer pathingVisualizer;
             public DebugDestinationVisualizer destinationVisualizer;
+
         }
         public class PupGraphics
         {
