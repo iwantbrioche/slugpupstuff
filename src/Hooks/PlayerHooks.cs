@@ -1,4 +1,5 @@
 ﻿
+using SlugpupStuff.PupsPlusCustom;
 using static SlugpupStuff.SlugpupStuff;
 
 namespace SlugpupStuff.Hooks
@@ -46,9 +47,9 @@ namespace SlugpupStuff.Hooks
             orig(self, abstractCreature, world);
             if (self.isNPC && self.isSlugpup && self.playerState.TryGetPupState(out var pupNPCState))
             {
-                if (pupNPCState.Variant != null)
+                if (DevMode && pupNPCState.Variant != null)
                 {
-                    PupsPlusCustom.Log($"{self} variant set to: {pupNPCState.Variant}");
+                    Debug.Log($"{self} variant set to: {pupNPCState.Variant}");
                 }
             }
             if (self.isTundrapup())
@@ -68,7 +69,7 @@ namespace SlugpupStuff.Hooks
                     break;
                 }
             }
-            if (pupGrabbed != null)
+            if (pupGrabbed != null && pupGrabbed.TryGetPupVariables(out var pupVariables))
             {
                 foreach (var grasped in self.grasps)
                 {
@@ -90,11 +91,11 @@ namespace SlugpupStuff.Hooks
 
                     if (grabbedIndex > -1 && self.grasps[grabbedIndex].grabbed != null)
                     {
-                        pupGrabbed.PupSwallowObject(grabbedIndex);
+                        SlugpupStorage.PupSwallowObject(pupGrabbed, grabbedIndex);
                     }
                     else if (pupGrabbed.objectInStomach != null || pupGrabbed.isRotundpup() && slugpupRemix.ManualItemGen.Value)
                     {
-                        pupGrabbed.PupRegurgitate();
+                        SlugpupStorage.PupRegurgitate(pupGrabbed);
                     }
                     else
                     {
@@ -118,8 +119,9 @@ namespace SlugpupStuff.Hooks
         private static void Player_UpdateMSC(On.Player.orig_UpdateMSC orig, Player self)
         {
             orig(self);
-            VariantMechanicsAquaticpup(self);
-            if (slugpupRemix.RotundBackExaustion.Value) VariantMechanicsRotundpup(self);
+            VariantStuff.VariantMechanicsAquaticpup(self);
+            if (slugpupRemix.RotundBackExaustion.Value)
+                VariantStuff.VariantMechanicsRotundpup(self);
         }
         private static void Player_ClassMechanicsSaint(On.Player.orig_ClassMechanicsSaint orig, Player self)
         {
@@ -662,14 +664,14 @@ namespace SlugpupStuff.Hooks
             counterCurs.GotoPrev(x => x.MatchBr(out branchLabel)); // Get IL_1aeb as branchlabel
             /* GOTO IL_1ae2
              * 	IL_1ae2: br.s IL_1aeb
-	         *  IL_1ae4: ldarg.0
-	         *  IL_1ae5: ldc.i4.0
+          *  IL_1ae4: ldarg.0
+          *  IL_1ae5: ldc.i4.0
              */
             counterCurs.GotoNext(MoveType.After, x => x.MatchLdarg(0));
             /* GOTO AFTER IL_1ae4
              * 	IL_1ae4: ldarg.0
-	         *  IL_1ae5: ldc.i4.0
-	         *  IL_1ae6: stfld int32 Player::swallowAndRegurgitateCounter
+          *  IL_1ae5: ldc.i4.0
+          *  IL_1ae6: stfld int32 Player::swallowAndRegurgitateCounter
              */
             counterCurs.EmitDelegate((Player self) =>   // If pupVariables.regurgitating or pupVariables.swallowing, branch to branchLabel
             {
@@ -1600,7 +1602,7 @@ namespace SlugpupStuff.Hooks
                 {
                     if (player.isSlugpup && player.abstractCreature.creatureTemplate.type == MoreSlugcatsEnums.CreatureTemplateType.SlugNPC)
                     {
-                        pupNPCState.Variant ??= GetSlugpupVariant(player);
+                        pupNPCState.Variant ??= VariantStuff.GetSlugpupVariant(player);
                     }
                 }
             });
@@ -1639,8 +1641,8 @@ namespace SlugpupStuff.Hooks
                             personality.nervous = Mathf.Lerp(Random.value, Mathf.Lerp(personality.energy, 1f - personality.bravery, 0.5f), Mathf.Pow(Random.value, 0.25f));
                             personality.aggression = Mathf.Lerp(Random.value, (personality.energy + personality.bravery) / 2f * (1f - personality.sympathy), Mathf.Pow(Random.value, 0.25f));
                             personality.dominance = Mathf.Lerp(Random.value, (personality.energy + personality.bravery + personality.aggression) / 3f, Mathf.Pow(Random.value, 0.25f));
-                            personality.nervous = PupsPlusCustom.PushFromHalf(personality.nervous, 2.5f);
-                            personality.aggression = PupsPlusCustom.PushFromHalf(personality.aggression, 2.5f);
+                            personality.nervous = Custom.PushFromHalf(personality.nervous, 2.5f);
+                            personality.aggression = Custom.PushFromHalf(personality.aggression, 2.5f);
                         }
                         if (pupNPCState.Variant == VariantName.Tundrapup)
                         {
@@ -1684,7 +1686,7 @@ namespace SlugpupStuff.Hooks
                             // Base Personality Calculations
                             personality.nervous = Mathf.Lerp(Random.value, Mathf.Lerp(personality.energy, 1f - personality.bravery, 0.5f), Mathf.Pow(Random.value, 0.25f));
                             personality.dominance = Mathf.Lerp(Random.value, (personality.energy + personality.bravery + personality.aggression) / 3f, Mathf.Pow(Random.value, 0.25f));
-                            personality.nervous = PupsPlusCustom.PushFromHalf(personality.nervous, 2.5f);
+                            personality.nervous = Custom.PushFromHalf(personality.nervous, 2.5f);
                         }
                         if (pupNPCState.Variant == VariantName.Rotundpup)
                         {
@@ -1706,8 +1708,8 @@ namespace SlugpupStuff.Hooks
                             // Base Personality Calculations
                             personality.nervous = Mathf.Lerp(Random.value, Mathf.Lerp(personality.energy, 1f - personality.bravery, 0.5f), Mathf.Pow(Random.value, 0.25f));
                             personality.aggression = Mathf.Lerp(Random.value, (personality.energy + personality.bravery) / 2f * (1f - personality.sympathy), Mathf.Pow(Random.value, 0.25f));
-                            personality.nervous = PupsPlusCustom.PushFromHalf(personality.nervous, 2.5f);
-                            personality.aggression = PupsPlusCustom.PushFromHalf(personality.aggression, 2.5f);
+                            personality.nervous = Custom.PushFromHalf(personality.nervous, 2.5f);
+                            personality.aggression = Custom.PushFromHalf(personality.aggression, 2.5f);
                         }
                         player.abstractCreature.personality = personality;
                     }

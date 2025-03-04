@@ -20,6 +20,7 @@ namespace SlugpupStuff.Hooks
             IL.PlayerGraphics.InitiateSprites += IL_PlayerGraphics_InitiateSprites;
             IL.PlayerGraphics.Update += IL_PlayerGraphics_Update;
         }
+
         private static void PlayerGraphics_ctor(On.PlayerGraphics.orig_ctor orig, PlayerGraphics self, PhysicalObject ow)
         {
             orig(self, ow);
@@ -77,11 +78,11 @@ namespace SlugpupStuff.Hooks
                             {
                                 self.mode = Limb.Mode.HuntAbsolutePosition;
                                 self.absoluteHuntPos = (pupGrabbed.graphicsModule as PlayerGraphics).head.pos;
-                                self.absoluteHuntPos += new Vector2(0f, -4f) + PupsPlusCustom.RNV() * 2f * Random.value * Mathf.InverseLerp(0.5f, 1f, num5);
+                                self.absoluteHuntPos += new Vector2(0f, -4f) + Custom.RNV() * 2f * Random.value * Mathf.InverseLerp(0.5f, 1f, num5);
 
                                 (pupGrabbed.graphicsModule as PlayerGraphics).blink = 5;
-                                (pupGrabbed.graphicsModule as PlayerGraphics).head.vel += PupsPlusCustom.RNV() * 2f * Random.value * Mathf.InverseLerp(0.5f, 1f, num5);
-                                pupGrabbed.bodyChunks[0].vel += PupsPlusCustom.RNV() * 0.2f * Random.value * Mathf.InverseLerp(0.5f, 1f, num5);
+                                (pupGrabbed.graphicsModule as PlayerGraphics).head.vel += Custom.RNV() * 2f * Random.value * Mathf.InverseLerp(0.5f, 1f, num5);
+                                pupGrabbed.bodyChunks[0].vel += Custom.RNV() * 0.2f * Random.value * Mathf.InverseLerp(0.5f, 1f, num5);
                             }
                         }
                     }
@@ -149,13 +150,13 @@ namespace SlugpupStuff.Hooks
                     {
                         float to = Mathf.Lerp(self.lastStretch, self.stretch, timeStacker);
                         Vector2 upperTongueDrawPos = Vector2.Lerp(self.ropeSegments[0].lastPos, self.ropeSegments[0].pos, timeStacker);
-                        upperTongueDrawPos += PupsPlusCustom.DirVec(Vector2.Lerp(self.ropeSegments[1].lastPos, self.ropeSegments[1].pos, timeStacker), upperTongueDrawPos) * 1f;
+                        upperTongueDrawPos += Custom.DirVec(Vector2.Lerp(self.ropeSegments[1].lastPos, self.ropeSegments[1].pos, timeStacker), upperTongueDrawPos) * 1f;
                         float num = 0f;
                         for (int k = 1; k < self.ropeSegments.Length; k++)
                         {
                             float num2 = k / (self.ropeSegments.Length - 1);
                             Vector2 lowerTongueDrawPos = ((k < self.ropeSegments.Length - 2) ? Vector2.Lerp(self.ropeSegments[k].lastPos, self.ropeSegments[k].pos, timeStacker) : new Vector2(sLeaser.sprites[9].x + camPos.x, sLeaser.sprites[9].y + camPos.y));
-                            Vector2 a3 = PupsPlusCustom.PerpendicularVector((upperTongueDrawPos - lowerTongueDrawPos).normalized);
+                            Vector2 a3 = Custom.PerpendicularVector((upperTongueDrawPos - lowerTongueDrawPos).normalized);
                             float d3 = 0.2f + 1.6f * Mathf.Lerp(1f, to, Mathf.Pow(Mathf.Sin(num2 * (float)Math.PI), 0.7f));
                             Vector2 vector = upperTongueDrawPos - a3 * d3;
                             Vector2 vector2 = lowerTongueDrawPos + a3 * d3;
@@ -198,7 +199,35 @@ namespace SlugpupStuff.Hooks
                 Random.State state = Random.state;
                 Random.InitState(self.player.abstractCreature.ID.RandomSeed);
 
-                Color baseCol = self.player.ShortCutColor();
+                Color baseCol = Color.white;
+                if (self.player.npcStats != null) 
+                {
+                    if (self.player.abstractCreature.ID.RandomSeed == 1000)
+                    {
+                        baseCol = new Color(0.6f, 0.7f, 0.9f);
+                    }
+                    if (self.player.abstractCreature.ID.RandomSeed == 1001)
+                    {
+                        if (self.player.npcStats != null)
+                        {
+                            self.player.npcStats.Dark = false;
+                        }
+                        baseCol = new Color(0.48f, 0.87f, 0.81f);
+                    }
+                    if (self.player.abstractCreature.ID.RandomSeed == 1002)
+                    {
+                        if (self.player.npcStats != null)
+                        {
+                            self.player.npcStats.Dark = true;
+                        }
+                        baseCol = new Color(0.43922f, 0.13725f, 0.23529f);
+                    }
+                    if (self.player.npcStats != null)
+                    {
+                        baseCol = Custom.HSL2RGB(self.player.npcStats.H, self.player.npcStats.S, Mathf.Clamp(self.player.npcStats.Dark ? (1f - self.player.npcStats.L) : self.player.npcStats.L, 0.01f, 1f), 1f);
+                    }
+                }
+
                 Color.RGBToHSV(baseCol, out float H, out float S, out float V);
 
                 H *= Random.Range(1.35f, 1.7f);
@@ -238,7 +267,7 @@ namespace SlugpupStuff.Hooks
                     for (int j = 0; j < (sLeaser.sprites[pupGraphics.TongueSpriteIndex] as TriangleMesh).verticeColors.Length; j++)
                     {
                         float num = Mathf.Clamp(Mathf.Sin(j / ((sLeaser.sprites[pupGraphics.TongueSpriteIndex] as TriangleMesh).verticeColors.Length - 1) * (float)Math.PI), 0f, 1f);
-                        (sLeaser.sprites[pupGraphics.TongueSpriteIndex] as TriangleMesh).verticeColors[j] = Color.Lerp(palette.fogColor, PupsPlusCustom.HSL2RGB(Mathf.Lerp(from, to, num), sl, Mathf.Lerp(from2, to2, Mathf.Pow(num, 0.15f))), 0.7f);
+                        (sLeaser.sprites[pupGraphics.TongueSpriteIndex] as TriangleMesh).verticeColors[j] = Color.Lerp(palette.fogColor, Custom.HSL2RGB(Mathf.Lerp(from, to, num), sl, Mathf.Lerp(from2, to2, Mathf.Pow(num, 0.15f))), 0.7f);
 
                         if (self.player.room != null && self.player.room.world.game.rainWorld.progression.miscProgressionData.currentlySelectedSinglePlayerSlugcat == MoreSlugcatsEnums.SlugcatStatsName.Sofanthiel)
                         {

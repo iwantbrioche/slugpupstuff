@@ -1,12 +1,9 @@
-﻿using static SlugpupStuff.SlugpupStuff;
-
-namespace SlugpupStuff
+﻿
+namespace SlugpupStuff.PupsPlusCustom
 {
-    public static class SlugpupCustom
+    public static class SlugpupStorage
     {
-
-
-        public static void PupSwallowObject(this Player self, int grabbedIndex)
+        public static void PupSwallowObject(Player self, int grabbedIndex)
         {
             Player parent = null;
             if (self.grabbedBy.Count > 0 && self.grabbedBy[0].grabber is Player player)
@@ -32,7 +29,7 @@ namespace SlugpupStuff
                 }
             }
         }
-        public static void PupRegurgitate(this Player self)
+        public static void PupRegurgitate(Player self)
         {
             if (self.TryGetPupVariables(out var pupVariables) && self.Consious)
             {
@@ -67,7 +64,5 @@ namespace SlugpupStuff
                 }
             }
         }
-
-
     }
 }

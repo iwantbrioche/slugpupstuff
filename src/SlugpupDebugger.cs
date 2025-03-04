@@ -177,7 +177,7 @@ namespace SlugpupStuff
                         Vector2 startCoord = crit.room.MiddleOfTile(upcoming[u].startCoord);
                         Vector2 destCoord = crit.room.MiddleOfTile(upcoming[u].destinationCoord);
                         conSprites[u].pos = destCoord;
-                        conSprites[u].sprite.rotation = PupsPlusCustom.AimFromOneVectorToAnother(destCoord, startCoord);
+                        conSprites[u].sprite.rotation = Custom.AimFromOneVectorToAnother(destCoord, startCoord);
                         conSprites[u].sprite.scaleY = Vector2.Distance(destCoord, startCoord);
                         conSprites[u].connection = upcoming[u];
                         conSprites[u].sprite.isVisible = true;
@@ -287,7 +287,7 @@ namespace SlugpupStuff
                 {
                     labelLine.sprite.isVisible = true;
                     labelLine.pos = labelPos - new Vector2(0f, 15f);
-                    labelLine.sprite.rotation = PupsPlusCustom.AimFromOneVectorToAnother(labelPos, creature.mainBodyChunk.pos);
+                    labelLine.sprite.rotation = Custom.AimFromOneVectorToAnother(labelPos, creature.mainBodyChunk.pos);
                     labelLine.sprite.scaleY = Vector2.Distance(labelPos, creature.mainBodyChunk.pos);
                 }
                 else

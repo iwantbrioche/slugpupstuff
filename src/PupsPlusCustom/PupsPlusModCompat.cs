@@ -1,7 +1,7 @@
 ﻿using DevConsole.Commands;
 using DevConsole;
 
-namespace SlugpupStuff
+namespace SlugpupStuff.PupsPlusCustom
 {
     public class PupsPlusModCompat
     {
@@ -35,7 +35,7 @@ namespace SlugpupStuff
 
                         if (args.Length != 0)
                         {
-                            abstractPup.spawnData = "{" + string.Join(",", args.Select((string tag) => tags2.FirstOrDefault((string testTag) => tag.Equals(testTag, StringComparison.OrdinalIgnoreCase)) ?? tag)) + "}";
+                            abstractPup.spawnData = "{" + string.Join(",", args.Select((tag) => tags2.FirstOrDefault((testTag) => tag.Equals(testTag, StringComparison.OrdinalIgnoreCase)) ?? tag)) + "}";
                         }
                         abstractPup.setCustomFlags();
                         GameConsole.TargetPos.Room.AddEntity(abstractPup);
@@ -46,14 +46,14 @@ namespace SlugpupStuff
 
 
                     }
-                    catch(Exception ex)
+                    catch (Exception ex)
                     {
                         GameConsole.WriteLine("Failed to spawn pup! See console log for more info.");
                         Debug.Log("pup failed:" + ex.ToString());
                     }
                 })
                 .Help("spawn_pup [ID?] [variant?] [args...]")
-                .AutoComplete(arguments => 
+                .AutoComplete(arguments =>
                 {
                     if (arguments.Length == 0) return variants;
                     else if (arguments.Length == 1 && arguments[0].Contains('.')) return variants;
@@ -80,7 +80,7 @@ namespace SlugpupStuff
         public static void SetupDMSSprites()
         {
             new MonoMod.RuntimeDetour.Hook(
-                typeof(DressMySlugcat.Utils).GetProperty(nameof(DressMySlugcat.Utils.ValidSlugcatNames), System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static).GetGetMethod(),
+                typeof(DressMySlugcat.Utils).GetProperty(nameof(DressMySlugcat.Utils.ValidSlugcatNames), BindingFlags.Public | BindingFlags.Static).GetGetMethod(),
                 PupsPlusModCompat.ValidPupNames);
 
             DressMySlugcat.SpriteDefinitions.AvailableSprites.Add(new DressMySlugcat.SpriteDefinitions.AvailableSprite

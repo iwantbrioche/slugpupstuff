@@ -1,4 +1,6 @@
 ﻿
+using SlugpupStuff.PupsPlusCustom;
+
 namespace SlugpupStuff.Hooks
 {
     public static class SlugpupHooks
@@ -58,7 +60,7 @@ namespace SlugpupStuff.Hooks
                     }
                 }
             }
-            if (self.TryGetPupVariables(out var pupVariables))
+            if (DevMode && self.TryGetPupVariables(out var pupVariables))
             {
                 pupVariables.pathingVisualizer?.VisualizeConnections();
                 pupVariables.destinationVisualizer?.Update();
@@ -102,11 +104,11 @@ namespace SlugpupStuff.Hooks
                 }
                 if (pupVariables.wantsToRegurgitate)
                 {
-                    self.cat.PupRegurgitate();
+                    self.cat.input[0].pckp = true;
                 }
                 if (pupVariables.wantsToSwallowObject && self.cat.grasps[0]?.grabbed != null)
                 {
-                    self.cat.PupSwallowObject(0);
+                    self.cat.input[0].pckp = true;
                 }
                 if (pupVariables.giftedItem != null)
                 {
@@ -132,14 +134,18 @@ namespace SlugpupStuff.Hooks
                     }
                 }
 
-                pupVariables.pathingVisualizer?.Update();
-                if (pupVariables.labelManager != null)
+                if (DevMode)
                 {
-                    pupVariables.labelManager.UpdateLabel("grabTarget", $"grabTarget: {(self.grabTarget != null ? self.grabTarget is Creature ? (self.grabTarget as Creature).abstractCreature.creatureTemplate.type : self.grabTarget.abstractPhysicalObject.type : "NULL")}", self.grabTarget != null);
-                    pupVariables.labelManager.UpdateLabel("giftedItem", $"giftedItem: {(pupVariables.giftedItem != null ? pupVariables.giftedItem is AbstractCreature ? (pupVariables.giftedItem as AbstractCreature).creatureTemplate.type : pupVariables.giftedItem.type : "NULL")}", pupVariables.giftedItem != null);
-                    pupVariables.labelManager.UpdateLabel("prey", $"hunting: {(self.AttackingPrey() ? self.preyTracker.MostAttractivePrey.representedCreature.realizedCreature : "NULL")}", self.AttackingPrey());
-                    pupVariables.labelManager.Update(self.cat.mainBodyChunk.pos + new Vector2(35f, 30f));
+                    pupVariables.pathingVisualizer?.Update();
+                    if (pupVariables.labelManager != null)
+                    {
+                        pupVariables.labelManager.UpdateLabel("grabTarget", $"grabTarget: {(self.grabTarget != null ? self.grabTarget is Creature ? (self.grabTarget as Creature).abstractCreature.creatureTemplate.type : self.grabTarget.abstractPhysicalObject.type : "NULL")}", self.grabTarget != null);
+                        pupVariables.labelManager.UpdateLabel("giftedItem", $"giftedItem: {(pupVariables.giftedItem != null ? pupVariables.giftedItem is AbstractCreature ? (pupVariables.giftedItem as AbstractCreature).creatureTemplate.type : pupVariables.giftedItem.type : "NULL")}", pupVariables.giftedItem != null);
+                        pupVariables.labelManager.UpdateLabel("prey", $"hunting: {(self.AttackingPrey() ? self.preyTracker.MostAttractivePrey.representedCreature.realizedCreature : "NULL")}", self.AttackingPrey());
+                        pupVariables.labelManager.Update(self.cat.mainBodyChunk.pos + new Vector2(35f, 30f));
+                    }
                 }
+
             }
         }
         private static void SlugNPCAI_DecideBehavior(On.MoreSlugcats.SlugNPCAI.orig_DecideBehavior orig, SlugNPCAI self)
