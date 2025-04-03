@@ -5,52 +5,9 @@ namespace SlugpupStuff.Hooks
     {
         public static void Patch()
         {
-            On.AbstractCreature.setCustomFlags += AbstractCreature_setCustomFlags;
-
             IL.Snail.Click += IL_Snail_Click;
             IL.Centipede.Update += IL_Centipede_Update;
             IL.RegionState.AdaptRegionStateToWorld += IL_RegionState_AdaptRegionStateToWorld;
-        }
-
-        private static void AbstractCreature_setCustomFlags(On.AbstractCreature.orig_setCustomFlags orig, AbstractCreature self)
-        {
-            if (self.creatureTemplate.type == MoreSlugcatsEnums.CreatureTemplateType.SlugNPC)
-            {
-                if (self.TryGetPupAbstract(out var pupAbstract))
-                {
-                    if (self.spawnData == null || self.spawnData[0] != '{')
-                    {
-                        orig(self);
-                        return;
-                    }
-                    string[] array = self.spawnData.Substring(1, self.spawnData.Length - 2).Split([',']);
-                    for (int i = 0; i < array.Length; i++)
-                    {
-                        if (array[i].Length > 0)
-                        {
-                            switch (array[i].Split([':'])[0])
-                            {
-                                case "Aquatic":
-                                    pupAbstract.aquatic = true;
-                                    break;
-                                case "Tundra":
-                                    pupAbstract.tundra = true;
-                                    break;
-                                case "Hunter":
-                                    pupAbstract.hunter = true;
-                                    break;
-                                case "Rotund":
-                                    pupAbstract.rotund = true;
-                                    break;
-                                case "Regular":
-                                    pupAbstract.regular = true;
-                                    break;
-                            }
-                        }
-                    }
-                }
-            }
-            orig(self);
         }
         private static void IL_RegionState_AdaptRegionStateToWorld(ILContext il)
         {

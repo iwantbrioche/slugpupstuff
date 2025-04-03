@@ -37,7 +37,21 @@ namespace SlugpupStuff.PupsPlusCustom
                         {
                             abstractPup.spawnData = "{" + string.Join(",", args.Select((tag) => tags2.FirstOrDefault((testTag) => tag.Equals(testTag, StringComparison.OrdinalIgnoreCase)) ?? tag)) + "}";
                         }
-                        abstractPup.setCustomFlags();
+
+                        if (args.Length > 1)
+                        {
+                            try
+                            {
+                                abstractPup.setCustomFlags();
+                            }
+                            catch
+                            {
+                                GameConsole.WriteLine("Failed to set tags! Try again in story mode.");
+                            }
+                        }
+
+                        VariantStuff.SetVariantFromAbstract(abstractPup);
+
                         GameConsole.TargetPos.Room.AddEntity(abstractPup);
                         if (GameConsole.TargetPos.Room.realizedRoom != null)
                         {
@@ -49,7 +63,7 @@ namespace SlugpupStuff.PupsPlusCustom
                     catch (Exception ex)
                     {
                         GameConsole.WriteLine("Failed to spawn pup! See console log for more info.");
-                        Debug.Log("pup failed:" + ex.ToString());
+                        SlugpupStuff.Logger.LogDebug("pup failed:" + ex.ToString());
                     }
                 })
                 .Help("spawn_pup [ID?] [variant?] [args...]")

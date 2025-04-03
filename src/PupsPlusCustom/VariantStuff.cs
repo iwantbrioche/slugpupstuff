@@ -69,15 +69,14 @@ namespace SlugpupStuff.PupsPlusCustom
         public static SlugcatStats.Name GetSlugpupVariant(Player player)
         {
 
-            if (SlugpupStuff.Pearlcat && PupsPlusModCompat.IsPearlpup(player)) return null;
+            if (SlugpupStuff.Pearlcat && PupsPlusModCompat.IsPearlpup(player)) return VariantName.Regular;
 
-            if (player.abstractCreature.TryGetPupAbstract(out var pupAbstract))
+            if (player.playerState.TryGetPupState(out var pupState))
             {
-                if (pupAbstract.aquatic) return VariantName.Aquaticpup;
-                if (pupAbstract.tundra) return VariantName.Tundrapup;
-                if (pupAbstract.hunter) return VariantName.Hunterpup;
-                if (pupAbstract.rotund) return VariantName.Rotundpup;
-                if (pupAbstract.regular) return null;
+                if (pupState.Variant != null)
+                {
+                    return pupState.Variant;
+                }
             }
 
             if (!SlugpupStuff.ID_PupIDExclude().Contains(player.abstractCreature.ID.RandomSeed))
@@ -108,7 +107,47 @@ namespace SlugpupStuff.PupsPlusCustom
                 }
             }
 
-            return null;
+            return VariantName.Regular;
+        }
+
+        public static void SetVariantFromAbstract(AbstractCreature abstractPup)
+        {
+            if (abstractPup.creatureTemplate.type == MoreSlugcatsEnums.CreatureTemplateType.SlugNPC)
+            {
+                if (abstractPup.state is PlayerNPCState npcState && npcState.TryGetPupState(out var pupState))
+                {
+                    if (abstractPup.spawnData == null || abstractPup.spawnData[0] != '{')
+                    {
+                        pupState.Variant = null;
+                        return;
+                    }
+                    string[] array = abstractPup.spawnData.Substring(1, abstractPup.spawnData.Length - 2).Split([',']);
+                    for (int i = 0; i < array.Length; i++)
+                    {
+                        if (array[i].Length > 0)
+                        {
+                            switch (array[i].Split([':'])[0])
+                            {
+                                case "Aquatic":
+                                    pupState.Variant = VariantName.Aquaticpup;
+                                    break;
+                                case "Tundra":
+                                    pupState.Variant = VariantName.Tundrapup;
+                                    break;
+                                case "Hunter":
+                                    pupState.Variant = VariantName.Hunterpup;
+                                    break;
+                                case "Rotund":
+                                    pupState.Variant = VariantName.Rotundpup;
+                                    break;
+                                case "Regular":
+                                    pupState.Variant = VariantName.Regular;
+                                    break;
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

@@ -39,6 +39,7 @@ namespace SlugpupStuff.Hooks
                                 "Tundrapup" => VariantName.Tundrapup,
                                 "Hunterpup" => VariantName.Hunterpup,
                                 "Rotundpup" => VariantName.Rotundpup,
+                                "NULL" => VariantName.Regular,
                                 _ => null
                             };
                             break;
@@ -57,9 +58,9 @@ namespace SlugpupStuff.Hooks
                             break;
                         // BeastMasterPupExtras Compat
                         case "SlugcatCharacter":
-                            if (BeastMasterPupExtras && !array[1].Equals("Slugpup") && self.player.TryGetPupAbstract(out var pupAbstract))
+                            if (BeastMasterPupExtras && !array[1].Equals("Slugpup"))
                             {
-                                pupAbstract.regular = true;
+                                pupNPCState.Variant = null;
                             }
                             break;
                     }
@@ -79,12 +80,12 @@ namespace SlugpupStuff.Hooks
 	             *  IL_****: ldsfld class SlugcatStats/Name MoreSlugcats.MoreSlugcatsEnums/SlugcatStatsName::Slugpup
                  */
                 foodCurs.Emit(OpCodes.Ldarg_0); // self
-                foodCurs.EmitDelegate((SlugcatStats.Name slugpup, PlayerNPCState self) =>   // If pupNPCState.variant != null, return variant, else return slugpup
+                foodCurs.EmitDelegate((SlugcatStats.Name slugpup, PlayerNPCState self) =>   // If pupNPCState.variant != Regular, return variant, else return slugpup
                 {
                     if (self.TryGetPupState(out var pupNPCState))
                     {
                         SlugcatStats.Name variant = pupNPCState.Variant;
-                        if (variant != null)
+                        if (variant != VariantName.Regular)
                         {
                             return variant;
                         }

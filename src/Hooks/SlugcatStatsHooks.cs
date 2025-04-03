@@ -26,6 +26,8 @@ namespace SlugpupStuff.Hooks
                 self.poleClimbSpeedFac = 1.4f;
                 self.corridorClimbSpeedFac = 1.35f;
                 self.runspeedFac = 1.35f;
+                self.swimBoostCost = 0.025f;
+                self.swimBoostCooldown = 10;
                 if (malnourished)
                 {
                     self.runspeedFac = 1f;
@@ -123,6 +125,10 @@ namespace SlugpupStuff.Hooks
                 return true;
             }
             if (i == VariantName.Rotundpup)
+            {
+                return true;
+            }
+            if (i == VariantName.Regular)
             {
                 return true;
             }

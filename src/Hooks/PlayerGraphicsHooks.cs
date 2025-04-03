@@ -16,9 +16,10 @@ namespace SlugpupStuff.Hooks
             On.PlayerGraphics.ColoredBodyPartList += PlayerGraphics_ColoredBodyPartList;
             On.SlugcatHand.Update += SlugcatHand_Update;
 
-            IL.PlayerGraphics.DrawSprites += IL_PlayerGraphics_DrawSprites;
             IL.PlayerGraphics.InitiateSprites += IL_PlayerGraphics_InitiateSprites;
+            IL.PlayerGraphics.DrawSprites += IL_PlayerGraphics_DrawSprites;
             IL.PlayerGraphics.Update += IL_PlayerGraphics_Update;
+            IL.PlayerGraphics.AxolotlGills.SetGillColors += IL_AxolotlGills_SetGillColors;
         }
 
         private static void PlayerGraphics_ctor(On.PlayerGraphics.orig_ctor orig, PlayerGraphics self, PhysicalObject ow)
@@ -26,7 +27,7 @@ namespace SlugpupStuff.Hooks
             orig(self, ow);
             if (self.player.isAquaticpup())
             {
-                self.gills = new PlayerGraphics.AxolotlGills(self, 13);
+                self.gills = new PlayerGraphics.AxolotlGills(self, 13 + self.mudSpriteCount);
             }
             if (self.player.isTundrapup())
             {
@@ -111,7 +112,6 @@ namespace SlugpupStuff.Hooks
                 }
                 self.AddToContainer(sLeaser, rCam, null);
             }
-
         }
         private static void PlayerGraphics_AddToContainer(On.PlayerGraphics.orig_AddToContainer orig, PlayerGraphics self, RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, FContainer newContatiner)
         {
@@ -126,6 +126,10 @@ namespace SlugpupStuff.Hooks
                 if (self.player.isTundrapup())
                 {
                     rCam.ReturnFContainer("Midground").AddChild(sLeaser.sprites[pupGraphics.TongueSpriteIndex]);
+                }
+                if (self.player.isAquaticpup() && self.gills != null)
+                {
+                    self.gills.AddToContainer(sLeaser, rCam, rCam.ReturnFContainer("Midground"));
                 }
             }
         }
@@ -199,35 +203,7 @@ namespace SlugpupStuff.Hooks
                 Random.State state = Random.state;
                 Random.InitState(self.player.abstractCreature.ID.RandomSeed);
 
-                Color baseCol = Color.white;
-                if (self.player.npcStats != null) 
-                {
-                    if (self.player.abstractCreature.ID.RandomSeed == 1000)
-                    {
-                        baseCol = new Color(0.6f, 0.7f, 0.9f);
-                    }
-                    if (self.player.abstractCreature.ID.RandomSeed == 1001)
-                    {
-                        if (self.player.npcStats != null)
-                        {
-                            self.player.npcStats.Dark = false;
-                        }
-                        baseCol = new Color(0.48f, 0.87f, 0.81f);
-                    }
-                    if (self.player.abstractCreature.ID.RandomSeed == 1002)
-                    {
-                        if (self.player.npcStats != null)
-                        {
-                            self.player.npcStats.Dark = true;
-                        }
-                        baseCol = new Color(0.43922f, 0.13725f, 0.23529f);
-                    }
-                    if (self.player.npcStats != null)
-                    {
-                        baseCol = Custom.HSL2RGB(self.player.npcStats.H, self.player.npcStats.S, Mathf.Clamp(self.player.npcStats.Dark ? (1f - self.player.npcStats.L) : self.player.npcStats.L, 0.01f, 1f), 1f);
-                    }
-                }
-
+                Color baseCol = self.player.ShortCutColor();
                 Color.RGBToHSV(baseCol, out float H, out float S, out float V);
 
                 H *= Random.Range(1.35f, 1.7f);
@@ -357,14 +333,10 @@ namespace SlugpupStuff.Hooks
         {
             ILCursor initCurs = new(il);
 
-            initCurs.GotoNext(MoveType.After, x => x.MatchCallvirt<PlayerGraphics.Gown>(nameof(PlayerGraphics.Gown.InitiateSprite)), x => x.MatchLdarg(0));
-            /* GOTO AFTER IL_0662
-             * 	IL_065b: ldarg.1
-	         *  IL_065c: ldarg.2
-	         *  IL_065d: callvirt instance void PlayerGraphics/Gown::InitiateSprite(int32, class RoomCamera/SpriteLeaser, class RoomCamera)
-	         *  IL_0662: ldarg.0
-             */
-            // IL_0662: ldarg.0 => self
+            initCurs.GotoNext(MoveType.Before, x => x.MatchLdarg(0), x => x.MatchLdarg(1), x => x.MatchLdarg(2), x => x.MatchLdnull(),
+                x => x.MatchCallOrCallvirt<GraphicsModule>(nameof(GraphicsModule.AddToContainer)));
+
+            initCurs.Emit(OpCodes.Ldarg_0); // self
             initCurs.Emit(OpCodes.Ldarg_1); // sLeaser
             initCurs.Emit(OpCodes.Ldarg_2); // rCam
             initCurs.EmitDelegate((PlayerGraphics self, RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam) =>   // Resize sLeaser.sprites and initiate pup sprites
@@ -375,7 +347,6 @@ namespace SlugpupStuff.Hooks
                     self.gills.InitiateSprites(sLeaser, rCam);
                 }
             });
-            initCurs.Emit(OpCodes.Ldarg_0); // re-emit ldarg.0
         }
         private static void IL_PlayerGraphics_DrawSprites(ILContext il)
         {
@@ -434,6 +405,27 @@ namespace SlugpupStuff.Hooks
                 return self.player.isRotundpup();
             });
             rotundCurs.Emit(OpCodes.Or);
+        }
+
+        private static void IL_AxolotlGills_SetGillColors(ILContext il)
+        {
+            ILCursor labelCurs = new(il);
+            ILCursor gillCurs = new(il);
+
+            ILLabel retLabel = il.DefineLabel();
+            labelCurs.GotoNext(MoveType.Before, x => x.MatchCallOrCallvirt<PlayerGraphics>(nameof(PlayerGraphics.CustomColorsEnabled)), x => x.MatchBrfalse(out retLabel));
+
+            gillCurs.GotoNext(MoveType.After, x => x.MatchStfld<PlayerGraphics.AxolotlGills>(nameof(PlayerGraphics.AxolotlGills.baseColor)));
+            gillCurs.Emit(OpCodes.Ldarg_0);
+            gillCurs.EmitDelegate((PlayerGraphics.AxolotlGills self) =>
+            {
+                if (self.pGraphics.player.isSlugpup)
+                {
+                    return true;
+                }
+                return false;
+            });
+            gillCurs.Emit(OpCodes.Brtrue, retLabel);
         }
     }
 }

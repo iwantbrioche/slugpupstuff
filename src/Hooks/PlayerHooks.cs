@@ -47,7 +47,7 @@ namespace SlugpupStuff.Hooks
             orig(self, abstractCreature, world);
             if (self.isNPC && self.isSlugpup && self.playerState.TryGetPupState(out var pupNPCState))
             {
-                if (DevMode && pupNPCState.Variant != null)
+                if (DevMode && pupNPCState.Variant != VariantName.Regular)
                 {
                     Debug.Log($"{self} variant set to: {pupNPCState.Variant}");
                 }
@@ -713,7 +713,7 @@ namespace SlugpupStuff.Hooks
             {
                 if (self.playerState.TryGetPupState(out var pupNPCState))
                 {
-                    if (pupNPCState.Variant != null)
+                    if (pupNPCState.Variant != VariantName.Regular)
                     {
                         return pupNPCState.Variant;
                     }
@@ -955,390 +955,348 @@ namespace SlugpupStuff.Hooks
 
             swimCurs.GotoNext(x => x.MatchLdsfld<Player.AnimationIndex>(nameof(Player.AnimationIndex.DeepSwim)));
             swimCurs.GotoNext(MoveType.After, x => x.MatchCall<Player>("get_isRivulet"));
-            /* GOTO AFTER IL_24f4
-             * 	IL_24f3: ldarg.0
-	         *  IL_24f4: call instance bool Player::get_isRivulet()
-	         *  IL_24f9: brfalse.s IL_2503
+            /* GOTO AFTER call instance bool Player::get_isRivulet()
+             * 	IL_****: ldarg.0
+	         *  IL_****: call instance bool Player::get_isRivulet()
+	         *  IL_****: brfalse.s IL_250b
+	         *  
+	         *  if (isRivulet)
+        		{
+	        		flag3 = submerged;
+	        	}
              */
             swimCurs.Emit(OpCodes.Ldarg_0); // self
             swimCurs.EmitDelegate((Player self) =>   // If self is aquaticpup or holding aquaticpup, return true
-            {
-                Player pupGrabbed = null;
-                foreach (var grasped in self.grasps)
-                {
-                    if (grasped?.grabbed is Player pup && pup.isNPC)
-                    {
-                        pupGrabbed = pup;
-                        break;
-                    }
-                }
-                if (self.isAquaticpup() || (pupGrabbed != null && pupGrabbed.isAquaticpup()))
-                {
-                    return true;
-                }
-                return false;
-            });
-            swimCurs.Emit(OpCodes.Or);
-
-            swimCurs.GotoNext(MoveType.After, x => x.MatchCall<Player>("get_isRivulet"));
-            /* GOTO AFTER IL_258e
-             * 	IL_258d: ldarg.0
-	         *  IL_258e: call instance bool Player::get_isRivulet()
-	         *  IL_2593: brfalse.s IL_25e8
-             */
-            swimCurs.Emit(OpCodes.Ldarg_0); // self
-            swimCurs.EmitDelegate((Player self) =>   // If self is aquaticpup, return true
             {
                 if (self.isAquaticpup())
                 {
                     return true;
                 }
-                return false;
-            });
-            swimCurs.Emit(OpCodes.Or);
-
-            ILLabel burstLabel = il.DefineLabel();
-            swimCurs.GotoNext(x => x.Match(OpCodes.Br));
-            swimCurs.GotoNext(MoveType.After, x => x.MatchBr(out burstLabel), x => x.MatchLdarg(0)); // Get out IL_2683 as burstLabel
-            /* GOTO AFTER IL_263c
-             * 	IL_2635: stfld valuetype [UnityEngine.CoreModule]UnityEngine.Vector2 BodyChunk::vel
-	         *  IL_263a: br.s IL_2683
-	         *  IL_263c: ldarg.0
-             */
-            // ldarg.0 => self
-            swimCurs.Emit(OpCodes.Ldloc, 10); // vector
-            swimCurs.Emit(OpCodes.Ldloc, 11); // num3
-            swimCurs.EmitDelegate((Player self, Vector2 vector, float num3) =>   // If self is not Rivulet and holding aquaticpup, add burst velocity and branch to burstLabel
-            {
-                Player pupGrabbed = null;
                 foreach (var grasped in self.grasps)
                 {
                     if (grasped?.grabbed is Player pup && pup.isNPC)
                     {
-                        pupGrabbed = pup;
-                        break;
+                        if (pup.isAquaticpup()) return true; 
                     }
-                }
-                if (!self.isRivulet && pupGrabbed != null && pupGrabbed.isAquaticpup())
-                {
-                    self.bodyChunks[0].vel += vector * ((vector.y > 0.5f) ? 300f : 50f);
-                    self.airInLungs -= 0.08f * num3;
-                    return true;
-                }
-                return false;
-            });
-            swimCurs.Emit(OpCodes.Brtrue_S, burstLabel);
-            swimCurs.Emit(OpCodes.Ldarg_0);
-
-            swimCurs.GotoNext(MoveType.After, x => x.MatchStfld<Player>(nameof(Player.waterJumpDelay)));
-            /* GOTO AFTER IL_26d4
-             * 	IL_26d0: br.s IL_26d4
-	         *  IL_26d2: ldc.i4.s 10
-	         *  IL_26d4: stfld int32 Player::waterJumpDelay
-             */
-            swimCurs.Emit(OpCodes.Ldarg_0); // self
-            swimCurs.EmitDelegate((Player self) =>
-            {
-                Player pupGrabbed = null;
-                foreach (var grasped in self.grasps)
-                {
-                    if (grasped?.grabbed is Player pup && pup.isNPC)
-                    {
-                        pupGrabbed = pup;
-                        break;
-                    }
-                }
-                if (self.isAquaticpup() || !self.isRivulet && (pupGrabbed != null && pupGrabbed.isAquaticpup()))
-                {
-                    self.waterJumpDelay = 12;
-                }
-            });
-
-            swimCurs.GotoNext(MoveType.After, x => x.MatchCall<Player>("get_isRivulet"));
-            /* GOTO AFTER IL_294b
-	         *  IL_294a: ldarg.0
-	         *  IL_294b: call instance bool Player::get_isRivulet()
-	         *  IL_2950: brfalse.s IL_296d
-             */
-            swimCurs.Emit(OpCodes.Ldarg_0); // self
-            swimCurs.EmitDelegate((Player self) =>   // If self is aquaticpup or holding aquaticpup, return true
-            {
-                Player pupGrabbed = null;
-                foreach (var grasped in self.grasps)
-                {
-                    if (grasped?.grabbed is Player pup && pup.isNPC)
-                    {
-                        pupGrabbed = pup;
-                        break;
-                    }
-                }
-                if (self.isAquaticpup() || (pupGrabbed != null && pupGrabbed.isAquaticpup()))
-                {
-                    return true;
                 }
                 return false;
             });
             swimCurs.Emit(OpCodes.Or);
 
             swimCurs.GotoNext(MoveType.After, x => x.MatchCall<Player>("get_isRivulet"));
-            /* GOTO AFTER IL_2d46
-	         *  IL_2d45: ldarg.0
-	         *  IL_2d46: call instance bool Player::get_isRivulet()
-	         *  IL_2d4b: brfalse.s IL_2d63
+            /* GOTO AFTER call instance bool Player::get_isRivulet()
+             * 	IL_****: ldarg.0
+	         *  IL_****: call instance bool Player::get_isRivulet()
+	         *  IL_****: brfalse.s IL_25b7
+	         *  
+	         *  if (isRivulet)
+				{
+					base.bodyChunks[0].vel += vector * ((vector.y > 0.5f) ? 300f : 50f);
+				}
              */
             swimCurs.Emit(OpCodes.Ldarg_0); // self
             swimCurs.EmitDelegate((Player self) =>   // If self is aquaticpup or holding aquaticpup, return true
             {
-                Player pupGrabbed = null;
+                if (self.isAquaticpup())
+                {
+                    return true;
+                }
                 foreach (var grasped in self.grasps)
                 {
                     if (grasped?.grabbed is Player pup && pup.isNPC)
                     {
-                        pupGrabbed = pup;
-                        break;
+                        if (pup.isAquaticpup()) return true;
                     }
-                }
-                if (self.isAquaticpup() || !self.isRivulet && (pupGrabbed != null && pupGrabbed.isAquaticpup()))
-                {
-                    return true;
                 }
                 return false;
             });
             swimCurs.Emit(OpCodes.Or);
 
             swimCurs.GotoNext(MoveType.After, x => x.MatchCall<Player>("get_isRivulet"));
-            /* GOTO AFTER IL_2e27
-	         *  IL_2e26: ldarg.0
-	         *  IL_2e27: call instance bool Player::get_isRivulet()
-	         *  IL_2e2c: brfalse.s IL_2e44
+            swimCurs.GotoNext(MoveType.After, x => x.MatchCall<Player>("get_isRivulet"));
+            /* GOTO AFTER call instance bool Player::get_isRivulet()
+             * 	IL_****: ldarg.0
+	         *  IL_****: call instance bool Player::get_isRivulet()
+	         *  IL_****: brfalse.s IL_2d44
+	         *  
+		     *  if (isRivulet && waterJumpDelay >= 5)
+		        {
+		        	base.waterFriction = 0.99f;
+	            }
+                else
+		        {
+		        	base.waterFriction = Mathf.Lerp(0.92f, 0.96f, num2);
+		        }
              */
             swimCurs.Emit(OpCodes.Ldarg_0); // self
             swimCurs.EmitDelegate((Player self) =>   // If self is aquaticpup or holding aquaticpup, return true
             {
-                Player pupGrabbed = null;
+                if (self.isAquaticpup())
+                {
+                    return true;
+                }
                 foreach (var grasped in self.grasps)
                 {
                     if (grasped?.grabbed is Player pup && pup.isNPC)
                     {
-                        pupGrabbed = pup;
-                        break;
+                        if (pup.isAquaticpup()) return true;
                     }
-                }
-                if (self.isAquaticpup() || !self.isRivulet && (pupGrabbed != null && pupGrabbed.isAquaticpup()))
-                {
-                    return true;
                 }
                 return false;
             });
             swimCurs.Emit(OpCodes.Or);
 
             swimCurs.GotoNext(MoveType.After, x => x.MatchCall<Player>("get_isRivulet"));
-            /* GOTO AFTER IL_2e27
-	         *  IL_3007: ldarg.0
-	         *  IL_3008: call instance bool Player::get_isRivulet()
-	         *  IL_300d: brtrue.s IL_3016
+            /* GOTO AFTER call instance bool Player::get_isRivulet()
+             * 	IL_****: ldarg.0
+	         *  IL_****: call instance bool Player::get_isRivulet()
+	         *  IL_****: brfalse.s IL_2d44
+	         *  
+		     *  if (isRivulet && waterJumpDelay >= 5)
+		        {
+		        	base.waterFriction = 0.999f;
+	            }
+            	else
+		        {
+		        	base.waterFriction = 0.96f;
+	        	}
              */
             swimCurs.Emit(OpCodes.Ldarg_0); // self
             swimCurs.EmitDelegate((Player self) =>   // If self is aquaticpup or holding aquaticpup, return true
             {
-                Player pupGrabbed = null;
+                if (self.isAquaticpup())
+                {
+                    return true;
+                }
                 foreach (var grasped in self.grasps)
                 {
                     if (grasped?.grabbed is Player pup && pup.isNPC)
                     {
-                        pupGrabbed = pup;
-                        break;
+                        if (pup.isAquaticpup()) return true;
                     }
-                }
-                if (self.isAquaticpup() || !self.isRivulet && (pupGrabbed != null && pupGrabbed.isAquaticpup()))
-                {
-                    return true;
                 }
                 return false;
             });
             swimCurs.Emit(OpCodes.Or);
 
             swimCurs.GotoNext(MoveType.After, x => x.MatchCall<Player>("get_isRivulet"));
-            /* GOTO AFTER IL_303d
-	         *  IL_303c: ldarg.0
-	         *  IL_303d: call instance bool Player::get_isRivulet()
-	         *  IL_3042: brtrue.s IL_304b
+            /* GOTO AFTER call instance bool Player::get_isRivulet()
+             * 	IL_****: ldarg.0
+	         *  IL_****: call instance bool Player::get_isRivulet()
+	         *  IL_****: brfalse.s IL_2ff2
+	         *  
+		     *  dynamicRunSpeed[0] = (isRivulet ? 5f : 2.7f);
+		        dynamicRunSpeed[1] = 0f;
              */
             swimCurs.Emit(OpCodes.Ldarg_0); // self
             swimCurs.EmitDelegate((Player self) =>   // If self is aquaticpup or holding aquaticpup, return true
             {
-                Player pupGrabbed = null;
+                if (self.isAquaticpup())
+                {
+                    return true;
+                }
                 foreach (var grasped in self.grasps)
                 {
                     if (grasped?.grabbed is Player pup && pup.isNPC)
                     {
-                        pupGrabbed = pup;
-                        break;
+                        if (pup.isAquaticpup()) return true;
                     }
-                }
-                if (self.isAquaticpup() || !self.isRivulet && (pupGrabbed != null && pupGrabbed.isAquaticpup()))
-                {
-                    return true;
                 }
                 return false;
             });
             swimCurs.Emit(OpCodes.Or);
-
-            swimCurs.GotoNext(MoveType.After, x => x.MatchLdcR4(18f));
-            /* GOTO AFTER IL_3134
-             * 	IL_3132: br.s IL_3139
-	         *  IL_3134: ldc.r4 18
-	         *  IL_3139: add
-             */
-            //ldc.r4 => f
-            swimCurs.Emit(OpCodes.Ldarg_0);
-            swimCurs.EmitDelegate((float f, Player self) =>
-            {
-                Player pupGrabbed = null;
-                foreach (var grasped in self.grasps)
-                {
-                    if (grasped?.grabbed is Player pup && pup.isNPC)
-                    {
-                        pupGrabbed = pup;
-                        break;
-                    }
-                }
-                if (self.isAquaticpup() || !self.isRivulet && (pupGrabbed != null && pupGrabbed.isAquaticpup()))
-                {
-                    return 16f;
-                }
-                return f;
-            });
-
-            swimCurs.GotoNext(MoveType.After, x => x.MatchLdcR4(18f));
-            /* GOTO AFTER IL_315e
-	         *  IL_315c: br.s IL_3163
-	         *  IL_315e: ldc.r4 18
-	         *  IL_3163: add
-             */
-            //ldc.r4 => f
-            swimCurs.Emit(OpCodes.Ldarg_0);
-            swimCurs.EmitDelegate((float f, Player self) =>
-            {
-                Player pupGrabbed = null;
-                foreach (var grasped in self.grasps)
-                {
-                    if (grasped?.grabbed is Player pup && pup.isNPC)
-                    {
-                        pupGrabbed = pup;
-                        break;
-                    }
-                }
-                if (self.isAquaticpup() || !self.isRivulet && (pupGrabbed != null && pupGrabbed.isAquaticpup()))
-                {
-                    return 16f;
-                }
-                return f;
-            });
 
             swimCurs.GotoNext(MoveType.After, x => x.MatchCall<Player>("get_isRivulet"));
-            /* GOTO AFTER IL_303d
-	         *  IL_316a: ldarg.0
-	         *  IL_316b: call instance bool Player::get_isRivulet()
-	         *  IL_3170: brtrue.s IL_3179
+            /* GOTO AFTER call instance bool Player::get_isRivulet()
+             * 	IL_****: ldarg.0
+	         *  IL_****: call instance bool Player::get_isRivulet()
+	         *  IL_****: brfalse.s IL_3027
+	         *  
+		     *  float num5 = (isRivulet ? 1.5f : 1f);
+			    base.bodyChunks[1].vel.x -= (float)input[0].x * Mathf.Lerp(0.2f * num5, 0.3f * num5, Adrenaline);
              */
             swimCurs.Emit(OpCodes.Ldarg_0); // self
             swimCurs.EmitDelegate((Player self) =>   // If self is aquaticpup or holding aquaticpup, return true
             {
-                Player pupGrabbed = null;
+                if (self.isAquaticpup())
+                {
+                    return true;
+                }
                 foreach (var grasped in self.grasps)
                 {
                     if (grasped?.grabbed is Player pup && pup.isNPC)
                     {
-                        pupGrabbed = pup;
-                        break;
+                        if (pup.isAquaticpup()) return true;
                     }
-                }
-                if (self.isAquaticpup() || !self.isRivulet && (pupGrabbed != null && pupGrabbed.isAquaticpup()))
-                {
-                    return true;
                 }
                 return false;
             });
             swimCurs.Emit(OpCodes.Or);
-
-            swimCurs.GotoNext(MoveType.After, x => x.MatchLdcI4(6));
-            /* GOTO AFTER IL_3213
-	         *  IL_3211: br.s IL_3214
-	         *  IL_3213: ldc.i4.6
-	         *  IL_3214: stfld int32 Player::waterJumpDelay
-             */
-            //ldc.i4 => i
-            swimCurs.Emit(OpCodes.Ldarg_0);
-            swimCurs.EmitDelegate((int i, Player self) =>
-            {
-                Player pupGrabbed = null;
-                foreach (var grasped in self.grasps)
-                {
-                    if (grasped?.grabbed is Player pup && pup.isNPC)
-                    {
-                        pupGrabbed = pup;
-                        break;
-                    }
-                }
-                if (self.isAquaticpup() || !self.isRivulet && (pupGrabbed != null && pupGrabbed.isAquaticpup()))
-                {
-                    return 9;
-                }
-                return i;
-            });
 
             swimCurs.GotoNext(MoveType.After, x => x.MatchCall<Player>("get_isRivulet"));
-            /* GOTO AFTER IL_3226
-	         *  IL_3225: ldarg.0
-	         *  IL_3226: call instance bool Player::get_isRivulet()
-	         *  IL_322b: brtrue.s IL_3235
+            /* GOTO AFTER call instance bool Player::get_isRivulet()
+             * 	IL_****: ldarg.0
+	         *  IL_****: call instance bool Player::get_isRivulet()
+	         *  IL_****: brfalse.s IL_3110
+	         *  
+		     *  base.bodyChunks[0].vel.y += (isRivulet ? 18f : 6f);
+				base.bodyChunks[1].vel.y += (isRivulet ? 18f : 6f);
              */
             swimCurs.Emit(OpCodes.Ldarg_0); // self
             swimCurs.EmitDelegate((Player self) =>   // If self is aquaticpup or holding aquaticpup, return true
             {
-                Player pupGrabbed = null;
+                if (self.isAquaticpup())
+                {
+                    return true;
+                }
                 foreach (var grasped in self.grasps)
                 {
                     if (grasped?.grabbed is Player pup && pup.isNPC)
                     {
-                        pupGrabbed = pup;
-                        break;
+                        if (pup.isAquaticpup()) return true;
                     }
-                }
-                if (self.isAquaticpup() || !self.isRivulet && (pupGrabbed != null && pupGrabbed.isAquaticpup()))
-                {
-                    return true;
                 }
                 return false;
             });
             swimCurs.Emit(OpCodes.Or);
 
-            swimCurs.GotoNext(MoveType.After, x => x.MatchLdcR4(12f));
-            /* GOTO AFTER IL_315e
-	         *  IL_3255: br.s IL_325c
-	         *  IL_3257: ldc.r4 12
-	         *  IL_325c: newobj instance void [UnityEngine.CoreModule]UnityEngine.Vector2::.ctor(float32, float32)
+            swimCurs.GotoNext(MoveType.After, x => x.MatchCall<Player>("get_isRivulet"));
+            /* GOTO AFTER call instance bool Player::get_isRivulet()
+             * 	IL_****: ldarg.0
+	         *  IL_****: call instance bool Player::get_isRivulet()
+	         *  IL_****: brfalse.s IL_313a
+	         *  
+		     *  base.bodyChunks[0].vel.y += (isRivulet ? 18f : 6f);
+				base.bodyChunks[1].vel.y += (isRivulet ? 18f : 6f);
              */
-            //ldc.r4 => f
-            swimCurs.Emit(OpCodes.Ldarg_0);
-            swimCurs.EmitDelegate((float f, Player self) =>
+            swimCurs.Emit(OpCodes.Ldarg_0); // self
+            swimCurs.EmitDelegate((Player self) =>   // If self is aquaticpup or holding aquaticpup, return true
             {
-                Player pupGrabbed = null;
+                if (self.isAquaticpup())
+                {
+                    return true;
+                }
                 foreach (var grasped in self.grasps)
                 {
                     if (grasped?.grabbed is Player pup && pup.isNPC)
                     {
-                        pupGrabbed = pup;
-                        break;
+                        if (pup.isAquaticpup()) return true;
                     }
                 }
-                if (self.isAquaticpup() || !self.isRivulet && (pupGrabbed != null && pupGrabbed.isAquaticpup()))
-                {
-                    return 10f;
-                }
-                return f;
+                return false;
             });
+            swimCurs.Emit(OpCodes.Or);
+
+            swimCurs.GotoNext(MoveType.After, x => x.MatchCall<Player>("get_isRivulet"));
+            /* GOTO AFTER call instance bool Player::get_isRivulet()
+             * 	IL_****: ldarg.0
+	         *  IL_****: call instance bool Player::get_isRivulet()
+	         *  IL_****: brfalse.s IL_3155
+	         *  
+		     *  float num6 = (isRivulet ? 3f : 1f);
+				base.bodyChunks[0].vel += Custom.DirVec(base.bodyChunks[1].pos, base.bodyChunks[0].pos) * 4f * num6;
+             */
+            swimCurs.Emit(OpCodes.Ldarg_0); // self
+            swimCurs.EmitDelegate((Player self) =>   // If self is aquaticpup or holding aquaticpup, return true
+            {
+                if (self.isAquaticpup())
+                {
+                    return true;
+                }
+                foreach (var grasped in self.grasps)
+                {
+                    if (grasped?.grabbed is Player pup && pup.isNPC)
+                    {
+                        if (pup.isAquaticpup()) return true;
+                    }
+                }
+                return false;
+            });
+            swimCurs.Emit(OpCodes.Or);
+
+            swimCurs.GotoNext(MoveType.After, x => x.MatchCall<Player>("get_isRivulet"));
+            /* GOTO AFTER call instance bool Player::get_isRivulet()
+             * 	IL_****: ldarg.0
+	         *  IL_****: call instance bool Player::get_isRivulet()
+	         *  IL_****: brfalse.s IL_31ef
+	         *  
+		     *  waterJumpDelay = (isRivulet ? 6 : 17);
+             */
+            swimCurs.Emit(OpCodes.Ldarg_0); // self
+            swimCurs.EmitDelegate((Player self) =>   // If self is aquaticpup or holding aquaticpup, return true
+            {
+                if (self.isAquaticpup())
+                {
+                    return true;
+                }
+                foreach (var grasped in self.grasps)
+                {
+                    if (grasped?.grabbed is Player pup && pup.isNPC)
+                    {
+                        if (pup.isAquaticpup()) return true;
+                    }
+                }
+                return false;
+            });
+            swimCurs.Emit(OpCodes.Or);
+
+            swimCurs.GotoNext(MoveType.After, x => x.MatchCall<Player>("get_isRivulet"));
+            /* GOTO AFTER call instance bool Player::get_isRivulet()
+             * 	IL_****: ldarg.0
+	         *  IL_****: call instance bool Player::get_isRivulet()
+	         *  IL_****: brfalse.s IL_3211
+	         *  
+		     *  if (waterJumpDelay < 10 && !isRivulet)
+				{
+					waterJumpDelay = 10;
+				}
+             */
+            swimCurs.Emit(OpCodes.Ldarg_0); // self
+            swimCurs.EmitDelegate((Player self) =>   // If self is aquaticpup or holding aquaticpup, return true
+            {
+                if (self.isAquaticpup())
+                {
+                    return true;
+                }
+                foreach (var grasped in self.grasps)
+                {
+                    if (grasped?.grabbed is Player pup && pup.isNPC)
+                    {
+                        if (pup.isAquaticpup()) return true;
+                    }
+                }
+                return false;
+            });
+            swimCurs.Emit(OpCodes.Or);
+
+            swimCurs.GotoNext(MoveType.After, x => x.MatchCall<Player>("get_isRivulet"));
+            /* GOTO AFTER call instance bool Player::get_isRivulet()
+             * 	IL_****: ldarg.0
+	         *  IL_****: call instance bool Player::get_isRivulet()
+	         *  IL_****: brfalse.s IL_3233
+	         *  
+		     *  base.bodyChunks[0].vel += new Vector2(0f, isRivulet ? 12f : 4f);
+				base.bodyChunks[1].vel.x *= 0.75f;
+             */
+            swimCurs.Emit(OpCodes.Ldarg_0); // self
+            swimCurs.EmitDelegate((Player self) =>   // If self is aquaticpup or holding aquaticpup, return true
+            {
+                if (self.isAquaticpup())
+                {
+                    return true;
+                }
+                foreach (var grasped in self.grasps)
+                {
+                    if (grasped?.grabbed is Player pup && pup.isNPC)
+                    {
+                        if (pup.isAquaticpup()) return true;
+                    }
+                }
+                return false;
+            });
+            swimCurs.Emit(OpCodes.Or);
+
+
         }
         private static void IL_Player_LungUpdate(ILContext il)
         {
@@ -1624,7 +1582,7 @@ namespace SlugpupStuff.Hooks
 
                     Random.State state = Random.state;
                     Random.InitState(player.abstractCreature.ID.RandomSeed);
-                    if (pupNPCState.Variant != null)
+                    if (pupNPCState.Variant != VariantName.Regular)
                     {
                         AbstractCreature.Personality personality = player.abstractCreature.personality;
                         if (pupNPCState.Variant == VariantName.Aquaticpup)
@@ -1729,7 +1687,7 @@ namespace SlugpupStuff.Hooks
             {
                 if (player.playerState.TryGetPupState(out var pupNPCState))
                 {
-                    if (pupNPCState.Variant != null)
+                    if (pupNPCState.Variant != VariantName.Regular)    
                     {
                         return pupNPCState.Variant;
                     }

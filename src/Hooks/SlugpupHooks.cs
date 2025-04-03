@@ -27,9 +27,12 @@ namespace SlugpupStuff.Hooks
             orig(self, creature, world);
             if (self.TryGetPupVariables(out var pupVariables))
             {
-                pupVariables.pathingVisualizer = new(self, 5);
-                pupVariables.labelManager = new(self.cat);
-                //pupVariables.destinationVisualizer = new(world.game.abstractSpaceVisualizer, world, self.pathFinder, self.cat.ShortCutColor());
+                if (DevMode)
+                {
+                    //pupVariables.pathingVisualizer = new(self, 5);
+                    //pupVariables.labelManager = new(self.cat);
+                    //pupVariables.destinationVisualizer = new(world.game.abstractSpaceVisualizer, world, self.pathFinder, self.cat.ShortCutColor());
+                }
             }
 
         }

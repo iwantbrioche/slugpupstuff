@@ -9,7 +9,6 @@ global using Mono.Cecil.Cil;
 global using MonoMod.Cil;
 global using UnityEngine;
 global using RWCustom;
-global using Debug = UnityEngine.Debug;
 global using Random = UnityEngine.Random;
 global using Vector2 = UnityEngine.Vector2;
 global using Color = UnityEngine.Color;
@@ -42,7 +41,7 @@ namespace SlugpupStuff
             On.RainWorld.PostModsInit += RainWorld_PostModsInit;
             slugpupRemix = new SlugpupStuffRemix(this);
             Logger = base.Logger;
-            DevMode = true;
+            DevMode = false;
         }
 
         public void RainWorld_OnModsInit(On.RainWorld.orig_OnModsInit orig, RainWorld self)
@@ -71,7 +70,7 @@ namespace SlugpupStuff
             {
                 Logger.LogError("Pups+ failed to load!");
                 Logger.LogError(ex);
-                throw;
+                //throw;
             }
         }
 
@@ -130,6 +129,7 @@ namespace SlugpupStuff
             public static SlugcatStats.Name Tundrapup;
             public static SlugcatStats.Name Hunterpup;
             public static SlugcatStats.Name Rotundpup;
+            public static SlugcatStats.Name Regular;
 
             public static void RegisterValues()
             {
@@ -137,6 +137,7 @@ namespace SlugpupStuff
                 Tundrapup = new("Tundrapup", true);
                 Hunterpup = new("Hunterpup", true);
                 Rotundpup = new("Rotundpup", true);
+                Regular = new("Regular", true);
             }
             public static void UnregisterValues()
             {
@@ -148,6 +149,8 @@ namespace SlugpupStuff
                 Hunterpup = null;
                 Rotundpup?.Unregister();
                 Rotundpup = null;
+                Regular?.Unregister();
+                Regular = null;
             }
         }
 

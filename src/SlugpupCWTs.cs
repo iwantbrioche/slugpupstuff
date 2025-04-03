@@ -12,8 +12,6 @@ namespace SlugpupStuff
 
         public static readonly ConditionalWeakTable<PlayerNPCState, PupNPCState> pupStateCWT = new();
 
-        public static readonly ConditionalWeakTable<AbstractCreature, PupAbstract> pupAbstractCWT = new();
-
 
         public static bool isAquaticpup(this Player self)
         {
@@ -153,17 +151,6 @@ namespace SlugpupStuff
             return pupGraphics != null;
         }
 
-        public static bool TryGetPupAbstract(this AbstractCreature self, out PupAbstract pupAbstract)
-        {
-            if (self != null)
-            {
-                pupAbstract = pupAbstractCWT.GetOrCreateValue(self);
-            }
-            else pupAbstract = null;
-
-            return pupAbstract != null;
-        }
-
 
         public class ParentVariables
         {
@@ -193,15 +180,6 @@ namespace SlugpupStuff
         {
             public SlugcatStats.Name Variant;
             public AbstractPhysicalObject PupsPlusStomachObject;
-        }
-
-        public class PupAbstract
-        {
-            public bool aquatic;
-            public bool tundra;
-            public bool hunter;
-            public bool rotund;
-            public bool regular;
         }
     }
 
