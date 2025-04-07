@@ -13,7 +13,7 @@
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)' == 'Debug'">
-		<OutputPath>..\mod\plugins</OutputPath>
+		<OutputPath>..\mod\newest\plugins</OutputPath>
 		<DebugType>portable</DebugType>
 	</PropertyGroup>
 
