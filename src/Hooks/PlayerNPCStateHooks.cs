@@ -16,7 +16,7 @@ namespace SlugpupStuff.Hooks
             string text = orig(self);
             if (self.player.realizedCreature is Player pup && pup.playerState.TryGetPupState(out var pupNPCState))
             {
-                text += "Variant<cC>" + ((pupNPCState.Variant != MoreSlugcatsEnums.SlugcatStatsName.Slugpup) ? pupNPCState.Variant.value : "NULL") + "<cB>";
+                text += "Variant<cC>" + ((pup.slugcatStats.name != MoreSlugcatsEnums.SlugcatStatsName.Slugpup) ? pup.slugcatStats.name.value : "NULL") + "<cB>";
                 text += "PupsPlusStomach<cC>" + ((pupNPCState.PupsPlusStomachObject != null) ? pupNPCState.PupsPlusStomachObject.ToString() : "NULL") + "<cB>";
             }
             return text;
@@ -39,8 +39,7 @@ namespace SlugpupStuff.Hooks
                                 "Tundrapup" => VariantName.Tundrapup,
                                 "Hunterpup" => VariantName.Hunterpup,
                                 "Rotundpup" => VariantName.Rotundpup,
-                                "Boompup" => VariantName.Boompup,
-                                "NULL" => MoreSlugcatsEnums.SlugcatStatsName.Slugpup,
+                                "NULL" => VariantName.Regular,
                                 _ => null
                             };
                             break;
@@ -61,7 +60,7 @@ namespace SlugpupStuff.Hooks
                         case "SlugcatCharacter":
                             if (BeastMasterPupExtras && !array[1].Equals("Slugpup"))
                             {
-                                pupNPCState.Variant = MoreSlugcatsEnums.SlugcatStatsName.Slugpup;
+                                pupNPCState.Variant = null;
                             }
                             break;
                     }
@@ -81,12 +80,12 @@ namespace SlugpupStuff.Hooks
 	             *  IL_****: ldsfld class SlugcatStats/Name MoreSlugcats.MoreSlugcatsEnums/SlugcatStatsName::Slugpup
                  */
                 foodCurs.Emit(OpCodes.Ldarg_0); // self
-                foodCurs.EmitDelegate((SlugcatStats.Name slugpup, PlayerNPCState self) =>   // If pupNPCState.variant != Slugpup, return variant, else return slugpup
+                foodCurs.EmitDelegate((SlugcatStats.Name slugpup, PlayerNPCState self) =>   // If pupNPCState.variant != Regular, return variant, else return slugpup
                 {
                     if (self.TryGetPupState(out var pupNPCState))
                     {
                         SlugcatStats.Name variant = pupNPCState.Variant;
-                        if (variant != MoreSlugcatsEnums.SlugcatStatsName.Slugpup)
+                        if (variant != VariantName.Regular)
                         {
                             return variant;
                         }

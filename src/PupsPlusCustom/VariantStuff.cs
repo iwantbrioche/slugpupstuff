@@ -16,21 +16,22 @@ namespace SlugpupStuff.PupsPlusCustom
                         waterNut.Swell();
                     }
                 }
-                if (self.grabbedBy.Count > 0 && self.grabbedBy[0].grabber is Player parent)
+                Player parent = null;
+                if (self.grabbedBy.Count > 0 && self.grabbedBy[0].grabber is Player player)
                 {
-                    if (parent != null && parent.SlugCatClass != MoreSlugcatsEnums.SlugcatStatsName.Rivulet)
+                    parent = player;
+                }
+                if (parent != null && parent.SlugCatClass != MoreSlugcatsEnums.SlugcatStatsName.Rivulet)
+                {
+                    if (!self.submerged)
                     {
-                        if (!self.submerged)
-                        {
-                            self.slowMovementStun = 5;
-                        }
-                        if (!parent.monkAscension)
-                        {
-                            parent.buoyancy = 0.9f;
-                        }
+                        self.slowMovementStun = 5;
+                    }
+                    if (!parent.monkAscension)
+                    {
+                        parent.buoyancy = 0.9f;
                     }
                 }
-
             }
         }
         public static void VariantMechanicsRotundpup(Player self)
@@ -67,10 +68,9 @@ namespace SlugpupStuff.PupsPlusCustom
         }
         public static SlugcatStats.Name GetSlugpupVariant(Player player)
         {
-            // pearlpup check, no variant abilities for you!
-            if (SlugpupStuff.Pearlcat && PupsPlusModCompat.IsPearlpup(player)) return MoreSlugcatsEnums.SlugcatStatsName.Slugpup;
 
-            // check if pup already has a variant
+            if (SlugpupStuff.Pearlcat && PupsPlusModCompat.IsPearlpup(player)) return VariantName.Regular;
+
             if (player.playerState.TryGetPupState(out var pupState))
             {
                 if (pupState.Variant != null)
@@ -79,39 +79,35 @@ namespace SlugpupStuff.PupsPlusCustom
                 }
             }
 
-            // check if the pup's ID is in the IDVariantDict and set accordingly
-            if (IDVariantDict().TryGetValue(player.abstractCreature.ID.RandomSeed, out string variant))
+            if (!SlugpupStuff.ID_PupIDExclude().Contains(player.abstractCreature.ID.RandomSeed))
             {
-                return (SlugcatStats.Name)SlugcatStats.Name.Parse(typeof(SlugcatStats.Name), variant, false);
+                Random.State state = Random.state;
+                Random.InitState(player.abstractCreature.ID.RandomSeed);
+
+                float variChance = Random.value;
+
+                Random.state = state;
+
+                // setup variant chance
+                if (variChance <= aquaticChance || ID_AquaticPupID().Contains(player.abstractCreature.ID.RandomSeed))
+                {
+                    return VariantName.Aquaticpup;
+                }
+                else if (variChance <= tundraChance || ID_TundraPupID().Contains(player.abstractCreature.ID.RandomSeed))
+                {
+                    return VariantName.Tundrapup;
+                }
+                else if (variChance <= hunterchance || ID_HunterPupID().Contains(player.abstractCreature.ID.RandomSeed))
+                {
+                    return VariantName.Hunterpup;
+                }
+                else if (variChance <= rotundChance || ID_RotundPupID().Contains(player.abstractCreature.ID.RandomSeed))
+                {
+                    return VariantName.Rotundpup;
+                }
             }
 
-            // set variant based on variant chance
-            Random.State state = Random.state;
-            Random.InitState(player.abstractCreature.ID.RandomSeed);
-
-            float variChance = Random.value;
-
-            Random.state = state;
-
-            // setup variant chance
-            if (variChance <= aquaticChance)
-            {
-                return VariantName.Aquaticpup;
-            }
-            else if (variChance <= tundraChance)
-            {
-                return VariantName.Tundrapup;
-            }
-            else if (variChance <= hunterChance)
-            {
-                return VariantName.Hunterpup;
-            }
-            else if (variChance <= rotundChance)
-            {
-                return VariantName.Rotundpup;
-            }
-
-            return MoreSlugcatsEnums.SlugcatStatsName.Slugpup;
+            return VariantName.Regular;
         }
 
         public static void SetVariantFromAbstract(AbstractCreature abstractPup)
@@ -144,18 +140,8 @@ namespace SlugpupStuff.PupsPlusCustom
                                 case "Rotund":
                                     pupState.Variant = VariantName.Rotundpup;
                                     break;
-                                case "Boom":
-                                    pupState.Variant = VariantName.Boompup;
-                                    break;
-                                case "Ripple":
-                                    pupState.Variant = VariantName.Ripplepup;
-                                    break;
-                                case "Slugpup":
                                 case "Regular":
-                                    pupState.Variant = MoreSlugcatsEnums.SlugcatStatsName.Slugpup;
-                                    break;
-                                default:
-                                    pupState.Variant = null;
+                                    pupState.Variant = VariantName.Regular;
                                     break;
                             }
                         }

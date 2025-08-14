@@ -88,24 +88,6 @@ namespace SlugpupStuff
             }
             return state || self.cat.slugcatStats.name == SlugpupStuff.VariantName.Rotundpup;
         }
-        public static bool isBoompup(this Player self)
-        {
-            bool state = false;
-            if (self.playerState.TryGetPupState(out var pupNPCState))
-            {
-                state = pupNPCState.Variant == SlugpupStuff.VariantName.Boompup;
-            }
-            return state || self.slugcatStats.name == SlugpupStuff.VariantName.Boompup;
-        }
-        public static bool isBoompup(this SlugNPCAI self)
-        {
-            bool state = false;
-            if (self.cat.playerState.TryGetPupState(out var pupNPCState))
-            {
-                state = pupNPCState.Variant == SlugpupStuff.VariantName.Boompup;
-            }
-            return state || self.cat.slugcatStats.name == SlugpupStuff.VariantName.Boompup;
-        }
 
         public static bool TryGetPupState(this PlayerState self, out PupNPCState pupNPCState)
         {

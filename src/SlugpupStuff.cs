@@ -18,8 +18,6 @@ global using static SlugpupStuff.SlugpupStuff;
 using System.Security;
 using System.Security.Permissions;
 using BepInEx.Logging;
-using SlugpupStuff.Hooks;
-using MonoMod.Utils;
 
 #pragma warning disable CS0618
 
@@ -29,7 +27,7 @@ using MonoMod.Utils;
 
 namespace SlugpupStuff
 {
-    [BepInPlugin(MOD_ID, "Slugpup Stuff", "1.4")]
+    [BepInPlugin(MOD_ID, "Slugpup Stuff", "1.3")]
     public class SlugpupStuff : BaseUnityPlugin
     {
         public const string MOD_ID = "iwantbread.slugpupstuff";
@@ -41,10 +39,9 @@ namespace SlugpupStuff
         {
             On.RainWorld.OnModsInit += RainWorld_OnModsInit;
             On.RainWorld.PostModsInit += RainWorld_PostModsInit;
-            Logger = base.Logger;
             slugpupRemix = new SlugpupStuffRemix(this);
-            DevMode = true;
-
+            Logger = base.Logger;
+            DevMode = false;
         }
 
         public void RainWorld_OnModsInit(On.RainWorld.orig_OnModsInit orig, RainWorld self)
@@ -73,7 +70,7 @@ namespace SlugpupStuff
             {
                 Logger.LogError("Pups+ failed to load!");
                 Logger.LogError(ex);
-                if (!DevMode) throw;
+                //throw;
             }
         }
 
@@ -132,8 +129,7 @@ namespace SlugpupStuff
             public static SlugcatStats.Name Tundrapup;
             public static SlugcatStats.Name Hunterpup;
             public static SlugcatStats.Name Rotundpup;
-            public static SlugcatStats.Name Boompup;
-            public static SlugcatStats.Name Ripplepup;
+            public static SlugcatStats.Name Regular;
 
             public static void RegisterValues()
             {
@@ -141,8 +137,7 @@ namespace SlugpupStuff
                 Tundrapup = new("Tundrapup", true);
                 Hunterpup = new("Hunterpup", true);
                 Rotundpup = new("Rotundpup", true);
-                Boompup = new("Boompup", true);
-                Ripplepup = new("RipplePup", true);
+                Regular = new("Regular", true);
             }
             public static void UnregisterValues()
             {
@@ -154,38 +149,56 @@ namespace SlugpupStuff
                 Hunterpup = null;
                 Rotundpup?.Unregister();
                 Rotundpup = null;
-                Boompup?.Unregister();
-                Boompup = null;
-                Ripplepup?.Unregister();
-                Ripplepup = null;
+                Regular?.Unregister();
+                Regular = null;
             }
         }
 
-        // for modded pups and artificer and their pups, might expand into full system
-        public static Dictionary<int, string> IDVariantDict()
+        public static List<int> ID_AquaticPupID()
         {
-            Dictionary<int, string> idDict = new Dictionary<int, string>()
-            {
-                { 2220, "Slugpup" },
-                { 3118, "Slugpup" },
-                { 4118, "Slugpup" },
-                { 765, "Slugpup" },
-                { 1000, "Boompup" },
-                { 1001, "Boompup" },
-                { 1002, "Boompup" }
-            };
-            return idDict;
+            List<int> idlist = [];
+            return idlist;
+        }
+        public static List<int> ID_TundraPupID()
+        {
+            List<int> idlist = [];
+            return idlist;
+
+        }
+        public static List<int> ID_HunterPupID()
+        {
+            List<int> idlist =
+            [
+                1002
+            ];
+            return idlist;
+        }
+        public static List<int> ID_RotundPupID()
+        {
+            List<int> idlist = [];
+            return idlist;
+        }
+        public static List<int> ID_PupIDExclude()
+        {
+            List<int> idlist =
+            [
+                1000,
+                1001,
+                2220,
+                3118,
+                4118,
+                765
+            ];
+            return idlist;
         }
 
 
 
         public static float aquaticChance => (slugpupRemix.aquaticChance.Value - slugpupRemix.tundraChance.Value) / 100f;
         public static float tundraChance => ((slugpupRemix.tundraChance.Value - slugpupRemix.hunterChance.Value) / 100f) + aquaticChance;
-        public static float hunterChance => ((slugpupRemix.hunterChance.Value - slugpupRemix.boomChance.Value) / 100f) + tundraChance;
-        public static float boomChance => ((slugpupRemix.boomChance.Value - slugpupRemix.rotundChance.Value) / 100f) + hunterChance;
-        public static float rotundChance => (slugpupRemix.rotundChance.Value / 100f) + boomChance;
+        public static float hunterchance => ((slugpupRemix.hunterChance.Value - slugpupRemix.rotundChance.Value) / 100f) + tundraChance;
+        public static float rotundChance => (slugpupRemix.rotundChance.Value / 100f) + hunterchance;
 
-        public static bool CosmeticMode => slugpupRemix.CosmeticMode.Value;
         public static bool SlugpupSafari;
         public static bool RainbowPups;
         public static bool Pearlcat;
@@ -193,6 +206,7 @@ namespace SlugpupStuff
         public static bool EmeraldsTweaks;
         public static bool BeastMasterPupExtras;
         public static bool DevMode;
+
 
 
     }

@@ -49,7 +49,7 @@ namespace SlugpupStuff.Hooks
             staggerCurs.Emit(OpCodes.Ldloc, 10); // item
             staggerCurs.EmitDelegate((PhysicalObject item) =>   // If item is Player and Player is Tundrapup, return true
             {
-                return item is Player player && player.isTundrapup() && !CosmeticMode;
+                return item is Player player && player.isTundrapup();
             });
             staggerCurs.Emit(OpCodes.Or);
         }
@@ -66,7 +66,7 @@ namespace SlugpupStuff.Hooks
             staggerCurs.Emit(OpCodes.Ldarg_0); // self
             staggerCurs.EmitDelegate((Centipede self) =>   // If grabber is Player and Player is Tundrapup, return true
             {
-                return self.grabbedBy[0].grabber is Player player && player.isTundrapup() && !CosmeticMode;
+                return self.grabbedBy[0].grabber is Player player && player.isTundrapup();
             });
             staggerCurs.Emit(OpCodes.Or);
         }

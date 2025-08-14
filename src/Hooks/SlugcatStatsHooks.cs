@@ -15,31 +15,7 @@ namespace SlugpupStuff.Hooks
         private static void SlugcatStats_ctor(On.SlugcatStats.orig_ctor orig, SlugcatStats self, SlugcatStats.Name slugcat, bool malnourished)
         {
             orig(self, slugcat, malnourished);
-            if (CosmeticMode && 
-                (slugcat == VariantName.Aquaticpup ||
-                slugcat == VariantName.Tundrapup ||
-                slugcat == VariantName.Hunterpup ||
-                slugcat == VariantName.Rotundpup ||
-                slugcat == VariantName.Boompup ||
-                slugcat == VariantName.Ripplepup))
-            {
-                self.bodyWeightFac = 0.65f;
-                self.generalVisibilityBonus = -0.2f;
-                self.visualStealthInSneakMode = 0.6f;
-                self.loudnessFac = 0.5f;
-                self.lungsFac = 0.8f;
-                self.throwingSkill = 0;
-                self.poleClimbSpeedFac = 0.8f;
-                self.corridorClimbSpeedFac = 0.8f;
-                self.runspeedFac = 0.8f;
-                if (malnourished)
-                {
-                    self.poleClimbSpeedFac = 0.75f;
-                    self.corridorClimbSpeedFac = 0.7f;
-                    self.runspeedFac = 0.7f;
-                }
-            }
-            else if (slugcat == VariantName.Aquaticpup)
+            if (slugcat == VariantName.Aquaticpup)
             {
                 self.bodyWeightFac = 0.65f;
                 self.generalVisibilityBonus = -0.2f;
@@ -116,47 +92,43 @@ namespace SlugpupStuff.Hooks
         }
         private static IntVector2 SlugcatStats_SlugcatFoodMeter(On.SlugcatStats.orig_SlugcatFoodMeter orig, SlugcatStats.Name slugcat)
         {
-            if (CosmeticMode && 
-                (slugcat == VariantName.Aquaticpup ||
-                slugcat == VariantName.Tundrapup ||
-                slugcat == VariantName.Hunterpup ||
-                slugcat == VariantName.Rotundpup ||
-                slugcat == VariantName.Boompup ||
-                slugcat == VariantName.Ripplepup))
-            {
-                return new IntVector2(3, 2);
-                
-            }
             if (slugcat == VariantName.Aquaticpup)
             {
                 return new IntVector2(4, 3);
             }
-            if (slugcat == VariantName.Tundrapup)
+            else if (slugcat == VariantName.Tundrapup)
             {
                 return new IntVector2(2, 2);
             }
-            if (slugcat == VariantName.Hunterpup)
+            else if (slugcat == VariantName.Hunterpup)
             {
                 return new IntVector2(5, 3);
             }
-            if (slugcat == VariantName.Rotundpup)
+            else if (slugcat == VariantName.Rotundpup)
             {
                 return new IntVector2(7, 4);
-            }
-            if (slugcat == VariantName.Boompup)
-            {
-                return new IntVector2(6, 4);
             }
             return orig(slugcat);
         }
         private static bool SlugcatStats_HiddenOrUnplayableSlugcat(On.SlugcatStats.orig_HiddenOrUnplayableSlugcat orig, SlugcatStats.Name i)
         {
-            if (i == VariantName.Aquaticpup ||
-                i == VariantName.Tundrapup ||
-                i == VariantName.Hunterpup ||
-                i == VariantName.Rotundpup ||
-                i == VariantName.Boompup ||
-                i == VariantName.Ripplepup)
+            if (i == VariantName.Aquaticpup)
+            {
+                return true;
+            }
+            if (i == VariantName.Tundrapup)
+            {
+                return true;
+            }
+            if (i == VariantName.Hunterpup)
+            {
+                return true;
+            }
+            if (i == VariantName.Rotundpup)
+            {
+                return true;
+            }
+            if (i == VariantName.Regular)
             {
                 return true;
             }
@@ -175,7 +147,7 @@ namespace SlugpupStuff.Hooks
             variCurs.Emit(OpCodes.Ldarg_0); // slugcatIndex
             variCurs.EmitDelegate((SlugcatStats.Name slugcatIndex) =>   // If slugcatIndex is Tundrapup, return true
             {
-                return slugcatIndex == VariantName.Tundrapup && !CosmeticMode;
+                return slugcatIndex == VariantName.Tundrapup;
             });
             variCurs.Emit(OpCodes.Or);
 
@@ -188,7 +160,7 @@ namespace SlugpupStuff.Hooks
             variCurs.Emit(OpCodes.Ldarg_0);
             variCurs.EmitDelegate((SlugcatStats.Name slugcatIndex) =>   // If slugcatIndex is Hunterpup, return true
             {
-                return slugcatIndex == VariantName.Hunterpup || slugcatIndex == VariantName.Boompup && !CosmeticMode;
+                return slugcatIndex == VariantName.Hunterpup;
             });
             variCurs.Emit(OpCodes.Or);
 
