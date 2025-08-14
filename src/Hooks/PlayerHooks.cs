@@ -45,14 +45,7 @@ namespace SlugpupStuff.Hooks
         private static void Player_ctor(On.Player.orig_ctor orig, Player self, AbstractCreature abstractCreature, World world)
         {
             orig(self, abstractCreature, world);
-            if (self.isNPC && self.isSlugpup && self.playerState.TryGetPupState(out var pupNPCState))
-            {
-                if (DevMode && pupNPCState.Variant != VariantName.Regular)
-                {
-                    Debug.Log($"{self} variant set to: {pupNPCState.Variant}");
-                }
-            }
-            if (self.isTundrapup())
+            if (self.isTundrapup() && !CosmeticMode)
             {
                 self.tongue = new Player.Tongue(self, 0);
             }
@@ -119,13 +112,14 @@ namespace SlugpupStuff.Hooks
         private static void Player_UpdateMSC(On.Player.orig_UpdateMSC orig, Player self)
         {
             orig(self);
+            if (CosmeticMode) return;
             VariantStuff.VariantMechanicsAquaticpup(self);
             if (slugpupRemix.RotundBackExaustion.Value)
                 VariantStuff.VariantMechanicsRotundpup(self);
         }
         private static void Player_ClassMechanicsSaint(On.Player.orig_ClassMechanicsSaint orig, Player self)
         {
-            if (self.isTundrapup())
+            if (self.isTundrapup() && !CosmeticMode)
             {
                 Player parent = null;
                 if (self.grabbedBy.Count > 0 && self.grabbedBy[0].grabber is Player player)
@@ -181,7 +175,7 @@ namespace SlugpupStuff.Hooks
         }
         private static bool Player_SlugSlamConditions(On.Player.orig_SlugSlamConditions orig, Player self, PhysicalObject otherObject)
         {
-            if (self.isNPC && otherObject is Player)
+            if (self.isNPC && otherObject is Player && !CosmeticMode)
             {
                 return false;
             }
@@ -190,6 +184,7 @@ namespace SlugpupStuff.Hooks
         private static void Player_ThrownSpear(On.Player.orig_ThrownSpear orig, Player self, Spear spear)
         {
             orig(self, spear);
+            if (CosmeticMode) return;
             if (self.isTundrapup())
             {
                 spear.spearDamageBonus = 0.2f + 0.3f * Mathf.Pow(Random.value, 6f);
@@ -209,11 +204,12 @@ namespace SlugpupStuff.Hooks
         }
         private static bool Player_CanEatMeat(On.Player.orig_CanEatMeat orig, Player self, Creature crit)
         {
+            if (CosmeticMode) return orig(self, crit); 
             if (self.isTundrapup())
             {
                 return false;
             }
-            if (self.isHunterpup() || self.isRotundpup())
+            if (self.isHunterpup() || self.isRotundpup() || self.isBoompup())
             {
                 if (!crit.dead)
                 {
@@ -233,6 +229,7 @@ namespace SlugpupStuff.Hooks
         }
         private static bool Player_AllowGrabbingBatflys(On.Player.orig_AllowGrabbingBatflys orig, Player self)
         {
+            if (CosmeticMode) return orig(self);
             if (self.isNPC && self.isTundrapup())
             {
                 return false;
@@ -241,7 +238,7 @@ namespace SlugpupStuff.Hooks
         }
         private static bool Player_SaintTongueCheck(On.Player.orig_SaintTongueCheck orig, Player self)
         {
-            if (self.isNPC)
+            if (self.isNPC && !CosmeticMode)
             {
                 Player parent = null;
                 if (self.grabbedBy.Count > 0 && self.grabbedBy[0].grabber is Player player)
@@ -279,7 +276,7 @@ namespace SlugpupStuff.Hooks
         }
         private static void Player_TongueUpdate(On.Player.orig_TongueUpdate orig, Player self)
         {
-            if (self.isNPC)
+            if (self.isNPC && !CosmeticMode)
             {
                 Player parent = null;
                 if (self.grabbedBy.Count > 0 && self.grabbedBy[0].grabber is Player player)
@@ -374,7 +371,7 @@ namespace SlugpupStuff.Hooks
         }
         private static void Tongue_Shoot(On.Player.Tongue.orig_Shoot orig, Player.Tongue self, Vector2 dir)
         {
-            if (self.player.isNPC)
+            if (self.player.isNPC && !CosmeticMode)
             {
                 self.resetRopeLength();
                 if (self.Attached)
@@ -465,7 +462,7 @@ namespace SlugpupStuff.Hooks
         }
         private static void Tongue_decreaseRopeLength(On.Player.Tongue.orig_decreaseRopeLength orig, Player.Tongue self, float amount)
         {
-            if (self.player.isNPC && self.player.Malnourished)
+            if (self.player.isNPC && self.player.Malnourished && !CosmeticMode)
             {
                 amount /= 2f;
             }
@@ -473,7 +470,7 @@ namespace SlugpupStuff.Hooks
         }
         private static void Tongue_increaseRopeLength(On.Player.Tongue.orig_increaseRopeLength orig, Player.Tongue self, float amount)
         {
-            if (self.player.isNPC && self.player.Malnourished)
+            if (self.player.isNPC && self.player.Malnourished && !CosmeticMode)
             {
                 amount /= 2.5f;
             }
@@ -523,7 +520,7 @@ namespace SlugpupStuff.Hooks
             exhaustCurs.Emit(OpCodes.Ldarg_0);
             exhaustCurs.EmitDelegate((Player self) =>   // If pup is on back and pup is Rotundpup, return true
             {
-                if (self.TryGetParentVariables(out var parentVariables))
+                if (self.TryGetParentVariables(out var parentVariables) && !CosmeticMode)
                 {
                     return parentVariables.rotundPupExhaustion;
                 }
@@ -540,7 +537,7 @@ namespace SlugpupStuff.Hooks
             exhaustCurs.Emit(OpCodes.Ldarg_0);
             exhaustCurs.EmitDelegate((Player self) =>   // If pup is on back and pup is Rotundpup, return true
             {
-                if (self.TryGetParentVariables(out var parentVariables))
+                if (self.TryGetParentVariables(out var parentVariables) && !CosmeticMode)
                 {
                     return parentVariables.rotundPupExhaustion;
                 }
@@ -628,7 +625,7 @@ namespace SlugpupStuff.Hooks
             rotundCurs.Emit(OpCodes.Ldarg_0); // self
             rotundCurs.EmitDelegate((Player self) =>   // If self is Rotundpup, return true
             {
-                return self.isRotundpup();
+                return self.isRotundpup() && !CosmeticMode;
             });
             rotundCurs.Emit(OpCodes.Or);
 
@@ -713,7 +710,7 @@ namespace SlugpupStuff.Hooks
             {
                 if (self.playerState.TryGetPupState(out var pupNPCState))
                 {
-                    if (pupNPCState.Variant != VariantName.Regular)
+                    if (pupNPCState.Variant != MoreSlugcatsEnums.SlugcatStatsName.Slugpup)
                     {
                         return pupNPCState.Variant;
                     }
@@ -734,7 +731,7 @@ namespace SlugpupStuff.Hooks
             aquaCurs.Emit(OpCodes.Ldarg_0); // self
             aquaCurs.EmitDelegate((Player self) =>   // If self is aquaticpup, return false
             {
-                return !self.isAquaticpup();
+                return !self.isAquaticpup() && !CosmeticMode;
             });
             aquaCurs.Emit(OpCodes.And);
 
@@ -748,7 +745,7 @@ namespace SlugpupStuff.Hooks
             aquaCurs.Emit(OpCodes.Ldarg_0); // self
             aquaCurs.EmitDelegate((float f, Player self) =>   // If self is aquaticpup, return 3.25f, else return f
             {
-                if (self.isAquaticpup())
+                if (self.isAquaticpup() && !CosmeticMode)
                 {
                     return 3.25f;
                 }
@@ -765,7 +762,7 @@ namespace SlugpupStuff.Hooks
             aquaCurs.Emit(OpCodes.Ldarg_0); // self
             aquaCurs.EmitDelegate((float f, Player self) =>   // If self is aquaticpup, return 1.5f, else return f
             {
-                if (self.isAquaticpup())
+                if (self.isAquaticpup() && !CosmeticMode)
                 {
                     return 1.5f;
                 }
@@ -781,7 +778,7 @@ namespace SlugpupStuff.Hooks
             aquaCurs.Emit(OpCodes.Ldarg_0); // self
             aquaCurs.EmitDelegate((Player self) =>   // If self is aquaticpup, return false
             {
-                return !self.isAquaticpup();
+                return !self.isAquaticpup() && !CosmeticMode;
             });
             aquaCurs.Emit(OpCodes.And);
 
@@ -795,7 +792,7 @@ namespace SlugpupStuff.Hooks
             aquaCurs.Emit(OpCodes.Ldarg_0); // self
             aquaCurs.EmitDelegate((float f, Player self) =>   // If self is aquaticpup, return 0.8f, else return f
             {
-                if (self.isAquaticpup())
+                if (self.isAquaticpup() && !CosmeticMode)
                 {
                     return 0.8f;
                 }
@@ -812,7 +809,7 @@ namespace SlugpupStuff.Hooks
             aquaCurs.Emit(OpCodes.Ldarg_0); // self
             aquaCurs.EmitDelegate((float f, Player self) =>   // If self is aquaticpup, return 0.8f, else return f
             {
-                if (self.isAquaticpup())
+                if (self.isAquaticpup() && !CosmeticMode)
                 {
                     return 0.8f;
                 }
@@ -829,7 +826,7 @@ namespace SlugpupStuff.Hooks
             aquaCurs.Emit(OpCodes.Ldarg_0); // self
             aquaCurs.EmitDelegate((float f, Player self) =>   // If self is aquaticpup, return 1.2f, else return f
             {
-                if (self.isAquaticpup())
+                if (self.isAquaticpup() && !CosmeticMode)
                 {
                     return 1.2f;
                 }
@@ -846,7 +843,7 @@ namespace SlugpupStuff.Hooks
             aquaCurs.Emit(OpCodes.Ldarg_0); // self
             aquaCurs.EmitDelegate((float f, Player self) =>   // If self is aquaticpup, return 1.2f, else return f
             {
-                if (self.isAquaticpup())
+                if (self.isAquaticpup() && !CosmeticMode)
                 {
                     return 1.2f;
                 }
@@ -863,7 +860,7 @@ namespace SlugpupStuff.Hooks
             aquaCurs.Emit(OpCodes.Ldarg_0); // self
             aquaCurs.EmitDelegate((float f, Player self) =>   // If self is aquaticpup, return 9f, else return f
             {
-                if (self.isAquaticpup())
+                if (self.isAquaticpup() && !CosmeticMode)
                 {
                     return 9f;
                 }
@@ -880,7 +877,7 @@ namespace SlugpupStuff.Hooks
             aquaCurs.Emit(OpCodes.Ldarg_0); // self
             aquaCurs.EmitDelegate((float f, Player self) =>   // If self is aquaticpup, return 9f, else return f
             {
-                if (self.isAquaticpup())
+                if (self.isAquaticpup() && !CosmeticMode)
                 {
                     return 9f;
                 }
@@ -896,7 +893,7 @@ namespace SlugpupStuff.Hooks
             aquaCurs.Emit(OpCodes.Ldarg_0); // self
             aquaCurs.EmitDelegate((Player self) =>   // If self is aquaticpup, return false
             {
-                return !self.isAquaticpup();
+                return !self.isAquaticpup() && !CosmeticMode;
             });
             aquaCurs.Emit(OpCodes.And);
 
@@ -911,7 +908,7 @@ namespace SlugpupStuff.Hooks
             aquaCurs.Emit(OpCodes.Ldarg_0); // self
             aquaCurs.EmitDelegate((float f, Player self) =>   // If self is aquaticpup, return 6.5f, else return f
             {
-                if (self.isAquaticpup())
+                if (self.isAquaticpup() && !CosmeticMode)
                 {
                     return 6.5f;
                 }
@@ -927,7 +924,7 @@ namespace SlugpupStuff.Hooks
             aquaCurs.Emit(OpCodes.Ldarg_0); // self
             aquaCurs.EmitDelegate((Player self) =>   // If self is aquaticpup, return false
             {
-                return !self.isAquaticpup();
+                return !self.isAquaticpup() && !CosmeticMode;
             });
             aquaCurs.Emit(OpCodes.And);
 
@@ -941,7 +938,7 @@ namespace SlugpupStuff.Hooks
             aquaCurs.Emit(OpCodes.Ldarg_0); // self
             aquaCurs.EmitDelegate((float f, Player self) =>   // If self is aquaticpup, return 7.5f, else return f
             {
-                if (self.isAquaticpup())
+                if (self.isAquaticpup() && !CosmeticMode)
                 {
                     return 7.5f;
                 }
@@ -968,6 +965,7 @@ namespace SlugpupStuff.Hooks
             swimCurs.Emit(OpCodes.Ldarg_0); // self
             swimCurs.EmitDelegate((Player self) =>   // If self is aquaticpup or holding aquaticpup, return true
             {
+                if (CosmeticMode) return false;
                 if (self.isAquaticpup())
                 {
                     return true;
@@ -997,6 +995,7 @@ namespace SlugpupStuff.Hooks
             swimCurs.Emit(OpCodes.Ldarg_0); // self
             swimCurs.EmitDelegate((Player self) =>   // If self is aquaticpup or holding aquaticpup, return true
             {
+                if (CosmeticMode) return false;
                 if (self.isAquaticpup())
                 {
                     return true;
@@ -1031,6 +1030,7 @@ namespace SlugpupStuff.Hooks
             swimCurs.Emit(OpCodes.Ldarg_0); // self
             swimCurs.EmitDelegate((Player self) =>   // If self is aquaticpup or holding aquaticpup, return true
             {
+                if (CosmeticMode) return false;
                 if (self.isAquaticpup())
                 {
                     return true;
@@ -1064,6 +1064,7 @@ namespace SlugpupStuff.Hooks
             swimCurs.Emit(OpCodes.Ldarg_0); // self
             swimCurs.EmitDelegate((Player self) =>   // If self is aquaticpup or holding aquaticpup, return true
             {
+                if (CosmeticMode) return false;
                 if (self.isAquaticpup())
                 {
                     return true;
@@ -1091,6 +1092,7 @@ namespace SlugpupStuff.Hooks
             swimCurs.Emit(OpCodes.Ldarg_0); // self
             swimCurs.EmitDelegate((Player self) =>   // If self is aquaticpup or holding aquaticpup, return true
             {
+                if (CosmeticMode) return false;
                 if (self.isAquaticpup())
                 {
                     return true;
@@ -1118,6 +1120,7 @@ namespace SlugpupStuff.Hooks
             swimCurs.Emit(OpCodes.Ldarg_0); // self
             swimCurs.EmitDelegate((Player self) =>   // If self is aquaticpup or holding aquaticpup, return true
             {
+                if (CosmeticMode) return false;
                 if (self.isAquaticpup())
                 {
                     return true;
@@ -1145,6 +1148,7 @@ namespace SlugpupStuff.Hooks
             swimCurs.Emit(OpCodes.Ldarg_0); // self
             swimCurs.EmitDelegate((Player self) =>   // If self is aquaticpup or holding aquaticpup, return true
             {
+                if (CosmeticMode) return false;
                 if (self.isAquaticpup())
                 {
                     return true;
@@ -1172,6 +1176,7 @@ namespace SlugpupStuff.Hooks
             swimCurs.Emit(OpCodes.Ldarg_0); // self
             swimCurs.EmitDelegate((Player self) =>   // If self is aquaticpup or holding aquaticpup, return true
             {
+                if (CosmeticMode) return false;
                 if (self.isAquaticpup())
                 {
                     return true;
@@ -1199,6 +1204,7 @@ namespace SlugpupStuff.Hooks
             swimCurs.Emit(OpCodes.Ldarg_0); // self
             swimCurs.EmitDelegate((Player self) =>   // If self is aquaticpup or holding aquaticpup, return true
             {
+                if (CosmeticMode) return false;
                 if (self.isAquaticpup())
                 {
                     return true;
@@ -1225,6 +1231,7 @@ namespace SlugpupStuff.Hooks
             swimCurs.Emit(OpCodes.Ldarg_0); // self
             swimCurs.EmitDelegate((Player self) =>   // If self is aquaticpup or holding aquaticpup, return true
             {
+                if (CosmeticMode) return false;
                 if (self.isAquaticpup())
                 {
                     return true;
@@ -1254,6 +1261,7 @@ namespace SlugpupStuff.Hooks
             swimCurs.Emit(OpCodes.Ldarg_0); // self
             swimCurs.EmitDelegate((Player self) =>   // If self is aquaticpup or holding aquaticpup, return true
             {
+                if (CosmeticMode) return false;
                 if (self.isAquaticpup())
                 {
                     return true;
@@ -1281,6 +1289,7 @@ namespace SlugpupStuff.Hooks
             swimCurs.Emit(OpCodes.Ldarg_0); // self
             swimCurs.EmitDelegate((Player self) =>   // If self is aquaticpup or holding aquaticpup, return true
             {
+                if (CosmeticMode) return false;
                 if (self.isAquaticpup())
                 {
                     return true;
@@ -1311,6 +1320,7 @@ namespace SlugpupStuff.Hooks
             aquaCurs.Emit(OpCodes.Ldarg_0); // self
             aquaCurs.EmitDelegate((Player self) =>   // If self is aquaticpup or holding aquaticpup, return true
             {
+                if (CosmeticMode) return false;
                 Player pupGrabbed = null;
                 foreach (var grasped in self.grasps)
                 {
@@ -1342,6 +1352,7 @@ namespace SlugpupStuff.Hooks
             rotundCurs.Emit(OpCodes.Ldarg_0);
             rotundCurs.EmitDelegate((Player self) =>    // If self is Rotundpup or Rotundpup on back, return true
             {
+                if (CosmeticMode) return false;
                 Player pupOnBack = null;
                 if (self.slugOnBack?.slugcat != null)
                 {
@@ -1369,6 +1380,7 @@ namespace SlugpupStuff.Hooks
             rotundCurs.Emit(OpCodes.Ldarg_0);
             rotundCurs.EmitDelegate((float f, Player self) =>   // If extra Rotundpups on back, increase f
             {
+                if (CosmeticMode) return f;
                 Player pupOnBack = null;
                 if (self.slugOnBack?.slugcat != null)
                 {
@@ -1399,6 +1411,7 @@ namespace SlugpupStuff.Hooks
             rotundCurs.Emit(OpCodes.Ldarg_0); // self
             rotundCurs.EmitDelegate((Player self) =>    // If self is Rotundpup or Rotundpup on back, branch to slamLabel
             {
+                if (CosmeticMode) return true;
                 Player pupOnBack = null;
                 if (self.slugOnBack?.slugcat != null)
                 {
@@ -1432,7 +1445,7 @@ namespace SlugpupStuff.Hooks
                 rotundCurs.Emit(OpCodes.Ldarg_0);
                 rotundCurs.EmitDelegate((Player self) =>   // If self is Rotundpup, return true
                 {
-                    return self.isRotundpup();
+                    return self.isRotundpup() && !CosmeticMode;
                 });
                 rotundCurs.Emit(OpCodes.Or);
             }
@@ -1451,7 +1464,7 @@ namespace SlugpupStuff.Hooks
             rotundCurs.Emit(OpCodes.Ldarg_0);
             rotundCurs.EmitDelegate((Player self) =>    // If self is Rotundpup, return true
             {
-                if (self.isRotundpup())
+                if (self.isRotundpup() && !CosmeticMode)
                 {
                     return true;
                 }
@@ -1471,7 +1484,7 @@ namespace SlugpupStuff.Hooks
                     tundraCurs.Emit(OpCodes.Ldarg_0);
                     tundraCurs.EmitDelegate((Player self) =>    // If self is Tundrapup, return true
                     {
-                        if (self.isTundrapup())
+                        if (self.isTundrapup() && !CosmeticMode)
                         {
                             return !slugpupRemix.TundraViolence.Value;
                         }
@@ -1494,7 +1507,7 @@ namespace SlugpupStuff.Hooks
             rotundCurs.Emit(OpCodes.Ldarg_0); // self
             rotundCurs.EmitDelegate((Player self) =>   // If self is Rotundpup, return true
             {
-                return self.isRotundpup();
+                return self.isRotundpup() && !CosmeticMode;
             });
             rotundCurs.Emit(OpCodes.Or);
         }
@@ -1512,9 +1525,9 @@ namespace SlugpupStuff.Hooks
                 nameCurs.Emit(OpCodes.Ldarg_0); // self
                 nameCurs.EmitDelegate((SlugcatStats.Name SlugCatClass, Player self) =>   // If self.isSlugpup, return slugcatStats.name, else return SlugCatClass
                 {
-                    if (self.isSlugpup)
+                    if (self.playerState.TryGetPupState(out var pupNPCState))
                     {
-                        return self.slugcatStats.name;
+                        return pupNPCState.Variant;
                     }
                     return SlugCatClass;
                 });
@@ -1534,9 +1547,9 @@ namespace SlugpupStuff.Hooks
                 nameCurs.Emit(OpCodes.Ldarg_0); // self
                 nameCurs.EmitDelegate((SlugcatStats.Name SlugCatClass, Player self) =>   // If self.isSlugpup, return slugcatStats.name, else return SlugCatClass
                 {
-                    if (self.isSlugpup)
+                    if (self.playerState.TryGetPupState(out var pupNPCState))
                     {
-                        return self.slugcatStats.name;
+                        return pupNPCState.Variant;
                     }
                     return SlugCatClass;
                 });
@@ -1580,9 +1593,9 @@ namespace SlugpupStuff.Hooks
                 {
                     if (player.abstractCreature.superSizeMe) player.playerState.forceFullGrown = true;
 
-                    Random.State state = Random.state;
-                    Random.InitState(player.abstractCreature.ID.RandomSeed);
-                    if (pupNPCState.Variant != VariantName.Regular)
+                    //Random.State state = Random.state;
+                    //Random.InitState(player.abstractCreature.ID.RandomSeed);
+                    if (pupNPCState.Variant != MoreSlugcatsEnums.SlugcatStatsName.Slugpup)
                     {
                         AbstractCreature.Personality personality = player.abstractCreature.personality;
                         if (pupNPCState.Variant == VariantName.Aquaticpup)
@@ -1602,7 +1615,7 @@ namespace SlugpupStuff.Hooks
                             personality.nervous = Custom.PushFromHalf(personality.nervous, 2.5f);
                             personality.aggression = Custom.PushFromHalf(personality.aggression, 2.5f);
                         }
-                        if (pupNPCState.Variant == VariantName.Tundrapup)
+                        else if (pupNPCState.Variant == VariantName.Tundrapup)
                         {
                             self.Size = Mathf.Lerp(0f, Random.Range(0.7f, 1f), self.Size);
                             self.Stealth = Mathf.Lerp(Random.Range(0f, 0.3f), 1f, self.Stealth);
@@ -1621,12 +1634,12 @@ namespace SlugpupStuff.Hooks
                             //      increased by higher size, and higher metabolism
                             //      decreased by higher stealth
                             personality.aggression = Mathf.Clamp01(Mathf.Pow(personality.aggression - Random.Range(0f, 0.15f), 1.35f + 0.15f * (1f - self.Size) + 0.1f * (1f - self.Met) + 0.15f * self.Stealth));
-                            if (float.IsNaN(personality.aggression)) personality.aggression = 0.00000001f;
+                            if (float.IsNaN(personality.aggression)) personality.aggression = 0.001f;
 
                             // Base Personality Calculations
                             personality.dominance = Mathf.Lerp(Random.value, (personality.energy + personality.bravery + personality.aggression) / 3f, Mathf.Pow(Random.value, 0.25f));
                         }
-                        if (pupNPCState.Variant == VariantName.Hunterpup && (player.playerState.isPup || !player.playerState.forceFullGrown))
+                        else if (pupNPCState.Variant == VariantName.Hunterpup && (player.playerState.isPup || !player.playerState.forceFullGrown))
                         {
                             self.Size = Mathf.Lerp(0.5f, Random.Range(1.5f, 1.8f), self.Size);
                             self.Wideness = Mathf.Lerp(0.35f, Random.Range(1f, 1.3f), self.Wideness);
@@ -1646,7 +1659,7 @@ namespace SlugpupStuff.Hooks
                             personality.dominance = Mathf.Lerp(Random.value, (personality.energy + personality.bravery + personality.aggression) / 3f, Mathf.Pow(Random.value, 0.25f));
                             personality.nervous = Custom.PushFromHalf(personality.nervous, 2.5f);
                         }
-                        if (pupNPCState.Variant == VariantName.Rotundpup)
+                        else if (pupNPCState.Variant == VariantName.Rotundpup)
                         {
                             self.Wideness = Mathf.Lerp(0.5f, Random.Range(1.65f, 1.8f), self.Wideness);
                             self.Met = Mathf.Lerp(0f, Random.Range(0.7f, 0.9f), self.Met);
@@ -1657,7 +1670,7 @@ namespace SlugpupStuff.Hooks
                             //      increased by lower metabolism
                             //      decreased by lower balance, and higher wideness
                             personality.energy = Mathf.Clamp01(Mathf.Pow(personality.energy - Random.Range(0f, 0.1f), 1.2f + 0.1f * (1f - self.Met) + 0.1f * (1f - self.Bal) + 0.15f * self.Wideness));
-                            if (float.IsNaN(personality.energy)) personality.energy = 0.00000001f;
+                            if (float.IsNaN(personality.energy)) personality.energy = 0.001f;
                             // Higher Dominance
                             //      increased by higher size, high wideness
                             //      decreased by lower widness
@@ -1669,9 +1682,13 @@ namespace SlugpupStuff.Hooks
                             personality.nervous = Custom.PushFromHalf(personality.nervous, 2.5f);
                             personality.aggression = Custom.PushFromHalf(personality.aggression, 2.5f);
                         }
+                        else if (pupNPCState.Variant == VariantName.Boompup)
+                        {
+                             // todo
+                        }
                         player.abstractCreature.personality = personality;
                     }
-                    Random.state = state;
+                    //Random.state = state;
                 }
             });
 
@@ -1687,7 +1704,7 @@ namespace SlugpupStuff.Hooks
             {
                 if (player.playerState.TryGetPupState(out var pupNPCState))
                 {
-                    if (pupNPCState.Variant != VariantName.Regular)    
+                    if (pupNPCState.Variant != MoreSlugcatsEnums.SlugcatStatsName.Slugpup)    
                     {
                         return pupNPCState.Variant;
                     }

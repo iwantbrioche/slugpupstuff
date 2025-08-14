@@ -29,9 +29,19 @@ namespace SlugpupStuff.Hooks
             {
                 if (DevMode)
                 {
-                    //pupVariables.pathingVisualizer = new(self, 5);
-                    //pupVariables.labelManager = new(self.cat);
+                    pupVariables.pathingVisualizer = new(self, 5);
+                    pupVariables.labelManager = new(self.cat);
                     //pupVariables.destinationVisualizer = new(world.game.abstractSpaceVisualizer, world, self.pathFinder, self.cat.ShortCutColor());
+                }
+            }
+            if (self.cat.playerState.TryGetPupState(out var pupNPCState))
+            {
+                if (DevMode)
+                {
+                    UnityEngine.Debug.Log($"Slugpup {self.cat.abstractCreature.ID} variant set to: {pupNPCState.Variant}");
+                    UnityEngine.Debug.Log($"SlugCatClass: {self.cat.SlugCatClass.value}");
+                    UnityEngine.Debug.Log($"slugcatStats.Name: {self.cat.slugcatStats.name}");
+                    UnityEngine.Debug.Log($"saveData: {self.cat.playerState.ToString()}");
                 }
             }
 
@@ -39,6 +49,12 @@ namespace SlugpupStuff.Hooks
         private static void SlugNPCAI_Move(On.MoreSlugcats.SlugNPCAI.orig_Move orig, SlugNPCAI self)
         {
             orig(self);
+            if (DevMode && self.TryGetPupVariables(out var pupVariables))
+            {
+                pupVariables.pathingVisualizer?.VisualizeConnections();
+                pupVariables.destinationVisualizer?.Update();
+            }
+            if (CosmeticMode) return;
             if (self.cat.gourmandExhausted)
             {
                 if (!self.OnAnyBeam())
@@ -63,11 +79,7 @@ namespace SlugpupStuff.Hooks
                     }
                 }
             }
-            if (DevMode && self.TryGetPupVariables(out var pupVariables))
-            {
-                pupVariables.pathingVisualizer?.VisualizeConnections();
-                pupVariables.destinationVisualizer?.Update();
-            }
+
 
         }
         private static void SlugNPCAI_Update(On.MoreSlugcats.SlugNPCAI.orig_Update orig, SlugNPCAI self)
@@ -75,6 +87,17 @@ namespace SlugpupStuff.Hooks
             orig(self);
             if (self.TryGetPupVariables(out var pupVariables))
             {
+                if (DevMode)
+                {
+                    pupVariables.pathingVisualizer?.Update();
+                    if (pupVariables.labelManager != null)
+                    {
+                        pupVariables.labelManager.UpdateLabel("grabTarget", $"grabTarget: {(self.grabTarget != null ? self.grabTarget is Creature ? (self.grabTarget as Creature).abstractCreature.creatureTemplate.type : self.grabTarget.abstractPhysicalObject.type : "NULL")}", self.grabTarget != null);
+                        pupVariables.labelManager.UpdateLabel("giftedItem", $"giftedItem: {(pupVariables.giftedItem != null ? pupVariables.giftedItem is AbstractCreature ? (pupVariables.giftedItem as AbstractCreature).creatureTemplate.type : pupVariables.giftedItem.type : "NULL")}", pupVariables.giftedItem != null);
+                        pupVariables.labelManager.UpdateLabel("prey", $"hunting: {(self.AttackingPrey() ? self.preyTracker.MostAttractivePrey.representedCreature.realizedCreature : "NULL")}", self.AttackingPrey());
+                        pupVariables.labelManager.Update(self.cat.mainBodyChunk.pos + new Vector2(35f, 30f));
+                    }
+                }
                 if (self.nap)
                 {
                     if (Mathf.Clamp01(0.06f / self.creature.personality.energy) > Random.Range(0.35f, 1f) || self.cat.emoteSleepCounter > 1.4f)
@@ -98,7 +121,7 @@ namespace SlugpupStuff.Hooks
                 {
                     self.cat.emoteSleepCounter = 0f;
                 }
-                if (self.isRotundpup())
+                if (self.isRotundpup() && !CosmeticMode)
                 {
                     if (self.foodReaction < -110 && self.FunStuff && self.cat.objectInStomach == null && !pupVariables.regurgitating)
                     {
@@ -137,18 +160,6 @@ namespace SlugpupStuff.Hooks
                     }
                 }
 
-                if (DevMode)
-                {
-                    pupVariables.pathingVisualizer?.Update();
-                    if (pupVariables.labelManager != null)
-                    {
-                        pupVariables.labelManager.UpdateLabel("grabTarget", $"grabTarget: {(self.grabTarget != null ? self.grabTarget is Creature ? (self.grabTarget as Creature).abstractCreature.creatureTemplate.type : self.grabTarget.abstractPhysicalObject.type : "NULL")}", self.grabTarget != null);
-                        pupVariables.labelManager.UpdateLabel("giftedItem", $"giftedItem: {(pupVariables.giftedItem != null ? pupVariables.giftedItem is AbstractCreature ? (pupVariables.giftedItem as AbstractCreature).creatureTemplate.type : pupVariables.giftedItem.type : "NULL")}", pupVariables.giftedItem != null);
-                        pupVariables.labelManager.UpdateLabel("prey", $"hunting: {(self.AttackingPrey() ? self.preyTracker.MostAttractivePrey.representedCreature.realizedCreature : "NULL")}", self.AttackingPrey());
-                        pupVariables.labelManager.Update(self.cat.mainBodyChunk.pos + new Vector2(35f, 30f));
-                    }
-                }
-
             }
         }
         private static void SlugNPCAI_DecideBehavior(On.MoreSlugcats.SlugNPCAI.orig_DecideBehavior orig, SlugNPCAI self)
@@ -172,7 +183,7 @@ namespace SlugpupStuff.Hooks
         }
         private static float SlugNPCAI_LethalWeaponScore(On.MoreSlugcats.SlugNPCAI.orig_LethalWeaponScore orig, SlugNPCAI self, PhysicalObject obj, Creature target)
         {
-            if (self.isTundrapup())
+            if (self.isTundrapup() && !CosmeticMode)
             {
                 if (obj is Spear)
                 {
@@ -187,6 +198,7 @@ namespace SlugpupStuff.Hooks
         }
         private static bool SlugNPCAI_TheoreticallyEatMeat(On.MoreSlugcats.SlugNPCAI.orig_TheoreticallyEatMeat orig, SlugNPCAI self, Creature crit, bool excludeCentipedes)
         {
+            if (CosmeticMode) return orig(self, crit, excludeCentipedes);
             if (self.isTundrapup())
             {
                 if (self.TryGetPupVariables(out var pupVariables))
@@ -198,7 +210,7 @@ namespace SlugpupStuff.Hooks
                 }
                 return false;
             }
-            if (self.isHunterpup() || self.isRotundpup())
+            if (self.isHunterpup() || self.isRotundpup() || self.isBoompup())
             {
                 if (crit is Player)
                 {
@@ -225,7 +237,7 @@ namespace SlugpupStuff.Hooks
         }
         private static bool SlugNPCAI_HasEdible(On.MoreSlugcats.SlugNPCAI.orig_HasEdible orig, SlugNPCAI self)
         {
-            if (self.isTundrapup() && self.TryGetPupVariables(out var pupVariables))
+            if (self.isTundrapup() && self.TryGetPupVariables(out var pupVariables) && !CosmeticMode)
             {
                 if (orig(self) && self.cat.grasps[0].grabbed is Creature or JellyFish)
                 {
@@ -259,7 +271,8 @@ namespace SlugpupStuff.Hooks
         private static PathCost SlugNPCAI_TravelPreference(On.MoreSlugcats.SlugNPCAI.orig_TravelPreference orig, SlugNPCAI self, MovementConnection coord, PathCost cost)
         {
             PathCost origCost = orig(self, coord, cost);
-            if (self.behaviorType != SlugNPCAI.BehaviorType.Fleeing)
+            if (CosmeticMode) return origCost;
+                if (self.behaviorType != SlugNPCAI.BehaviorType.Fleeing)
             {
                 origCost = cost;
                 if (self.cat.gourmandExhausted)

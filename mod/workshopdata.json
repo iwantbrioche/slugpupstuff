@@ -3,7 +3,7 @@
   "Description": "Adds four new slugpup variants based off The Hunter, The Rivulet, The Gourmand, and The Saint. Each variant comes with new stats, different food requirements, and special abilities! Also adds various miscellaneous behaviors as well.",
   "ID": "iwantbread.slugpupstuff",
   "Version": "1.3",
-  "TargetGameVersion": "v1.10.1",
+  "TargetGameVersion": "v1.10",
   "Requirements": "moreslugcats,rwremix",
   "RequirementNames": "More Slugcats,Rainworld Remix",
   "Authors": "iwantbread",

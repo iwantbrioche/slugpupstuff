@@ -82,10 +82,10 @@ namespace SlugpupStuff
 
             public SlugNPCAI AI;
             public Creature crit;
-            int connectionCount;
-            public ConnectionSprite[] conSprites;
-            public ConnectionSprite[] savedConSprites;
-            public DebugSprite[] destSprites;
+            private int connectionCount;
+            private ConnectionSprite[] conSprites;
+            private ConnectionSprite[] savedConSprites;
+            private DebugSprite[] destSprites;
             public PathingVisualizer(SlugNPCAI pup, int count)
             {
                 AI = pup;

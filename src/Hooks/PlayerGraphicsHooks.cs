@@ -16,7 +16,6 @@ namespace SlugpupStuff.Hooks
             On.PlayerGraphics.ColoredBodyPartList += PlayerGraphics_ColoredBodyPartList;
             On.SlugcatHand.Update += SlugcatHand_Update;
 
-            IL.PlayerGraphics.InitiateSprites += IL_PlayerGraphics_InitiateSprites;
             IL.PlayerGraphics.DrawSprites += IL_PlayerGraphics_DrawSprites;
             IL.PlayerGraphics.Update += IL_PlayerGraphics_Update;
             IL.PlayerGraphics.AxolotlGills.SetGillColors += IL_AxolotlGills_SetGillColors;
@@ -29,7 +28,7 @@ namespace SlugpupStuff.Hooks
             {
                 self.gills = new PlayerGraphics.AxolotlGills(self, 13 + self.mudSpriteCount);
             }
-            if (self.player.isTundrapup())
+            if (self.player.isTundrapup() && !CosmeticMode)
             {
                 self.ropeSegments = new PlayerGraphics.RopeSegment[20];
                 for (int k = 0; k < self.ropeSegments.Length; k++)
@@ -103,15 +102,20 @@ namespace SlugpupStuff.Hooks
             if (self.TryGetPupGraphics(out var pupGraphics))
             {
                 pupGraphics.sLeaserLength = sLeaser.sprites.Length;
-                if (self.player.isTundrapup())
+                if (self.player.isTundrapup() && !CosmeticMode)
                 {
                     Array.Resize(ref sLeaser.sprites, sLeaser.sprites.Length + 1);
                     pupGraphics.TongueSpriteIndex = sLeaser.sprites.Length - 1;
 
                     sLeaser.sprites[pupGraphics.TongueSpriteIndex] = TriangleMesh.MakeLongMesh(self.ropeSegments.Length - 1, pointyTip: false, customColor: true);
                 }
-                self.AddToContainer(sLeaser, rCam, null);
+                if (self.player.isAquaticpup())
+                {
+                    Array.Resize(ref sLeaser.sprites, sLeaser.sprites.Length + self.gills.numberOfSprites);
+                    self.gills.InitiateSprites(sLeaser, rCam);
+                }
             }
+            self.AddToContainer(sLeaser, rCam, null);
         }
         private static void PlayerGraphics_AddToContainer(On.PlayerGraphics.orig_AddToContainer orig, PlayerGraphics self, RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, FContainer newContatiner)
         {
@@ -123,7 +127,7 @@ namespace SlugpupStuff.Hooks
             if (self.TryGetPupGraphics(out var pupGraphics))
             {
                 if (pupGraphics.sLeaserLength == 0 || sLeaser.sprites.Length <= pupGraphics.sLeaserLength) return;
-                if (self.player.isTundrapup())
+                if (self.player.isTundrapup() && !CosmeticMode)
                 {
                     rCam.ReturnFContainer("Midground").AddChild(sLeaser.sprites[pupGraphics.TongueSpriteIndex]);
                 }
@@ -132,6 +136,7 @@ namespace SlugpupStuff.Hooks
                     self.gills.AddToContainer(sLeaser, rCam, rCam.ReturnFContainer("Midground"));
                 }
             }
+
         }
         private static void PlayerGraphics_DrawSprites(On.PlayerGraphics.orig_DrawSprites orig, PlayerGraphics self, RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
         {
@@ -150,7 +155,7 @@ namespace SlugpupStuff.Hooks
                         headElement = "HeadB" + headElement.Remove(0, 5);
                         sLeaser.sprites[3].element = Futile.atlasManager.GetElementWithName(headElement);
                     }
-                    if (self.player.room != null)
+                    if (self.player.room != null && !CosmeticMode)
                     {
                         float to = Mathf.Lerp(self.lastStretch, self.stretch, timeStacker);
                         Vector2 upperTongueDrawPos = Vector2.Lerp(self.ropeSegments[0].lastPos, self.ropeSegments[0].pos, timeStacker);
@@ -231,7 +236,7 @@ namespace SlugpupStuff.Hooks
                 self.gills.baseColor = baseCol;
                 self.gills.ApplyPalette(sLeaser, rCam, palette);
             }
-            if (self.TryGetPupGraphics(out var pupGraphics))
+            if (self.TryGetPupGraphics(out var pupGraphics) && !CosmeticMode)
             {
                 if (self.player.isTundrapup())
                 {
@@ -291,7 +296,7 @@ namespace SlugpupStuff.Hooks
             {
                 self.gills.Update();
             }
-            if (self.player.room != null && self.player.isTundrapup())
+            if (self.player.room != null && self.player.isTundrapup() && !CosmeticMode)
             {
                 self.lastStretch = self.stretch;
                 self.stretch = self.RopeStretchFac;
@@ -328,25 +333,6 @@ namespace SlugpupStuff.Hooks
                     self.ropeSegments[n].claimedForBend = false;
                 }
             }
-        }
-        private static void IL_PlayerGraphics_InitiateSprites(ILContext il)
-        {
-            ILCursor initCurs = new(il);
-
-            initCurs.GotoNext(MoveType.Before, x => x.MatchLdarg(0), x => x.MatchLdarg(1), x => x.MatchLdarg(2), x => x.MatchLdnull(),
-                x => x.MatchCallOrCallvirt<GraphicsModule>(nameof(GraphicsModule.AddToContainer)));
-
-            initCurs.Emit(OpCodes.Ldarg_0); // self
-            initCurs.Emit(OpCodes.Ldarg_1); // sLeaser
-            initCurs.Emit(OpCodes.Ldarg_2); // rCam
-            initCurs.EmitDelegate((PlayerGraphics self, RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam) =>   // Resize sLeaser.sprites and initiate pup sprites
-            {
-                if (self.player.isAquaticpup())
-                {
-                    Array.Resize(ref sLeaser.sprites, sLeaser.sprites.Length + self.gills.numberOfSprites);
-                    self.gills.InitiateSprites(sLeaser, rCam);
-                }
-            });
         }
         private static void IL_PlayerGraphics_DrawSprites(ILContext il)
         {
@@ -419,11 +405,7 @@ namespace SlugpupStuff.Hooks
             gillCurs.Emit(OpCodes.Ldarg_0);
             gillCurs.EmitDelegate((PlayerGraphics.AxolotlGills self) =>
             {
-                if (self.pGraphics.player.isSlugpup)
-                {
-                    return true;
-                }
-                return false;
+                return self.pGraphics.player.isSlugpup;
             });
             gillCurs.Emit(OpCodes.Brtrue, retLabel);
         }

@@ -8,7 +8,7 @@ namespace SlugpupStuff.PupsPlusCustom
         public static void RegisterSpawnPupCommand()
         {
             string[] tags = ["Voidsea", "Winter", "Ignorecycle", "TentacleImmune", "Lavasafe", "AlternateForm", "PreCycle", "Night"];
-            string[] variants = ["Aquatic", "Tundra", "Hunter", "Rotund", "Regular"];
+            string[] variants = ["Aquatic", "Tundra", "Hunter", "Rotund", "Boom", "Regular"];
             string[] tags2 = [.. tags, .. variants];
             string[] arguments = null;
             new CommandBuilder("spawn_pup")
@@ -114,7 +114,9 @@ namespace SlugpupStuff.PupsPlusCustom
                 "Aquaticpup",
                 "Tundrapup",
                 "Hunterpup",
-                "Rotundpup"
+                "Rotundpup",
+                "Boompup",
+                "Ripplepup"
             });
             return list;
         }
